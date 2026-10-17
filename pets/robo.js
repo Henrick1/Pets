@@ -46,8 +46,8 @@ Pets.register({
         bevelEnabled: true,
         bevelThickness: bev,
         bevelSize: bev,
-        bevelSegments: 3,
-        curveSegments: 8
+        bevelSegments: 6,
+        curveSegments: 20
       });
       g.center();
       return g;
