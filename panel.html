@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+<title>Pets</title>
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  font: 14px system-ui, sans-serif;
+  color: #243029;
+}
+#card.auth-mode > :not(#auth),
+#card.box-mode > :not(#box) {
+  display: none;
+}
+#card:not(.auth-mode) > #auth,
+#card:not(.box-mode) > #box {
+  display: none;
+}
+#box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+#box p {
+  margin: 0;
+  color: #5b6b63;
+  font-size: 12px;
+  line-height: 1.4;
+}
+#box-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.box-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f3f7f5;
+}
+.box-item .line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.box-item .line .info {
+  flex: 1;
+}
+.box-item .swap {
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #2e7d54;
+  color: #ffffff;
+}
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.picker .who {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #5b6b63;
+}
+.picker button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d3e0d9;
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+.picker button:hover {
+  background: #e9f0ec;
+}
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.name-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 600;
+}
+.name-line .lv {
+  font-size: 11px;
+  color: #2e5f8a;
+  font-weight: 600;
+}
+.name-line .warn {
+  font-size: 11px;
+  color: #8c1d18;
+  font-weight: 600;
+}
+.mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.mini-track {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: #dfe8e3;
+  overflow: hidden;
+}
+.mini-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+#auth {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+#auth p {
+  margin: 0;
+  color: #5b6b63;
+  font-size: 13px;
+  line-height: 1.4;
+}
+#auth form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#auth label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+#auth input {
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 10px;
+  border: 1px solid #c9d6cf;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #243029;
+  user-select: text;
+}
+#auth input:focus-visible {
+  outline: 2px solid #2e7d54;
+  outline-offset: 1px;
+}
+#auth-msg {
+  min-height: 1.4em;
+}
+#auth-msg.error {
+  color: #8c1d18;
+  font-weight: 600;
+}
+#auth-msg.ok {
+  color: #1b5e3b;
+  font-weight: 600;
+}
+.row-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.row-buttons button,
+.solid {
+  border: 0;
+  border-radius: 12px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #2e7d54;
+  color: #ffffff;
+}
+.row-buttons button.ghost {
+  background: #e1f1e8;
+  color: #1b5e3b;
+}
+.row-buttons button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.link {
+  border: 0;
+  background: transparent;
+  color: #2e5f8a;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 4px;
+}
+#account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #e3ebe6;
+  font-size: 12px;
+  color: #5b6b63;
+}
+#account-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+#acc-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #243029;
+}
+#card {
+  box-sizing: border-box;
+  margin: 8px;
+  height: calc(100% - 16px);
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 6px 20px rgba(30, 35, 64, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+h1 {
+  margin: 0;
+  font-size: 16px;
+}
+h2 {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b6b63;
+}
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 2px solid #2e7d54;
+  outline-offset: 2px;
+}
+#close, #box-close, #auth-close {
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 8px;
+  border-radius: 8px;
+  color: #5b6b63;
+}
+#close:hover, #box-close:hover, #auth-close:hover {
+  background: #eef3f0;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.track {
+  height: 10px;
+  border-radius: 5px;
+  background: #dfe8e3;
+  overflow: hidden;
+}
+#fill, #life-fill, #xp-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 5px;
+  background: #5fbf8c;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.actions button {
+  border: 0;
+  border-radius: 12px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #2e7d54;
+  color: #ffffff;
+}
+.actions button:hover:not(:disabled) {
+  background: #266b48;
+}
+.actions button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+#xp-fill {
+  background: #6c8cff;
+}
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+#level-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e4effa;
+  color: #2e5f8a;
+  font-size: 12px;
+  font-weight: 600;
+}
+#toast {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #e1f1e8;
+  color: #1b5e3b;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+#status {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fde8e6;
+  color: #8c1d18;
+  font-size: 12px;
+  font-weight: 600;
+}
+#pets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.pet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #f3f7f5;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+.pet:hover {
+  background: #e9f0ec;
+}
+.pet[aria-pressed="true"] {
+  border-color: #2e7d54;
+  background: #e1f1e8;
+}
+.dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+@media (prefers-reduced-motion: reduce) {
+  #fill, #life-fill, #xp-fill { transition: none; }
+}
+</style>
+</head>
+<body>
+<main id="card">
+  <section id="auth" aria-labelledby="auth-title">
+    <header>
+      <h1 id="auth-title">Entrar</h1>
+      <button id="auth-close" type="button" aria-label="Fechar">&times;</button>
+    </header>
+    <p>Entre na sua conta para guardar o progresso dos pets e abrir os mesmos pets em outros aparelhos.</p>
+    <form id="auth-form" novalidate>
+      <label>E-mail<input id="email" type="email" autocomplete="email" inputmode="email"></label>
+      <label>Senha<input id="password" type="password" autocomplete="current-password"></label>
+      <p id="auth-msg" role="alert"></p>
+      <div class="row-buttons">
+        <button id="signin" type="submit">Entrar</button>
+        <button id="signup" class="ghost" type="button">Criar conta</button>
+      </div>
+    </form>
+    <button id="skip" class="link" type="button">Continuar sem conta</button>
+  </section>
+  <section id="box" aria-labelledby="box-title">
+    <header>
+      <h1 id="box-title">Caixa</h1>
+      <button id="box-close" type="button" aria-label="Voltar">&times;</button>
+    </header>
+    <p>As criaturas na caixa ficam paradas: não gastam fome nem vida. Escolha uma para entrar no grupo no lugar de outra.</p>
+    <div id="box-list"></div>
+  </section>
+  <header>
+    <div class="title"><h1 id="pet-name"></h1><span id="level-badge"></span></div>
+    <button id="close" type="button" aria-label="Fechar">&times;</button>
+  </header>
+  <p id="toast" role="status" hidden></p>
+  <p id="status" hidden>Morrendo: alimente e trate até chegar a 20% de vida.</p>
+  <section>
+    <div class="row"><span>Fome</span><span id="hunger-val">100%</span></div>
+    <div class="track"><div id="fill"></div></div>
+  </section>
+  <section>
+    <div class="row"><span>Vida</span><span id="life-val">100%</span></div>
+    <div class="track"><div id="life-fill"></div></div>
+  </section>
+  <section>
+    <div class="row"><span>XP</span><span id="xp-val">0 / 50</span></div>
+    <div class="track"><div id="xp-fill"></div></div>
+  </section>
+  <div class="actions">
+    <button id="feed" type="button">Alimentar</button>
+    <button id="treat" type="button">Tratar</button>
+  </div>
+  <h2>Seu grupo</h2>
+  <div id="pets"></div>
+  <button id="open-box" class="link" type="button"></button>
+  <footer id="account" hidden>
+    <div id="account-info"><span id="acc-email"></span><span id="acc-status"></span></div>
+    <button id="account-btn" class="link" type="button">Sair</button>
+  </footer>
+</main>
+<script src="panel.js"></script>
+</body>
+</html>

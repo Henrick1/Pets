@@ -1,0 +1,28 @@
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("pet", {
+  onCursor: cb => ipcRenderer.on("cursor", (_e, p) => cb(p)),
+  onJump: cb => ipcRenderer.on("jump", () => cb()),
+  onFeed: cb => ipcRenderer.on("feed", () => cb()),
+  onTreat: cb => ipcRenderer.on("treat", () => cb()),
+  onLevelUp: cb => ipcRenderer.on("level-up", (_e, level) => cb(level)),
+  onPanel: cb => ipcRenderer.on("panel", (_e, open) => cb(open)),
+  onState: cb => ipcRenderer.on("state", (_e, s) => cb(s)),
+  getState: () => ipcRenderer.invoke("get-state"),
+  getPetFiles: () => ipcRenderer.invoke("pet-files"),
+  setPetsMeta: list => ipcRenderer.send("pets-meta", list),
+  feed: () => ipcRenderer.send("feed"),
+  treat: () => ipcRenderer.send("treat"),
+  selectPet: id => ipcRenderer.send("select-pet", id),
+  swapParty: (out, incoming) => ipcRenderer.send("swap-party", { out, in: incoming }),
+  closePanel: () => ipcRenderer.send("close-panel"),
+  dragStart: p => ipcRenderer.send("drag-start", p),
+  dragMove: p => ipcRenderer.send("drag-move", p),
+  dragEnd: () => ipcRenderer.send("drag-end"),
+  menu: () => ipcRenderer.send("menu"),
+  signIn: creds => ipcRenderer.invoke("auth-signin", creds),
+  signUp: creds => ipcRenderer.invoke("auth-signup", creds),
+  signOut: () => ipcRenderer.invoke("auth-signout"),
+  syncNow: () => ipcRenderer.send("sync-now"),
+  skipAuth: () => ipcRenderer.send("auth-skip")
+});

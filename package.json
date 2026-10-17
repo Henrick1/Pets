@@ -1,0 +1,18 @@
+{
+  "name": "pets",
+  "version": "2.0.0",
+  "description": "Bichinhos 3D numa janela transparente",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:web": "node scripts/build-web.js",
+    "serve:web": "node scripts/serve-web.js"
+  },
+  "dependencies": {
+    "three": "0.128.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  },
+  "productName": "Pets"
+}

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self' __SUPABASE_ORIGIN__; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#2e7d54">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pets">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+<title>Pets</title>
+</head>
+<body>
+<div id="loading" class="splash" role="status">
+  <img src="assets/icon-192.png" alt="" width="96" height="96">
+  <p id="loading-text">Carregando seus bichinhos...</p>
+</div>
+
+<main id="auth-view" class="auth" hidden>
+  <div class="auth-card">
+    <img src="assets/icon-192.png" alt="" width="88" height="88">
+    <h1>Pets</h1>
+    <p class="lead">Entre para ver seus bichinhos em qualquer aparelho.</p>
+    <form id="auth-form" novalidate>
+      <label for="email">E-mail</label>
+      <input id="email" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
+      <label for="password">Senha</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" minlength="6">
+      <p id="auth-msg" class="msg" role="alert"></p>
+      <div class="btn-row">
+        <button id="signin" class="btn primary" type="submit">Entrar</button>
+        <button id="signup" class="btn soft" type="button">Criar conta</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<main id="game-view" class="game" hidden>
+  <header class="top">
+    <div class="who">
+      <h1 id="pet-name"></h1>
+      <span id="level" class="badge"></span>
+    </div>
+    <button id="account-btn" class="icon-btn" type="button" aria-label="Conta">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </header>
+
+  <section id="stage-wrap" class="stage-wrap" aria-label="Seu bichinho. Toque para interagir.">
+    <canvas id="stage"></canvas>
+    <p id="dying" class="dying" role="status" hidden>Morrendo: alimente e trate até chegar a 20% de vida.</p>
+    <p id="toast" class="toast" role="status" hidden></p>
+  </section>
+
+  <section class="panel">
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Fome</span>
+        <div id="hunger-bar" class="bar" role="progressbar" aria-label="Fome" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
+        <span id="hunger-val" class="stat-val"></span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Vida</span>
+        <div id="life-bar" class="bar" role="progressbar" aria-label="Vida" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
+        <span id="life-val" class="stat-val"></span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">XP</span>
+        <div id="xp-bar" class="bar xp" role="progressbar" aria-label="XP" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
+        <span id="xp-val" class="stat-val"></span>
+      </div>
+    </div>
+    <nav class="actions" aria-label="Ações">
+      <button id="feed" class="btn primary" type="button">Alimentar</button>
+      <button id="treat" class="btn primary" type="button">Tratar</button>
+      <button id="party-btn" class="btn soft" type="button">Grupo<span id="party-alert" class="alert-dot" hidden></span></button>
+    </nav>
+  </section>
+</main>
+
+<dialog id="party-sheet" class="sheet" aria-labelledby="party-title">
+  <div class="sheet-head">
+    <h2 id="party-title">Seus bichinhos</h2>
+    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button id="tab-party" class="tab" role="tab" type="button" aria-selected="true" aria-controls="party-list">Grupo</button>
+    <button id="tab-box" class="tab" role="tab" type="button" aria-selected="false" aria-controls="box-list">Caixa</button>
+  </div>
+  <p id="sheet-hint" class="hint"></p>
+  <div id="party-list" class="list" role="tabpanel" aria-labelledby="tab-party"></div>
+  <div id="box-list" class="list" role="tabpanel" aria-labelledby="tab-box" hidden></div>
+</dialog>
+
+<dialog id="account-sheet" class="sheet" aria-labelledby="account-title">
+  <div class="sheet-head">
+    <h2 id="account-title">Conta</h2>
+    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+  </div>
+  <div class="account-body">
+    <p id="account-email" class="account-email"></p>
+    <p id="account-status" class="hint"></p>
+    <div class="btn-col">
+      <button id="sync-now" class="btn soft" type="button">Sincronizar agora</button>
+      <button id="install" class="btn soft" type="button" hidden>Instalar o app</button>
+      <p id="install-hint" class="hint" hidden></p>
+      <button id="signout" class="btn danger" type="button">Sair da conta</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
