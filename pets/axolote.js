@@ -298,33 +298,32 @@ Pets.register({
       });
     });
 
-    const handShape = () => {
-      const sh = new THREE.Shape();
-      sh.moveTo(-0.1, 0);
-      sh.lineTo(-0.1, 0.07);
+    const buildFoot = () => {
+      const g = new THREE.Group();
+      const palm = mesh(new THREE.SphereGeometry(1, 20, 14), skin, false);
+      palm.scale.set(0.108, 0.042, 0.095);
+      palm.position.z = 0.02;
+      g.add(palm);
       [
-        [-0.075, 0.17],
-        [-0.025, 0.23],
-        [0.025, 0.23],
-        [0.075, 0.17]
-      ].forEach(([cx, h]) => {
-        sh.lineTo(cx - 0.021, h - 0.02);
-        sh.quadraticCurveTo(cx, h + 0.015, cx + 0.021, h - 0.02);
-        sh.lineTo(cx + 0.021, 0.07);
+        [-0.078, -0.5, 0.15],
+        [-0.028, -0.17, 0.21],
+        [0.028, 0.17, 0.21],
+        [0.078, 0.5, 0.15]
+      ].forEach(([fx, ang, len]) => {
+        const f = new THREE.Group();
+        f.position.set(fx, 0, 0.07);
+        f.rotation.y = ang;
+        const seg = mesh(new THREE.CylinderGeometry(0.019, 0.03, len, 12), skin, false);
+        seg.rotation.x = Math.PI / 2;
+        seg.position.z = len / 2;
+        const tip = mesh(new THREE.SphereGeometry(0.027, 12, 10), skin, false);
+        tip.scale.set(1, 0.82, 1.2);
+        tip.position.z = len;
+        f.add(seg, tip);
+        g.add(f);
       });
-      sh.lineTo(0.1, 0.07);
-      sh.lineTo(0.1, 0);
-      sh.quadraticCurveTo(0, -0.06, -0.1, 0);
-      return sh;
+      return g;
     };
-    const handGeo = new THREE.ExtrudeGeometry(handShape(), {
-      depth: 0.03,
-      bevelEnabled: true,
-      bevelThickness: 0.008,
-      bevelSize: 0.008,
-      bevelSegments: 2,
-      curveSegments: 6
-    });
 
     const LEG_OUT = 0.9;
     const legs = [];
@@ -349,9 +348,8 @@ Pets.register({
       const joint = mesh(new THREE.SphereGeometry(0.068 * k, 12, 10), skin, false);
       const lower = mesh(new THREE.CylinderGeometry(0.07 * k, 0.05 * k, lowerLen, 12), skin, false);
       lower.position.y = -lowerLen / 2;
-      const hand = mesh(handGeo, skin, false);
+      const hand = buildFoot();
       hand.position.y = -lowerLen;
-      hand.rotation.x = Math.PI / 2;
       hand.scale.setScalar(1.1 * k);
       elbow.add(joint, lower, hand);
       shoulder.add(upper, elbow);
