@@ -27,63 +27,7 @@ Pets.register({
     const glow = new THREE.MeshBasicMaterial({ color: 0xff9f43 });
     const flameMat = new THREE.MeshBasicMaterial({ color: 0xffb347 });
 
-    const creased = (g, maxAngle = 0.21) => {
-      const pos = g.attributes.position;
-      const n = pos.count;
-      const faces = new Float32Array(n * 3);
-      const groups = new Map();
-      const key = i =>
-        Math.round(pos.getX(i) * 1e4) + "_" + Math.round(pos.getY(i) * 1e4) + "_" + Math.round(pos.getZ(i) * 1e4);
-      for (let i = 0; i < n; i += 3) {
-        const ax = pos.getX(i + 1) - pos.getX(i);
-        const ay = pos.getY(i + 1) - pos.getY(i);
-        const az = pos.getZ(i + 1) - pos.getZ(i);
-        const bx = pos.getX(i + 2) - pos.getX(i);
-        const by = pos.getY(i + 2) - pos.getY(i);
-        const bz = pos.getZ(i + 2) - pos.getZ(i);
-        const nx = ay * bz - az * by;
-        const ny = az * bx - ax * bz;
-        const nz = ax * by - ay * bx;
-        for (let k = 0; k < 3; k++) {
-          faces[(i + k) * 3] = nx;
-          faces[(i + k) * 3 + 1] = ny;
-          faces[(i + k) * 3 + 2] = nz;
-          const id = key(i + k);
-          if (!groups.has(id)) groups.set(id, []);
-          groups.get(id).push(i + k);
-        }
-      }
-      const cos = Math.cos(maxAngle);
-      const out = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) {
-        const ox = faces[i * 3];
-        const oy = faces[i * 3 + 1];
-        const oz = faces[i * 3 + 2];
-        const ol = Math.hypot(ox, oy, oz) || 1;
-        let sx = 0;
-        let sy = 0;
-        let sz = 0;
-        groups.get(key(i)).forEach(j => {
-          const fx = faces[j * 3];
-          const fy = faces[j * 3 + 1];
-          const fz = faces[j * 3 + 2];
-          const fl = Math.hypot(fx, fy, fz) || 1;
-          if ((ox * fx + oy * fy + oz * fz) / (ol * fl) >= cos) {
-            sx += fx;
-            sy += fy;
-            sz += fz;
-          }
-        });
-        const sl = Math.hypot(sx, sy, sz) || 1;
-        out[i * 3] = sx / sl;
-        out[i * 3 + 1] = sy / sl;
-        out[i * 3 + 2] = sz / sl;
-      }
-      g.setAttribute("normal", new THREE.BufferAttribute(out, 3));
-      return g;
-    };
-
-    const roundedBox = (w, h, d, r, bev = 0.05) => {
+    const roundedBox = (w, h, d, r, bev = 0.05, seg = 3) => {
       const ir = Math.max(0.001, r - bev);
       const x = (w - 2 * bev) / 2;
       const y = (h - 2 * bev) / 2;
@@ -102,7 +46,7 @@ Pets.register({
         bevelEnabled: true,
         bevelThickness: bev,
         bevelSize: bev,
-        bevelSegments: 3,
+        bevelSegments: seg,
         curveSegments: 8
       });
       g.center();
@@ -197,26 +141,26 @@ Pets.register({
     head.position.set(0, 1.85, 0);
     squash.add(head);
 
-    head.add(mesh(creased(roundedBox(1.35, 0.9, 1.0, 0.25)), white));
+    head.add(mesh(roundedBox(1.35, 0.9, 1.0, 0.25, 0.12, 8), white));
 
-    const visor = mesh(roundedBox(1.05, 0.5, 0.1, 0.16, 0.03), dark, false);
-    visor.position.set(0, 0.1, 0.47);
+    const visor = mesh(roundedBox(1.05, 0.5, 0.02, 0.16, 0.005), dark, false);
+    visor.position.set(0, 0.1, 0.505);
     head.add(visor);
 
     const eyes = [-1, 1].map(s => {
       const e = mesh(roundedBox(0.2, 0.26, 0.04, 0.08, 0.015), led, false);
-      e.position.set(0.25 * s, 0.14, 0.52);
+      e.position.set(0.25 * s, 0.14, 0.54);
       head.add(e);
       return e;
     });
 
     const smile = mesh(new THREE.TorusGeometry(0.09, 0.02, 8, 20, Math.PI), led, false);
     smile.rotation.z = Math.PI;
-    smile.position.set(0, -0.03, 0.53);
+    smile.position.set(0, -0.03, 0.54);
     head.add(smile);
 
     const mouth = mesh(new THREE.BoxGeometry(0.26, 0.1, 0.03), led, false);
-    mouth.position.set(0, -0.08, 0.53);
+    mouth.position.set(0, -0.08, 0.54);
     mouth.visible = false;
     head.add(mouth);
 
