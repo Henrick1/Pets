@@ -27,7 +27,7 @@ Pets.register({
     const led = new THREE.MeshBasicMaterial({ color: 0x6ff3ff });
     const glow = new THREE.MeshBasicMaterial({ color: 0xff9f43 });
     const flameMat = new THREE.MeshBasicMaterial({ color: 0xffb347 });
-    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xd8402f, roughness: 0.35, metalness: 0.05 });
+    const gloveMat = metal(0x5fa8d3, 0.4);
 
     const roundedBox = (w, h, d, r, bev = 0.05) => {
       const ir = Math.max(0.001, r - bev);
@@ -138,7 +138,7 @@ Pets.register({
       joint.rotation.z = Math.PI / 2;
       const upper = mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.4, 12), white);
       upper.position.set(0.04 * s, -0.22, 0);
-      const cuff = mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.09, 16), blue);
+      const cuff = mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.09, 16), dark);
       cuff.position.set(0.045 * s, -0.43, 0);
       const glove = mesh(new THREE.SphereGeometry(1, 24, 18), gloveMat);
       glove.scale.set(0.16, 0.17, 0.19);
