@@ -432,6 +432,11 @@
       list.append(b);
     });
 
+    refreshShop();
+  }
+
+  function refreshShop() {
+    $("coins").textContent = state.coins + " moedas";
     const pool = Game.eggPool(state, baseIds());
     const canBuy = state.coins >= Game.C.EGG_PRICE && pool.length > 0;
     $("buy-egg").disabled = !canBuy;
@@ -737,6 +742,7 @@
     }
     stage.setStatus({ hunger: v.hunger, life: v.life, dying: v.dying });
     if ($("party-sheet").open) renderSheet(v);
+    if ($("egg-sheet").open) refreshShop();
     if ($("account-sheet").open) renderAccount();
   }
 
