@@ -38,6 +38,8 @@ const hungerFill = document.getElementById("hunger-fill");
 const hungerText = document.getElementById("hunger-val");
 const lifeFill = document.getElementById("life-fill");
 const lifeText = document.getElementById("life-val");
+const joyFill = document.getElementById("joy-fill");
+const joyText = document.getElementById("joy-val");
 const statusEl = document.getElementById("status");
 const xpFill = document.getElementById("xp-fill");
 const xpText = document.getElementById("xp-val");
@@ -48,6 +50,7 @@ const TAB_VISIBLE_MS = 6000;
 let tabTimer = 0;
 let hunger = 100;
 let life = 100;
+let joy = 100;
 let dying = false;
 let dyingK = 0;
 let level = 1;
@@ -66,6 +69,10 @@ function renderStats() {
   lifeFill.style.width = l + "%";
   lifeFill.style.background = barColor(life);
   lifeText.textContent = l + "%";
+  const j = Math.round(joy);
+  joyFill.style.width = j + "%";
+  joyFill.style.background = barColor(joy);
+  joyText.textContent = j + "%";
   statusEl.hidden = !dying;
   const pct = Math.round((xp / xpNext) * 100);
   xpFill.style.width = pct + "%";
@@ -145,9 +152,10 @@ function play(name, queue) {
   if (dying && name !== "eat") return;
   if (activeAction) {
     if (queue) pendingAction = name;
-    return;
+    return false;
   }
   startAction(name);
+  return true;
 }
 
 function currentAction(t) {
@@ -167,7 +175,7 @@ function currentAction(t) {
 function interact() {
   if (current && !dying) {
     const name = current.def.clickAction ? current.def.clickAction(++clicks) : "jump";
-    play(name);
+    if (play(name)) window.pet.play();
   }
   showTab();
 }
@@ -175,6 +183,7 @@ function interact() {
 function applyState(s) {
   hunger = s.hunger;
   life = s.life;
+  joy = typeof s.joy === "number" ? s.joy : 100;
   dying = s.dying;
   level = s.level;
   xp = s.xp;

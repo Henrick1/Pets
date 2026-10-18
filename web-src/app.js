@@ -120,7 +120,8 @@
     mini.className = "mini";
     [
       ["Fome", p.hunger],
-      ["Vida", p.life]
+      ["Vida", p.life],
+      ["Felicidade", p.joy]
     ].forEach(([label, v]) => {
       const bar = document.createElement("span");
       bar.className = "bar";
@@ -261,6 +262,8 @@
     document.documentElement.style.setProperty("--pet", info.color);
     setBar($("hunger-bar"), $("hunger-val"), v.hunger);
     setBar($("life-bar"), $("life-val"), v.life);
+    setBar($("joy-bar"), $("joy-val"), v.joy);
+    $("joy-bar").dataset.level = barLevel(v.joy);
     setBar($("xp-bar"), $("xp-val"), (v.xp / v.xpNext) * 100);
     $("hunger-bar").dataset.level = barLevel(v.hunger);
     $("life-bar").dataset.level = barLevel(v.life);
@@ -481,7 +484,14 @@
     wrap.addEventListener("pointerup", e => {
       const wasRotating = rotating;
       releaseSpin();
-      if (!wasRotating && Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) < 10) stage.interact();
+      if (!wasRotating && Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) < 10 && stage.interact()) {
+        const r = Game.play(state);
+        if (r.changed) {
+          saveState();
+          scheduleSync();
+          render();
+        }
+      }
     });
     wrap.addEventListener("pointercancel", releaseSpin);
 

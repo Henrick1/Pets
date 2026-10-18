@@ -320,6 +320,14 @@ ipcMain.on("treat", () => {
   if (alive(win)) win.webContents.send("treat");
 });
 
+ipcMain.on("play", () => {
+  const r = Game.play(state);
+  if (!r.changed) return;
+  saveState();
+  broadcast();
+  scheduleSync();
+});
+
 ipcMain.on("select-pet", (_e, id) => {
   const r = Game.selectPet(state, id);
   if (!r.changed) return;

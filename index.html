@@ -68,7 +68,7 @@ html, body {
   background: #dfe8e3;
   overflow: hidden;
 }
-#hunger-fill, #life-fill, #xp-fill {
+#hunger-fill, #life-fill, #joy-fill, #xp-fill {
   height: 100%;
   width: 100%;
   border-radius: 4px;
@@ -89,7 +89,7 @@ html, body {
   color: #1b6b43;
 }
 @media (prefers-reduced-motion: reduce) {
-  #tab, #hunger-fill, #life-fill, #xp-fill { transition: none; }
+  #tab, #hunger-fill, #life-fill, #joy-fill, #xp-fill { transition: none; }
 }
 </style>
 </head>
@@ -98,6 +98,7 @@ html, body {
 <div id="tab" role="status" aria-live="polite">
   <div class="stat"><span>Fome</span><div class="track"><div id="hunger-fill"></div></div><span id="hunger-val">100%</span></div>
   <div class="stat"><span>Vida</span><div class="track"><div id="life-fill"></div></div><span id="life-val">100%</span></div>
+  <div class="stat"><span>Feliz</span><div class="track"><div id="joy-fill"></div></div><span id="joy-val">100%</span></div>
   <div class="stat"><span id="level-label">Nv 1</span><div class="track"><div id="xp-fill"></div></div><span id="xp-val">0%</span></div>
   <div id="status" hidden>Morrendo</div>
   <div id="levelup" hidden></div>

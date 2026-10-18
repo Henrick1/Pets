@@ -5,6 +5,8 @@ const feedBtn = document.getElementById("feed");
 const treatBtn = document.getElementById("treat");
 const lifeFillEl = document.getElementById("life-fill");
 const lifeValueEl = document.getElementById("life-val");
+const joyFillEl = document.getElementById("joy-fill");
+const joyValueEl = document.getElementById("joy-val");
 const statusEl = document.getElementById("status");
 const levelBadge = document.getElementById("level-badge");
 const xpFillEl = document.getElementById("xp-fill");
@@ -110,14 +112,14 @@ function petInfo(p) {
   line.appendChild(el("span", "lv", "Nv " + p.level));
   if (p.dying) line.appendChild(el("span", "warn", "Morrendo"));
   const mini = el("span", "mini");
-  mini.append(miniBar(p.hunger, "Fome"), miniBar(p.life, "Vida"));
+  mini.append(miniBar(p.hunger, "Fome"), miniBar(p.life, "Vida"), miniBar(p.joy, "Felicidade"));
   info.append(line, mini);
   return info;
 }
 
 function describe(p) {
   return (
-    p.name + ", nível " + p.level + ", fome " + Math.round(p.hunger) + "%, vida " + Math.round(p.life) + "%" +
+    p.name + ", nível " + p.level + ", fome " + Math.round(p.hunger) + "%, vida " + Math.round(p.life) + "%, felicidade " + Math.round(p.joy) + "%" +
     (p.dying ? ", morrendo" : "")
   );
 }
@@ -216,6 +218,10 @@ function render(s) {
   lifeFillEl.style.width = l + "%";
   lifeFillEl.style.background = barColor(s.life);
   lifeValueEl.textContent = l + "%";
+  const j = Math.round(typeof s.joy === "number" ? s.joy : 100);
+  joyFillEl.style.width = j + "%";
+  joyFillEl.style.background = barColor(j);
+  joyValueEl.textContent = j + "%";
   statusEl.hidden = !s.dying;
   treatBtn.disabled = s.life >= 100;
   feedBtn.disabled = Math.round(s.hunger) >= 100;
