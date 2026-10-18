@@ -172,21 +172,23 @@ Pets.register({
 
     const dripPts = [];
     for (let i = 14; i >= 0; i--) {
-      const u = i / 14;
-      dripPts.push(new THREE.Vector2(0.02 + 0.007 * Math.exp(-u * 6), 0.02 - u * 1.02));
+      dripPts.push(new THREE.Vector2(0.021, 0.02 - (i / 14) * 1.02));
+    }
+    for (let i = 1; i <= 6; i++) {
+      const a = (i / 6) * (Math.PI / 2);
+      dripPts.push(new THREE.Vector2(Math.max(0.0001, 0.021 * Math.cos(a)), 0.02 + 0.021 * Math.sin(a)));
     }
     const dripGeo = new THREE.LatheGeometry(dripPts, 16);
     const bulbPts = [];
-    for (let i = 0; i <= 12; i++) {
-      const a = -Math.PI / 2 + (i / 12) * (Math.PI / 2 + 0.7);
+    const bulbTop = Math.acos(0.029 / 0.048);
+    for (let i = 0; i <= 14; i++) {
+      const a = -Math.PI / 2 + (i / 14) * (Math.PI / 2 + bulbTop);
       bulbPts.push(new THREE.Vector2(Math.max(0.0001, 0.048 * Math.cos(a)), 0.048 * Math.sin(a)));
     }
-    const neckR = 0.048 * Math.cos(0.7);
-    const neckY = 0.048 * Math.sin(0.7);
-    for (let j = 1; j <= 10; j++) {
-      const k = j / 10;
-      const e = k * k * (3 - 2 * k);
-      bulbPts.push(new THREE.Vector2(neckR + (0.02 - neckR) * e, neckY + k * 0.06));
+    const neckY = 0.048 * Math.sin(bulbTop);
+    for (let j = 1; j <= 6; j++) {
+      const k = j / 6;
+      bulbPts.push(new THREE.Vector2(0.021 + 0.008 * (1 - Math.sin(k * Math.PI / 2)), neckY + k * 0.022));
     }
     const bulbGeo = new THREE.LatheGeometry(bulbPts, 16);
     const drips = [];
