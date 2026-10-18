@@ -105,7 +105,6 @@ input:focus-visible {
   padding: 28px 20px;
   border-radius: 24px;
   background: var(--surface);
-  border: 1px solid var(--line);
 }
 
 .auth-card img {
@@ -138,7 +137,7 @@ input:focus-visible {
   font-size: 16px;
   color: var(--text);
   background: var(--surface-2);
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 12px;
 }
 
@@ -166,9 +165,9 @@ input:focus-visible {
 .btn {
   position: relative;
   min-height: 48px;
-  padding: 10px 16px;
+  padding: 10px 20px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 999px;
   font-weight: 700;
   background: var(--surface-2);
 }
@@ -220,7 +219,9 @@ input:focus-visible {
 }
 
 .who h1 {
-  font-size: 20px;
+  font-size: 26px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -255,7 +256,6 @@ input:focus-visible {
   border: 0;
   border-radius: 50%;
   background: var(--surface);
-  border: 1px solid var(--line);
   font-size: 24px;
   line-height: 1;
 }
@@ -267,8 +267,8 @@ input:focus-visible {
   margin: 0 12px;
   border-radius: 24px;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 70%, color-mix(in srgb, var(--pet) 32%, transparent), transparent 70%), var(--surface);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--pet) 16%, var(--surface));
+  transition: background 0.4s ease;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -336,7 +336,6 @@ input:focus-visible {
   height: 12px;
   border-radius: 6px;
   background: var(--surface-2);
-  border: 1px solid var(--line);
   overflow: hidden;
 }
 
@@ -415,14 +414,14 @@ input:focus-visible {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
   padding: 4px;
-  border-radius: 14px;
+  border-radius: 999px;
   background: var(--surface-2);
 }
 
 .tab {
   min-height: 44px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 999px;
   background: transparent;
   font-weight: 700;
   color: var(--muted);
@@ -431,7 +430,6 @@ input:focus-visible {
 .tab[aria-selected="true"] {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
 .hint {
@@ -592,7 +590,8 @@ a.btn.soft {
   }
 
   .who h1 {
-    font-size: 26px;
+    font-size: 40px;
+    letter-spacing: -0.03em;
   }
 
   .stage-wrap {
@@ -602,7 +601,6 @@ a.btn.soft {
   .panel {
     padding: 24px;
     gap: 24px;
-    border: 1px solid var(--line);
     border-radius: 24px;
     background: var(--surface);
     overflow-y: auto;
@@ -638,8 +636,8 @@ a.btn.soft {
     grid-column: 1 / 3;
   }
 
-  .panel {
-    align-self: start;
+  .actions {
+    margin-top: auto;
   }
 
   .sheet {
