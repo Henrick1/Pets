@@ -173,17 +173,18 @@ Pets.register({
     const dripPts = [];
     for (let i = 14; i >= 0; i--) {
       const u = i / 14;
-      dripPts.push(new THREE.Vector2(0.022 + 0.02 * Math.exp(-u * 14), 0.1 - u * 1.1));
+      dripPts.push(new THREE.Vector2(0.024 + 0.034 * Math.exp(-u * 10), 0.08 - u * 1.08));
     }
     const dripGeo = new THREE.LatheGeometry(dripPts, 16);
     const drips = [];
     for (let k = 0; k < 9; k++) {
       [-1, 1].forEach(s => {
         const z = -0.68 + k * 0.15 + (s > 0 ? 0.05 : 0);
-        const phi = phiMax(z) * 0.98 * s;
+        const phi = phiMax(z) * 0.86 * s;
         const r = rAt(z);
         const g = new THREE.Group();
-        g.position.set(Math.sin(phi) * (r - 0.005), CY + Math.cos(phi) * (r * 0.72 - 0.005), z);
+        g.position.set(Math.sin(phi) * (r + 0.015), CY + Math.cos(phi) * (r * 0.72 + 0.015), z);
+        g.rotation.z = s * 0.6 * Math.atan2(Math.cos(phi), 0.72 * Math.abs(Math.sin(phi)));
         const cone = mesh(dripGeo, slimeMat, false);
         const bulb = mesh(new THREE.SphereGeometry(0.048, 10, 8), slimeMat, false);
         g.add(cone, bulb);
