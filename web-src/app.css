@@ -1102,6 +1102,102 @@ a.btn.soft {
   }
 }
 
+.hatch-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  margin: 0;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  pointer-events: none;
+  animation: pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.hatch-text.again {
+  animation: pop-again 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.hatch-text.reveal {
+  top: 18px;
+  font-size: 34px;
+  animation: reveal 0.6s cubic-bezier(0.3, 1.7, 0.5, 1) both;
+}
+
+.hatching.shake-1 {
+  animation: shake 0.5s ease-in-out infinite;
+  --amp: 1px;
+}
+
+.hatching.shake-2 {
+  animation: shake 0.22s ease-in-out infinite;
+  --amp: 2px;
+}
+
+.hatching.shake-3 {
+  animation: shake 0.09s linear infinite;
+  --amp: 3px;
+}
+
+.burst {
+  animation: burst-bounce 0.6s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.burst::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #fffbe8;
+  pointer-events: none;
+  animation: flash-out 0.7s ease-out forwards;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(calc(var(--amp) * -1), var(--amp));
+  }
+  75% {
+    transform: translate(var(--amp), calc(var(--amp) * -1));
+  }
+}
+
+@keyframes burst-bounce {
+  30% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes flash-out {
+  from {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-again {
+  0% {
+    transform: scale(0.7);
+  }
+}
+
+@keyframes reveal {
+  0% {
+    transform: scale(0.3) rotate(-8deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15) rotate(3deg);
+  }
+}
+
 @media (min-width: 900px) and (min-height: 521px) {
   .game {
     display: grid;

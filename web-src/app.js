@@ -303,6 +303,57 @@
     starterStage.setPet(id);
   }
 
+  function runHatch(st, wrap, species, onDone) {
+    const name = meta[species] ? meta[species].name : species;
+    let label = wrap.querySelector(".hatch-text");
+    if (!label) {
+      label = document.createElement("p");
+      label.className = "hatch-text";
+      wrap.append(label);
+    }
+    label.hidden = false;
+    label.className = "hatch-text";
+    label.textContent = "Hã?";
+    wrap.classList.remove("burst", "shake-1", "shake-2", "shake-3");
+    wrap.classList.add("hatching", "shake-1");
+    const D = 7000;
+    const timers = [
+      setTimeout(() => {
+        label.textContent = "Está mexendo!";
+        label.className = "hatch-text again";
+      }, D * 0.18),
+      setTimeout(() => {
+        wrap.classList.replace("shake-1", "shake-2");
+        label.textContent = "Vai nascer!";
+        label.className = "hatch-text";
+      }, D * 0.46),
+      setTimeout(() => {
+        wrap.classList.replace("shake-2", "shake-3");
+        label.textContent = "Agora!";
+        label.className = "hatch-text again";
+      }, D * 0.62)
+    ];
+    st.hatch(
+      species,
+      () => {
+        timers.forEach(clearTimeout);
+        setTimeout(() => {
+          wrap.classList.remove("burst");
+          label.hidden = true;
+        }, 2200);
+        if (onDone) onDone();
+      },
+      () => {
+        timers.forEach(clearTimeout);
+        wrap.classList.remove("shake-1", "shake-2", "shake-3", "hatching");
+        void wrap.offsetWidth;
+        wrap.classList.add("burst");
+        label.textContent = name + "!";
+        label.className = "hatch-text reveal";
+      }
+    );
+  }
+
   function chooseStarter() {
     const list = Game.C.STARTERS.filter(id => meta[id]);
     const id = list[starterSel] || list[0];
@@ -316,11 +367,11 @@
     $("starter-pick").hidden = true;
     starterStage.setEgg({ color: meta[id].color });
     setTimeout(() => {
-      starterStage.hatch(id, () => {
+      runHatch(starterStage, $("starter-wrap"), id, () => {
         $("starter-hello").textContent = "Nasceu o seu " + meta[id].name + "!";
         $("starter-done").hidden = false;
       });
-    }, 900);
+    }, 700);
   }
 
   const fmtTime = ms => {
@@ -498,7 +549,7 @@
     $("egg-clean").disabled = true;
     $("egg-play").disabled = true;
     $("egg-hint").textContent = "";
-    eggStage.hatch(species, () => {
+    runHatch(eggStage, $("egg-wrap"), species, () => {
       const r = Game.hatchEgg(state, id);
       if (r.changed) {
         saveState();
