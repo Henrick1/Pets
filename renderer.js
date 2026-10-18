@@ -199,7 +199,7 @@ function applyState(s) {
   level = s.level;
   xp = s.xp;
   xpNext = s.xpNext;
-  if (ready) setPet(s.pet);
+  if (ready) setPet(s.species);
   renderStats();
 }
 

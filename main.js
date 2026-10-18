@@ -112,7 +112,7 @@ function snapshot() {
     color: (petMeta[id] && petMeta[id].color) || "#999999",
     types: (petMeta[id] && petMeta[id].types) || []
   }));
-  const em = petMeta[state.pet];
+  const em = petMeta[Game.speciesOf(state)];
   const evolveTo = em && em.evolvesTo && Game.canEvolve(state, state.pet, em.evolvesTo, em.evolveLevel || Infinity) ? (petMeta[em.evolvesTo] ? petMeta[em.evolvesTo].name : em.evolvesTo) : null;
   return Object.assign(Game.view(state, meta), {
     evolveTo,
@@ -313,7 +313,7 @@ ipcMain.on("pets-meta", (_e, list) => {
 
 function tryEvolve() {
   const id = state.pet;
-  const m = petMeta[id];
+  const m = petMeta[Game.speciesOf(state)];
   if (!m || !m.evolvesTo || !m.evolveLevel) return null;
   const r = Game.evolve(state, id, m.evolvesTo, m.evolveLevel);
   return r.changed ? (petMeta[m.evolvesTo] ? petMeta[m.evolvesTo].name : m.evolvesTo) : null;

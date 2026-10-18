@@ -118,7 +118,7 @@
 
   function renderDex() {
     const v = view();
-    const owned = new Set(v.party.concat(v.box).map(p => p.id));
+    const owned = new Set(v.ownedSpecies);
     const found = petIds.filter(id => owned.has(id)).length;
     $("dex-count").textContent = found + " de " + petIds.length + " descobertas";
     const list = $("dex-list");
@@ -148,13 +148,15 @@
     const v = view();
     const m = meta[id];
     if (!m) return;
-    const row = v.party.concat(v.box).find(p => p.id === id);
+    const rows = v.party.concat(v.box).filter(p => p.species === id);
+    const row = rows.find(p => p.id === v.pet) || rows.sort((a, b) => b.level - a.level)[0];
     $("dex-detail").style.setProperty("--c", m.color);
     $("dex-name").textContent = m.name;
     $("dex-types").replaceChildren(...typeTags(m.types).childNodes);
     $("dex-desc").textContent = m.description || "Ainda não há muito o que dizer sobre esta criatura.";
     const bits = [];
-    if (row) bits.push("Nível " + row.level + " · " + (v.party.some(p => p.id === id) ? "No grupo" : "Na caixa"));
+    if (rows.length > 1) bits.push("Você tem " + rows.length + " · maior nível " + row.level);
+    else if (row) bits.push("Nível " + row.level + " · " + (v.party.some(p => p.id === row.id) ? "No grupo" : "Na caixa"));
     if (m.evolvesTo && meta[m.evolvesTo]) bits.push("Evolui para " + meta[m.evolvesTo].name + (m.evolveLevel ? " no nível " + m.evolveLevel : ""));
     const pre = petIds.find(o => meta[o] && meta[o].evolvesTo === id);
     if (pre) bits.push("Evolução de " + meta[pre].name);
@@ -495,7 +497,7 @@
     $("buy-egg").disabled = !canBuy;
     $("buy-egg").textContent = "Comprar por " + Game.C.EGG_PRICE + " moedas";
     $("shop-hint").textContent = !pool.length
-      ? "Você já tem (ou já tem o ovo de) todas as criaturas disponíveis."
+      ? "Nenhuma criatura disponível nos ovos."
       : state.coins < Game.C.EGG_PRICE
         ? "Moedas insuficientes. Ainda não dá para ganhar moedas."
         : "O ovo vai para o seu inventário.";
@@ -569,7 +571,7 @@
     shownEggId = null;
     const name = meta[species] ? meta[species].name : species;
     $("egg-timer").textContent = "Nasceu um " + name + "!";
-    showToast(name + " nasceu e foi para o seu " + (state.party.includes(species) ? "grupo" : "caixa") + "!");
+    showToast(name + " nasceu e foi para " + (r.uid && state.party.includes(r.uid) ? "o seu grupo" : "a caixa") + "!");
     const slots = $("egg-slots");
     const btn = slots.children[eggSlot];
     if (btn) {
@@ -584,7 +586,7 @@
 
   function evolveTarget() {
     if (!state || !state.pet) return null;
-    const m = meta[state.pet];
+    const m = meta[Game.speciesOf(state)];
     if (!m || !m.evolvesTo || !meta[m.evolvesTo] || !m.evolveLevel) return null;
     return Game.canEvolve(state, state.pet, m.evolvesTo, m.evolveLevel) ? m.evolvesTo : null;
   }
@@ -592,7 +594,7 @@
   function checkEvolution() {
     if (evolvingNow || !state || !stage || !state.pet || $("game-view").hidden) return;
     const id = state.pet;
-    const m = meta[id];
+    const m = meta[Game.speciesOf(state)];
     if (!evolveTarget()) return;
     $("evolve-btn").hidden = true;
     const target = m.evolvesTo;
@@ -614,7 +616,7 @@
           saveState();
           scheduleSync();
         }
-        lastPetId = state.pet;
+        lastPetId = state.pet + ":" + Game.speciesOf(state);
         $("party-btn").disabled = false;
         setTimeout(() => {
           wrap.classList.remove("burst");
@@ -818,7 +820,7 @@
     if (!state || !stage || Game.needsStarter(state) || !state.pet) return;
     $("egg-alert").hidden = !state.eggs.some(e => e.slot !== null && (e.left <= 0 || e.care <= 0));
     const v = view();
-    const info = meta[v.pet] || { name: v.pet, color: "#999999" };
+    const info = meta[v.species] || { name: v.species, color: "#999999" };
     $("pet-name").textContent = info.name;
     const lvText = "Nv " + v.level;
     if ($("level").textContent !== lvText) {
@@ -853,9 +855,9 @@
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = v.life >= 100;
     $("party-alert").hidden = !v.party.some(p => p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25);
-    if (lastPetId !== v.pet) {
-      lastPetId = v.pet;
-      stage.setPet(v.pet);
+    if (lastPetId !== v.pet + ":" + v.species) {
+      lastPetId = v.pet + ":" + v.species;
+      stage.setPet(v.species);
     }
     stage.setStatus({ hunger: v.hunger, life: v.life, dying: v.dying });
     if ($("party-sheet").open) renderSheet(v);
