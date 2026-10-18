@@ -173,7 +173,7 @@ Pets.register({
     const dripPts = [];
     for (let i = 14; i >= 0; i--) {
       const u = i / 14;
-      dripPts.push(new THREE.Vector2(0.022 + 0.08 * Math.exp(-u * 7), 0.06 - u * 1.06));
+      dripPts.push(new THREE.Vector2(0.022 + 0.02 * Math.exp(-u * 14), 0.1 - u * 1.1));
     }
     const dripGeo = new THREE.LatheGeometry(dripPts, 16);
     const drips = [];
