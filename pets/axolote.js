@@ -191,14 +191,6 @@ Pets.register({
       bulbPts.push(new THREE.Vector2(0.021 + 0.008 * (1 - Math.sin(k * Math.PI / 2)), neckY + k * 0.022));
     }
     const bulbGeo = new THREE.LatheGeometry(bulbPts, 16);
-    const tonguePts = [];
-    for (let i = 0; i <= 20; i++) {
-      const u = i / 20;
-      const k = Math.min(1, u / 0.6);
-      const r = u < 0.6 ? 0.021 + 0.03 * k * k * (3 - 2 * k) : 0.051 * Math.sqrt(Math.max(0, 1 - Math.pow((u - 0.6) / 0.4, 2)));
-      tonguePts.push(new THREE.Vector2(Math.max(0.0001, r), -0.03 + u * 0.16));
-    }
-    const tongueGeo = new THREE.LatheGeometry(tonguePts, 18);
     const drips = [];
     for (let k = 0; k < 9; k++) {
       [-1, 1].forEach(s => {
@@ -212,15 +204,10 @@ Pets.register({
         const nx = Math.sin(phi);
         const ny = Math.cos(phi) / 0.72;
         const nl = Math.hypot(nx, ny);
-        const tx = -s * ny / nl;
-        const ty = s * nx / nl;
-        const tongue = mesh(tongueGeo, slimeMat, false);
-        tongue.scale.x = 0.45;
-        const tg = new THREE.Group();
-        tg.rotation.z = Math.atan2(-tx, ty);
-        tg.position.set((-nx / nl) * 0.006, (-ny / nl) * 0.006, 0);
-        tg.add(tongue);
-        g.add(cone, bulb, tg);
+        const base = mesh(new THREE.SphereGeometry(1, 20, 14), slimeMat, false);
+        base.scale.set(0.036, 0.05, 0.04);
+        base.position.set((-nx / nl) * 0.012, (-ny / nl) * 0.012 + 0.005, 0);
+        g.add(cone, bulb, base);
         pose.add(g);
         drips.push({ cone, bulb, len: 0.1 + 0.2 * (((k * 7 + (s > 0 ? 3 : 0)) % 6) / 6), ph: k * 1.7 + (s > 0 ? 1 : 0) });
       });
