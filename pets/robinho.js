@@ -3,6 +3,8 @@ Pets.register({
   name: "Robinho",
   color: "#7fb8de",
   types: ["steel"],
+  description: "Robozinho de aço que anda sobre uma única roda. Adora passear de um lado para o outro com a engrenagem do peito sempre girando.",
+  evolvesTo: "robo",
   actions: {
     jump: { duration: 0.9 },
     eat: { duration: 2.4 },

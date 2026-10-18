@@ -3,6 +3,7 @@ Pets.register({
   name: "Sineta",
   color: "#d9a441",
   types: ["ghost"],
+  description: "Um sino antigo assombrado por um espírito mascarado. Seu toque ecoa pela casa mesmo quando ninguém o balança.",
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },

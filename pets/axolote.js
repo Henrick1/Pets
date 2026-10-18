@@ -3,6 +3,7 @@ Pets.register({
   name: "Axolote",
   color: "#b36ad6",
   types: ["poison"],
+  description: "Anfíbio coberto de lodo roxo venenoso. Suas brânquias ramificadas soltam toxinas quando ele se sente ameaçado.",
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },

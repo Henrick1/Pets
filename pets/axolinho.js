@@ -3,6 +3,8 @@ Pets.register({
   name: "Axolinho",
   color: "#c48ae8",
   types: ["poison"],
+  description: "O filhote do Axolote. Ainda é uma bolinha, mas já usa uma touca de lodo tóxico e sopra bolhas de veneno quando quer brincar.",
+  evolvesTo: "axolote",
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },

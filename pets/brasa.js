@@ -3,6 +3,7 @@ Pets.register({
   name: "Brasa",
   color: "#ff7a2e",
   types: ["fire"],
+  description: "Raposa de fogo com três caudas em chamas. Quanto mais bem alimentada, mais forte queimam as chamas do seu corpo.",
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },

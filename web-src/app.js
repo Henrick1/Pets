@@ -41,6 +41,7 @@
   let petIds = [];
   let meta = {};
   let syncTimer = 0;
+  let animateList = false;
   let syncing = false;
   let syncAgain = false;
   let account = { offline: false, error: "", lastSync: 0 };
@@ -83,6 +84,85 @@
     if (/Windows/i.test(ua)) return { url: base + "Pets-Windows.exe", label: "Baixar para Windows" };
     if (/Linux/i.test(ua)) return { url: base + "Pets-Linux.AppImage", label: "Baixar para Linux" };
     return null;
+  }
+
+  function typeTags(types) {
+    const box = document.createElement("span");
+    box.className = "type-tags";
+    (types || []).forEach(t => {
+      const info = window.PetTypes && PetTypes.INFO[t];
+      if (!info) return;
+      const tag = document.createElement("span");
+      tag.className = "type-tag";
+      tag.textContent = info.name;
+      tag.style.background = info.color;
+      const n = parseInt(info.color.slice(1), 16);
+      const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+      tag.style.color = lum > 0.62 ? "#1f2a24" : "#ffffff";
+      box.append(tag);
+    });
+    return box;
+  }
+
+  function renderDex() {
+    const v = view();
+    const owned = new Set(v.party.concat(v.box).map(p => p.id));
+    const found = petIds.filter(id => owned.has(id)).length;
+    $("dex-count").textContent = found + " de " + petIds.length + " descobertas";
+    const list = $("dex-list");
+    list.replaceChildren();
+    petIds.forEach((id, i) => {
+      const m = meta[id] || { name: id, color: "#999999", types: [] };
+      const known = owned.has(id);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "dex-card" + (known ? "" : " unknown");
+      card.style.setProperty("--i", String(i));
+      card.style.setProperty("--c", known ? m.color : "#8a958f");
+      card.disabled = !known;
+      const sw = document.createElement("span");
+      sw.className = "dex-dot";
+      sw.textContent = known ? "" : "?";
+      const name = document.createElement("span");
+      name.className = "dex-card-name";
+      name.textContent = known ? m.name : "???";
+      card.append(sw, name);
+      if (known) {
+        card.append(typeTags(m.types));
+        card.addEventListener("click", () => openDexDetail(id));
+      }
+      list.append(card);
+    });
+  }
+
+  function openDexDetail(id) {
+    const v = view();
+    const m = meta[id];
+    if (!m) return;
+    const row = v.party.concat(v.box).find(p => p.id === id);
+    $("dex-detail").style.setProperty("--c", m.color);
+    $("dex-name").textContent = m.name;
+    $("dex-types").replaceChildren(...typeTags(m.types).childNodes);
+    $("dex-desc").textContent = m.description || "Ainda não há muito o que dizer sobre esta criatura.";
+    const bits = [];
+    if (row) bits.push("Nível " + row.level + " · " + (v.party.some(p => p.id === id) ? "No grupo" : "Na caixa"));
+    if (m.evolvesTo && meta[m.evolvesTo]) bits.push("Evolui para " + meta[m.evolvesTo].name);
+    const pre = petIds.find(o => meta[o] && meta[o].evolvesTo === id);
+    if (pre) bits.push("Evolução de " + meta[pre].name);
+    $("dex-meta").textContent = bits.join(" · ");
+    $("dex-list").hidden = true;
+    $("dex-count").hidden = true;
+    $("dex-detail").hidden = false;
+    $("dex-back").hidden = false;
+    $("dex-title").textContent = m.name;
+  }
+
+  function closeDexDetail() {
+    $("dex-detail").hidden = true;
+    $("dex-list").hidden = false;
+    $("dex-count").hidden = false;
+    $("dex-back").hidden = true;
+    $("dex-title").textContent = "Criaturas";
   }
 
   function showToast(text) {
@@ -157,6 +237,8 @@
       $("sheet-hint").textContent = "Quem está na caixa fica parado: não gasta fome, vida nem felicidade.";
     }
 
+    const stagger = animateList;
+    animateList = false;
     partyList.replaceChildren();
     v.party.forEach(p => {
       const el = itemNode(p, "button");
@@ -232,6 +314,12 @@
       el.append(btn);
       boxList.append(el);
     });
+    if (stagger) {
+      Array.from((tab === "party" ? partyList : boxList).children).forEach((el, k) => {
+        el.classList.add("enter");
+        el.style.setProperty("--i", String(k));
+      });
+    }
   }
 
   function renderAccount() {
@@ -255,7 +343,16 @@
     const v = view();
     const info = meta[v.pet] || { name: v.pet, color: "#999999" };
     $("pet-name").textContent = info.name;
-    $("level").textContent = "Nv " + v.level;
+    const lvText = "Nv " + v.level;
+    if ($("level").textContent !== lvText) {
+      const had = $("level").textContent !== "";
+      $("level").textContent = lvText;
+      if (had) {
+        $("level").classList.remove("bump");
+        void $("level").offsetWidth;
+        $("level").classList.add("bump");
+      }
+    }
     document.documentElement.style.setProperty("--pet", info.color);
     setBar($("hunger-bar"), $("hunger-val"), v.hunger);
     setBar($("life-bar"), $("life-val"), v.life);
@@ -410,6 +507,7 @@
     $("party-btn").addEventListener("click", () => {
       tab = "party";
       swapIn = null;
+      animateList = true;
       $("party-sheet").showModal();
       render();
     });
@@ -417,13 +515,22 @@
     $("tab-party").addEventListener("click", () => {
       tab = "party";
       swapIn = null;
+      animateList = true;
       render();
     });
     $("tab-box").addEventListener("click", () => {
       tab = "box";
       swapIn = null;
+      animateList = true;
       render();
     });
+
+    $("dex-btn").addEventListener("click", () => {
+      closeDexDetail();
+      renderDex();
+      $("dex-sheet").showModal();
+    });
+    $("dex-back").addEventListener("click", closeDexDetail);
 
     $("account-btn").addEventListener("click", () => {
       $("account-sheet").showModal();
@@ -568,7 +675,7 @@
     }
 
     window.Pets.list.forEach(p => {
-      meta[p.id] = { id: p.id, name: p.name, color: p.color, types: p.types };
+      meta[p.id] = { id: p.id, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null };
     });
     petIds = window.Pets.list.map(p => p.id).sort();
 

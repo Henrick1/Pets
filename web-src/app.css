@@ -213,8 +213,9 @@ input:focus-visible {
 
 .who {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  gap: 4px 10px;
   min-width: 0;
 }
 
@@ -239,6 +240,7 @@ input:focus-visible {
 }
 
 .badge {
+  white-space: nowrap;
   padding: 2px 10px;
   border-radius: 999px;
   background: var(--soft);
@@ -572,6 +574,264 @@ a.btn.soft {
   color: var(--soft-text);
 }
 
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dex-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 2px;
+}
+
+.dex-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  border: 0;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--c) 18%, var(--surface-2));
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  animation: rise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+  transition: transform 0.18s ease, background 0.2s ease;
+}
+
+.dex-card.unknown {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.dex-dot {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--c);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.dex-card-name {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.type-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.type-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dex-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: slide-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dex-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--c, var(--accent)) 20%, var(--surface-2));
+}
+
+.dex-swatch {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--c);
+  animation: pop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+.dex-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dex-hero-text h3 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.dex-desc {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-zoom {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+}
+
+@keyframes bump {
+  40% {
+    transform: scale(1.25);
+  }
+}
+
+.btn,
+.icon-btn,
+.tab,
+.item {
+  transition: transform 0.16s cubic-bezier(0.3, 1.4, 0.5, 1), background 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+}
+
+.btn:active:not(:disabled),
+.icon-btn:active,
+.tab:active,
+.item:active,
+.dex-card:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+@media (hover: hover) {
+  .btn:hover:not(:disabled),
+  .icon-btn:hover,
+  .item:hover,
+  .dex-card:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  .dex-card:hover:not(:disabled),
+  .item:hover {
+    transform: translateY(-2px);
+  }
+
+  .icon-btn:hover {
+    transform: rotate(-6deg) scale(1.06);
+  }
+}
+
+.game:not([hidden]),
+.auth:not([hidden]) {
+  animation: fade 0.4s ease both;
+}
+
+.game:not([hidden]) .top {
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.game:not([hidden]) .stage-wrap {
+  animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.06s both;
+}
+
+.game:not([hidden]) .stat {
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.game:not([hidden]) .stat:nth-child(1) { animation-delay: 0.12s; }
+.game:not([hidden]) .stat:nth-child(2) { animation-delay: 0.17s; }
+.game:not([hidden]) .stat:nth-child(3) { animation-delay: 0.22s; }
+.game:not([hidden]) .stat:nth-child(4) { animation-delay: 0.27s; }
+
+.game:not([hidden]) .actions .btn {
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.game:not([hidden]) .actions .btn:nth-child(1) { animation-delay: 0.3s; }
+.game:not([hidden]) .actions .btn:nth-child(2) { animation-delay: 0.35s; }
+.game:not([hidden]) .actions .btn:nth-child(3) { animation-delay: 0.4s; }
+
+.sheet[open] {
+  animation: sheet-up 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sheet[open]::backdrop {
+  animation: fade 0.3s ease;
+}
+
+.item.enter {
+  animation: rise 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.toast:not([hidden]) {
+  animation: pop 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+.warn-tag {
+  display: inline-block;
+  animation: pop 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+.badge.bump {
+  display: inline-block;
+  animation: bump 0.5s ease;
+}
+
+.bar .fill {
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.4s ease;
+}
+
 @media (min-width: 900px) and (min-height: 521px) {
   .game {
     display: grid;
@@ -645,9 +905,21 @@ a.btn.soft {
     border-radius: 24px;
     padding-bottom: 16px;
   }
+
+  .sheet[open] {
+    animation: sheet-zoom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .bar .fill {
     transition: none;
   }
