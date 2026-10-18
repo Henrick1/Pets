@@ -2,8 +2,12 @@ const { app, BrowserWindow, ipcMain, Menu, screen } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
-app.commandLine.appendSwitch("ozone-platform", "x11");
-app.commandLine.appendSwitch("enable-transparent-visuals");
+if (process.platform === "linux") {
+  app.commandLine.appendSwitch("ozone-platform", "x11");
+  app.commandLine.appendSwitch("enable-transparent-visuals");
+}
+
+if (!app.requestSingleInstanceLock()) app.quit();
 
 const Game = require("./lib/game.js");
 const PetTypes = require("./lib/types.js");
@@ -424,9 +428,26 @@ ipcMain.on("menu", () => {
       checked: win.isAlwaysOnTop(),
       click: item => win.setAlwaysOnTop(item.checked)
     },
+    ...(process.platform === "linux"
+      ? []
+      : [
+          {
+            label: "Iniciar com o computador",
+            type: "checkbox",
+            checked: app.getLoginItemSettings().openAtLogin,
+            click: item => app.setLoginItemSettings({ openAtLogin: item.checked })
+          }
+        ]),
     { type: "separator" },
     { label: "Sair", click: () => app.quit() }
   ]).popup({ window: win });
+});
+
+app.on("second-instance", () => {
+  if (alive(win)) {
+    win.show();
+    setTimeout(openPanel, 120);
+  }
 });
 
 app.whenReady().then(() => {

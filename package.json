@@ -6,13 +6,65 @@
   "scripts": {
     "start": "electron .",
     "build:web": "node scripts/build-web.js",
-    "serve:web": "node scripts/serve-web.js"
+    "serve:web": "node scripts/serve-web.js",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
   },
   "dependencies": {
     "three": "0.128.0"
   },
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
   },
-  "productName": "Pets"
+  "productName": "Pets",
+  "author": "Henrick",
+  "build": {
+    "appId": "io.github.henrick1.pets",
+    "productName": "Pets",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "panel.js",
+      "index.html",
+      "panel.html",
+      "config.js",
+      "lib/**",
+      "pets/**",
+      "assets/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "artifactName": "Pets-Windows.exe"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Pets",
+      "runAfterFinish": true
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Game",
+      "artifactName": "Pets-Linux.AppImage"
+    }
+  }
 }

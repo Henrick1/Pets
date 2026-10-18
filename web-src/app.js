@@ -73,6 +73,18 @@
     return Game.view(state, list);
   }
 
+  function desktopDownload() {
+    const ua = navigator.userAgent;
+    if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return null;
+    const host = location.hostname.match(/^([^.]+)\.github\.io$/i);
+    const repo = location.pathname.split("/").filter(Boolean)[0];
+    if (!host || !repo) return null;
+    const base = "https://github.com/" + host[1] + "/" + repo + "/releases/download/desktop/";
+    if (/Windows/i.test(ua)) return { url: base + "Pets-Windows.exe", label: "Baixar para Windows" };
+    if (/Linux/i.test(ua)) return { url: base + "Pets-Linux.AppImage", label: "Baixar para Linux" };
+    return null;
+  }
+
   function showToast(text) {
     const el = $("toast");
     el.textContent = text;
@@ -419,6 +431,13 @@
     });
 
     $("sync-now").addEventListener("click", () => syncNow({ preferRemote: false }));
+
+    const dl = desktopDownload();
+    if (dl) {
+      $("desk-dl-link").href = dl.url;
+      $("desk-dl-link").textContent = dl.label;
+      $("desk-dl").hidden = false;
+    }
 
     $("signout").addEventListener("click", async () => {
       $("account-sheet").close();

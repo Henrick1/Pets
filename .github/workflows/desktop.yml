@@ -1,0 +1,50 @@
+name: Gerar versao de computador
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view desktop >/dev/null 2>&1 || gh release create desktop --title "Pets para computador" --notes "Baixe o arquivo do seu sistema. Windows: Pets-Windows.exe. Linux: Pets-Linux.AppImage."
+
+  build:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            file: dist/Pets-Windows.exe
+          - os: ubuntu-latest
+            target: linux
+            file: dist/Pets-Linux.AppImage
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run dist:${{ matrix.target }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload desktop "${{ matrix.file }}" --clobber
