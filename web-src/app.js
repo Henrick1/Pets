@@ -438,19 +438,52 @@
     const wrap = $("stage-wrap");
     let downX = 0;
     let downY = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let down = false;
+    let rotating = false;
     wrap.addEventListener("pointerdown", e => {
       downX = e.clientX;
       downY = e.clientY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      down = true;
+      rotating = false;
     });
     wrap.addEventListener("pointermove", e => {
+      if (down) {
+        if (!rotating && Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) >= 10) {
+          rotating = true;
+          try {
+            wrap.setPointerCapture(e.pointerId);
+          } catch (_) {
+            rotating = true;
+          }
+          stage.spin.begin();
+        }
+        if (rotating) {
+          stage.spin.drag(e.clientX - lastX, e.clientY - lastY);
+          lastX = e.clientX;
+          lastY = e.clientY;
+          return;
+        }
+      }
       const r = wrap.getBoundingClientRect();
       const x = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
       const y = -(e.clientY - (r.top + r.height * 0.45)) / (r.height / 2);
       stage.setPointer(Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y)));
     });
+    const releaseSpin = () => {
+      down = false;
+      if (rotating) stage.spin.end();
+      rotating = false;
+    };
     wrap.addEventListener("pointerup", e => {
-      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) < 10) stage.interact();
+      const wasRotating = rotating;
+      releaseSpin();
+      if (!wasRotating && Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) < 10) stage.interact();
     });
+    wrap.addEventListener("pointercancel", releaseSpin);
 
     window.addEventListener("resize", () => stage.resize());
     window.addEventListener("orientationchange", () => setTimeout(() => stage.resize(), 200));

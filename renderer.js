@@ -95,6 +95,10 @@ let blinkStart = -10;
 let nextBlink = 1.5;
 
 const clock = new THREE.Clock();
+const pivot = new THREE.Group();
+scene.add(pivot);
+const spin = PetKit.spin(pivot, () => clock.getElapsedTime());
+let rotating = false;
 
 let ready = false;
 let current = null;
@@ -118,10 +122,10 @@ function setPet(id) {
   if (!def || (current && current.def.id === def.id)) return;
   const pet = def.create({ THREE, kit: PetKit, reduceMotion, motion });
   if (current) {
-    scene.remove(current.pet.root);
+    pivot.remove(current.pet.root);
     disposeTree(current.pet.root);
   }
-  scene.add(pet.root);
+  pivot.add(pet.root);
   current = { def, pet };
   activeAction = null;
   pendingAction = null;
@@ -223,9 +227,25 @@ canvas.addEventListener("pointerdown", e => {
   if (e.button === 0) pressing = true;
 });
 
+let lastX = 0;
+let lastY = 0;
 canvas.addEventListener("pointermove", e => {
   if (moving) {
     window.pet.dragMove({ x: e.screenX, y: e.screenY });
+    return;
+  }
+  if (pressing) {
+    if (!rotating && Math.abs(e.screenX - downX) + Math.abs(e.screenY - downY) >= 6) {
+      rotating = true;
+      lastX = e.screenX;
+      lastY = e.screenY;
+      spin.begin();
+    }
+    if (rotating) {
+      spin.drag(e.screenX - lastX, e.screenY - lastY);
+      lastX = e.screenX;
+      lastY = e.screenY;
+    }
   }
 });
 
@@ -240,11 +260,18 @@ canvas.addEventListener("pointerup", e => {
   }
   if (pressing) {
     pressing = false;
+    if (rotating) {
+      rotating = false;
+      spin.end();
+      return;
+    }
     if (still) interact();
   }
 });
 
 canvas.addEventListener("pointercancel", () => {
+  if (rotating) spin.end();
+  rotating = false;
   pressing = false;
   moving = false;
   canvas.classList.remove("moving");
@@ -319,6 +346,7 @@ function animate() {
     r.scale.set(1 + 0.04 * dyingK, 1 - 0.1 * dyingK, 1 + 0.04 * dyingK);
   }
 
+  spin.update();
   renderer.render(scene, camera);
 }
 

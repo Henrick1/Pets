@@ -258,7 +258,9 @@ input:focus-visible {
   overflow: hidden;
   background: radial-gradient(ellipse at 50% 70%, color-mix(in srgb, var(--pet) 32%, transparent), transparent 70%), var(--surface);
   border: 1px solid var(--line);
-  touch-action: manipulation;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #stage {
