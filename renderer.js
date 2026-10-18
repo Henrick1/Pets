@@ -215,7 +215,7 @@ window.pet.onFeed(() => {
 window.pet.onTreat(() => showTab());
 window.pet.onLevelUp(n => {
   play("jump", true);
-  levelupEl.textContent = "Nível " + n + "!";
+  levelupEl.textContent = typeof n === "string" ? n : "Nível " + n + "!";
   levelupEl.hidden = false;
   clearTimeout(levelupTimer);
   levelupTimer = setTimeout(() => {

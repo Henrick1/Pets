@@ -582,12 +582,19 @@
     }
   }
 
+  function evolveTarget() {
+    if (!state || !state.pet) return null;
+    const m = meta[state.pet];
+    if (!m || !m.evolvesTo || !meta[m.evolvesTo] || !m.evolveLevel) return null;
+    return Game.canEvolve(state, state.pet, m.evolvesTo, m.evolveLevel) ? m.evolvesTo : null;
+  }
+
   function checkEvolution() {
     if (evolvingNow || !state || !stage || !state.pet || $("game-view").hidden) return;
     const id = state.pet;
     const m = meta[id];
-    if (!m || !m.evolvesTo || !meta[m.evolvesTo] || !m.evolveLevel) return;
-    if (!Game.canEvolve(state, id, m.evolvesTo, m.evolveLevel)) return;
+    if (!evolveTarget()) return;
+    $("evolve-btn").hidden = true;
     const target = m.evolvesTo;
     const to = meta[target];
     evolvingNow = true;
@@ -853,11 +860,13 @@
     stage.setStatus({ hunger: v.hunger, life: v.life, dying: v.dying });
     if ($("party-sheet").open) renderSheet(v);
     if ($("egg-sheet").open) refreshShop();
+    const evo = evolvingNow ? null : evolveTarget();
+    $("evolve-btn").hidden = !evo;
+    if (evo) $("evolve-btn").textContent = "Evoluir para " + meta[evo].name;
     if (evolvingNow) {
       ["feed", "treat", "party-btn"].forEach(b => ($(b).disabled = true));
     } else {
       $("party-btn").disabled = false;
-      setTimeout(checkEvolution, 600);
     }
     if ($("account-sheet").open) renderAccount();
   }
@@ -1005,6 +1014,7 @@
     });
 
     $("starter-go").addEventListener("click", chooseStarter);
+    $("evolve-btn").addEventListener("click", checkEvolution);
     $("starter-start").addEventListener("click", () => {
       $("starter-done").hidden = true;
       if (starterStage) starterStage.stop();

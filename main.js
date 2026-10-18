@@ -112,7 +112,10 @@ function snapshot() {
     color: (petMeta[id] && petMeta[id].color) || "#999999",
     types: (petMeta[id] && petMeta[id].types) || []
   }));
+  const em = petMeta[state.pet];
+  const evolveTo = em && em.evolvesTo && Game.canEvolve(state, state.pet, em.evolvesTo, em.evolveLevel || Infinity) ? (petMeta[em.evolvesTo] ? petMeta[em.evolvesTo].name : em.evolvesTo) : null;
   return Object.assign(Game.view(state, meta), {
+    evolveTo,
     account: {
       configured: cloud.configured,
       signedIn: cloud.signedIn(),
@@ -319,8 +322,7 @@ function tryEvolve() {
 ipcMain.on("feed", () => {
   const r = Game.feed(state);
   if (!r.changed) return;
-  const evolvedTo = r.levels > 0 ? tryEvolve() : null;
-  if (evolvedTo) r.level = r.level + " · evoluiu para " + evolvedTo;
+
   saveState();
   broadcast();
   scheduleSync();
@@ -330,6 +332,17 @@ ipcMain.on("feed", () => {
       if (alive(w)) w.webContents.send("level-up", r.level);
     });
   }
+});
+
+ipcMain.on("evolve", () => {
+  const name = tryEvolve();
+  if (!name) return;
+  saveState();
+  broadcast();
+  scheduleSync();
+  [win, panel].forEach(w => {
+    if (alive(w)) w.webContents.send("level-up", "Evoluiu para " + name + "!");
+  });
 });
 
 ipcMain.on("treat", () => {

@@ -3,6 +3,7 @@ const fillEl = document.getElementById("fill");
 const valueEl = document.getElementById("hunger-val");
 const feedBtn = document.getElementById("feed");
 const treatBtn = document.getElementById("treat");
+const evolveBtn = document.getElementById("evolve");
 const lifeFillEl = document.getElementById("life-fill");
 const lifeValueEl = document.getElementById("life-val");
 const joyFillEl = document.getElementById("joy-fill");
@@ -216,6 +217,8 @@ function render(s) {
     ? "Abra o site para escolher seu primeiro bichinho."
     : [s.hunger <= 25 && "Fome", s.joy <= 25 && "Triste", s.dying && "Morrendo"].filter(Boolean).join(" ");
   treatBtn.disabled = s.life >= 100;
+  evolveBtn.hidden = !s.evolveTo;
+  if (s.evolveTo) evolveBtn.textContent = "Evoluir para " + s.evolveTo;
   feedBtn.disabled = Math.round(s.hunger) >= 100;
   levelBadge.textContent = "Nível " + s.level;
   xpFillEl.style.width = Math.min(100, (s.xp / s.xpNext) * 100) + "%";
@@ -223,7 +226,7 @@ function render(s) {
 }
 
 window.pet.onLevelUp(n => {
-  toastEl.textContent = "Subiu para o nível " + n + "!";
+  toastEl.textContent = typeof n === "string" ? n : "Subiu para o nível " + n + "!";
   toastEl.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
@@ -264,6 +267,7 @@ boxClose.addEventListener("click", () => {
 
 feedBtn.addEventListener("click", () => window.pet.feed());
 treatBtn.addEventListener("click", () => window.pet.treat());
+evolveBtn.addEventListener("click", () => window.pet.evolve());
 closeBtn.addEventListener("click", () => window.pet.closePanel());
 window.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
