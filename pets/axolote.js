@@ -305,26 +305,25 @@ Pets.register({
       palm.position.z = 0.02;
       g.add(palm);
       [
-        [-0.05, -0.62, 0.08, 0.07, -0.35],
-        [-0.017, -0.2, 0.1, 0.09, -0.2],
-        [0.017, 0.2, 0.1, 0.09, 0.2],
-        [0.05, 0.62, 0.08, 0.07, 0.35]
+        [-0.04, -0.55, 0.09, 0.075, -0.35],
+        [0, 0, 0.11, 0.1, 0.12],
+        [0.04, 0.55, 0.09, 0.075, 0.35]
       ].forEach(([fx, ang, l1, l2, curl]) => {
         const f = new THREE.Group();
         f.position.set(fx, 0, 0.05);
         f.rotation.y = ang;
-        const a1 = mesh(new THREE.CylinderGeometry(0.019, 0.026, l1, 10), skin, false);
+        const a1 = mesh(new THREE.CylinderGeometry(0.021, 0.029, l1, 10), skin, false);
         a1.rotation.x = Math.PI / 2;
         a1.position.z = l1 / 2;
         const knuckle = new THREE.Group();
         knuckle.position.z = l1;
         knuckle.rotation.y = curl;
-        const a2 = mesh(new THREE.CylinderGeometry(0.011, 0.019, l2, 10), skin, false);
+        const a2 = mesh(new THREE.CylinderGeometry(0.012, 0.021, l2, 10), skin, false);
         a2.rotation.x = Math.PI / 2;
         a2.position.z = l2 / 2;
-        const tip = mesh(new THREE.SphereGeometry(0.0125, 10, 8), skin, false);
+        const tip = mesh(new THREE.SphereGeometry(0.0135, 10, 8), skin, false);
         tip.position.z = l2;
-        const joint = mesh(new THREE.SphereGeometry(0.019, 10, 8), skin, false);
+        const joint = mesh(new THREE.SphereGeometry(0.021, 10, 8), skin, false);
         knuckle.add(joint, a2, tip);
         f.add(a1, knuckle);
         g.add(f);
