@@ -5,6 +5,7 @@ Pets.register({
   types: ["steel"],
   description: "Robozinho de aço que anda sobre uma única roda. Adora passear de um lado para o outro com a engrenagem do peito sempre girando.",
   evolvesTo: "robo",
+  evolveLevel: 5,
   actions: {
     jump: { duration: 0.9 },
     eat: { duration: 2.4 },

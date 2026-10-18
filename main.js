@@ -300,15 +300,27 @@ ipcMain.on("pets-meta", (_e, list) => {
     petMeta[p.id] = {
       name: String(p.name || p.id).slice(0, 40),
       color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : "#999999",
-      types: PetTypes.clean(p.types)
+      types: PetTypes.clean(p.types),
+      evolvesTo: typeof p.evolvesTo === "string" && petIds.includes(p.evolvesTo) ? p.evolvesTo : null,
+      evolveLevel: Number.isInteger(p.evolveLevel) ? p.evolveLevel : 0
     };
   });
   broadcast();
 });
 
+function tryEvolve() {
+  const id = state.pet;
+  const m = petMeta[id];
+  if (!m || !m.evolvesTo || !m.evolveLevel) return null;
+  const r = Game.evolve(state, id, m.evolvesTo, m.evolveLevel);
+  return r.changed ? (petMeta[m.evolvesTo] ? petMeta[m.evolvesTo].name : m.evolvesTo) : null;
+}
+
 ipcMain.on("feed", () => {
   const r = Game.feed(state);
   if (!r.changed) return;
+  const evolvedTo = r.levels > 0 ? tryEvolve() : null;
+  if (evolvedTo) r.level = r.level + " · evoluiu para " + evolvedTo;
   saveState();
   broadcast();
   scheduleSync();

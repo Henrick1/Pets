@@ -382,7 +382,7 @@ const loadScript = src =>
 async function boot() {
   const files = await window.pet.getPetFiles();
   for (const f of files) await loadScript(f);
-  window.pet.setPetsMeta(Pets.list.map(p => ({ id: p.id, name: p.name, color: p.color, types: p.types })));
+  window.pet.setPetsMeta(Pets.list.map(p => ({ id: p.id, name: p.name, color: p.color, types: p.types, evolvesTo: p.evolvesTo || null, evolveLevel: p.evolveLevel || 0 })));
   ready = true;
   applyState(await window.pet.getState());
   animate();

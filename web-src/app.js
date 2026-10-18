@@ -53,6 +53,7 @@
   let revealing = false;
   let eggTicker = 0;
   let firstSyncDone = false;
+  let evolvingNow = false;
   let syncing = false;
   let syncAgain = false;
   let account = { offline: false, error: "", lastSync: 0 };
@@ -154,7 +155,7 @@
     $("dex-desc").textContent = m.description || "Ainda não há muito o que dizer sobre esta criatura.";
     const bits = [];
     if (row) bits.push("Nível " + row.level + " · " + (v.party.some(p => p.id === id) ? "No grupo" : "Na caixa"));
-    if (m.evolvesTo && meta[m.evolvesTo]) bits.push("Evolui para " + meta[m.evolvesTo].name);
+    if (m.evolvesTo && meta[m.evolvesTo]) bits.push("Evolui para " + meta[m.evolvesTo].name + (m.evolveLevel ? " no nível " + m.evolveLevel : ""));
     const pre = petIds.find(o => meta[o] && meta[o].evolvesTo === id);
     if (pre) bits.push("Evolução de " + meta[pre].name);
     $("dex-meta").textContent = bits.join(" · ");
@@ -581,6 +582,52 @@
     }
   }
 
+  function checkEvolution() {
+    if (evolvingNow || !state || !stage || !state.pet || $("game-view").hidden) return;
+    const id = state.pet;
+    const m = meta[id];
+    if (!m || !m.evolvesTo || !meta[m.evolvesTo] || !m.evolveLevel) return;
+    if (!Game.canEvolve(state, id, m.evolvesTo, m.evolveLevel)) return;
+    const target = m.evolvesTo;
+    const to = meta[target];
+    evolvingNow = true;
+    const wrap = $("stage-wrap");
+    ["feed", "treat", "party-btn"].forEach(b => ($(b).disabled = true));
+    hatchLabel(wrap, "Hã? " + m.name + " está evoluindo!");
+    wrap.classList.remove("burst");
+    wrap.classList.add("hatching", "shake-1");
+    const t1 = setTimeout(() => wrap.classList.replace("shake-1", "shake-2"), 2200);
+    const t2 = setTimeout(() => wrap.classList.replace("shake-2", "shake-3"), 3400);
+    stage.evolve(
+      target,
+      () => {
+        const r = Game.evolve(state, id, target, m.evolveLevel);
+        evolvingNow = false;
+        if (r.changed) {
+          saveState();
+          scheduleSync();
+        }
+        lastPetId = state.pet;
+        $("party-btn").disabled = false;
+        setTimeout(() => {
+          wrap.classList.remove("burst");
+          hatchLabel(wrap, "");
+        }, 2000);
+        showToast(m.name + " evoluiu para " + to.name + "!");
+        render();
+      },
+      () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        wrap.classList.remove("shake-1", "shake-2", "shake-3", "hatching");
+        void wrap.offsetWidth;
+        wrap.classList.add("burst");
+        hatchLabel(wrap, to.name + "!", "reveal");
+        document.documentElement.style.setProperty("--pet", to.color);
+      }
+    );
+  }
+
   function showToast(text) {
     const el = $("toast");
     const host = document.querySelector("dialog[open]") || document.body;
@@ -806,6 +853,12 @@
     stage.setStatus({ hunger: v.hunger, life: v.life, dying: v.dying });
     if ($("party-sheet").open) renderSheet(v);
     if ($("egg-sheet").open) refreshShop();
+    if (evolvingNow) {
+      ["feed", "treat", "party-btn"].forEach(b => ($(b).disabled = true));
+    } else {
+      $("party-btn").disabled = false;
+      setTimeout(checkEvolution, 600);
+    }
     if ($("account-sheet").open) renderAccount();
   }
 
@@ -1193,7 +1246,7 @@
     }
 
     window.Pets.list.forEach(p => {
-      meta[p.id] = { id: p.id, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null };
+      meta[p.id] = { id: p.id, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveLevel: p.evolveLevel || 0 };
     });
     petIds = window.Pets.list.map(p => p.id).sort();
 
