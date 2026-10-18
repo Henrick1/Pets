@@ -19,6 +19,7 @@ const H = 320;
 const PW = 280;
 const PH = 620;
 const PANEL_GAP = 8;
+const EDGE_X = 28;
 const SYNC_DELAY_MS = 1500;
 const SYNC_EVERY_MS = 60000;
 
@@ -242,7 +243,7 @@ function placeOnTarget() {
   closePanel();
   const area = targetArea();
   win.setBounds({
-    x: area.x + area.width - W,
+    x: area.x + area.width - W + EDGE_X,
     y: area.y + area.height - H,
     width: W,
     height: H
@@ -254,7 +255,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: W,
     height: H,
-    x: area.x + area.width - W,
+    x: area.x + area.width - W + EDGE_X,
     y: area.y + area.height - H,
     transparent: true,
     frame: false,
@@ -269,6 +270,7 @@ function createWindow() {
 
   win.setVisibleOnAllWorkspaces(true);
   win.loadFile(path.join(__dirname, "index.html"));
+  win.once("ready-to-show", placeOnTarget);
 
   cursorTimer = setInterval(() => {
     if (!alive(win)) return;

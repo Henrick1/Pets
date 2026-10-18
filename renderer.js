@@ -302,7 +302,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.position.set(0, 2, 7.4);
-  camera.lookAt(0, 1.55, 0);
+  camera.lookAt(0, 1.85, 0);
   camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", resize);
