@@ -62,13 +62,16 @@ const petFiles = fs
   .filter(f => f.endsWith(".js"))
   .sort()
   .map(f => "pets/" + f);
-fs.writeFileSync(path.join(out, "pets-list.js"), "window.PET_FILES = " + JSON.stringify(petFiles) + ";\n");
+const build = Date.now().toString(36);
+fs.writeFileSync(
+  path.join(out, "pets-list.js"),
+  "window.PET_FILES = " + JSON.stringify(petFiles) + ";\nwindow.PETS_BUILD = " + JSON.stringify(build) + ";\n"
+);
 
 const indexPath = path.join(out, "index.html");
 const origin = supabaseOrigin();
 fs.writeFileSync(indexPath, fs.readFileSync(indexPath, "utf8").replace("__SUPABASE_ORIGIN__", origin));
 
-const build = Date.now().toString(36);
 const assets = ["./"].concat(walk(out).filter(f => f !== "sw.js"));
 const sw = fs
   .readFileSync(path.join(root, "web-src", "sw.js"), "utf8")

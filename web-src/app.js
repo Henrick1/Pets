@@ -249,6 +249,7 @@
     else if (account.lastSync) status = "Sincronizado às " + new Date(account.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     else status = "Ainda não sincronizado.";
     $("account-status").textContent = status;
+    $("build").textContent = "Versão " + (window.PETS_BUILD || "local");
   }
 
   function render() {

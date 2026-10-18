@@ -25,31 +25,17 @@ self.addEventListener("fetch", event => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put("./", copy));
-          return res;
-        })
-        .catch(() => caches.match("./").then(r => r || caches.match("index.html")))
-    );
-    return;
-  }
-
   event.respondWith(
-    caches.match(req).then(cached => {
-      const network = fetch(req)
-        .then(res => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then(c => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(req, { cache: "no-cache" })
+      .then(res => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req.mode === "navigate" ? "./" : req, copy));
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(req).then(r => r || (req.mode === "navigate" ? caches.match("./") : undefined))
+      )
   );
 });
