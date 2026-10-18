@@ -277,7 +277,8 @@ input:focus-visible {
   -webkit-user-select: none;
 }
 
-#stage {
+#stage,
+#starter-canvas {
   position: absolute;
   inset: 0;
   width: 100%;

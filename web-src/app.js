@@ -1060,7 +1060,10 @@
     });
     wrap.addEventListener("pointercancel", releaseSpin);
 
-    window.addEventListener("resize", () => stage.resize());
+    window.addEventListener("resize", () => {
+      stage.resize();
+      [starterStage, eggStage, preview].forEach(st => st && st.resize());
+    });
     window.addEventListener("orientationchange", () => setTimeout(() => stage.resize(), 200));
 
     document.addEventListener("visibilitychange", () => {
