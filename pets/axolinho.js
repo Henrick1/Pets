@@ -15,7 +15,7 @@ Pets.register({
   clickAction: n => ["jump", "bubble", "jump"][(n - 1) % 3],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
+    const { mesh, lerp, smooth, eatPhase, berry } = kit;
 
     const std = (color, rough = 0.55, extra = {}) =>
       new THREE.MeshStandardMaterial({ color, roughness: rough, ...extra });
@@ -127,12 +127,23 @@ Pets.register({
       capGroup.add(l);
     });
 
+    const eyeMat = std(0x1a1424, 0.6);
+    const shineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.8, whiteColor: 0x14101c, pupilColor: 0x14101c });
-      e.g.position.copy(surf(0.4 * s, 0.14, 0.96));
-      e.g.rotation.y = 0.4 * s;
-      squash.add(e.g);
-      return e;
+      const g = new THREE.Group();
+      g.position.copy(surf(0.36 * s, 0.1, 0.985));
+      g.rotation.y = 0.36 * s;
+      const ball = mesh(new THREE.SphereGeometry(0.085, 24, 18), eyeMat, false);
+      ball.scale.set(1, 1.12, 0.55);
+      const shine = new THREE.Group();
+      const big = new THREE.Mesh(new THREE.SphereGeometry(0.026, 12, 10), shineMat);
+      big.position.set(0.026, 0.034, 0.042);
+      const small = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), shineMat);
+      small.position.set(-0.024, -0.03, 0.042);
+      shine.add(big, small);
+      g.add(ball, shine);
+      squash.add(g);
+      return { g, shine };
     });
 
     [-1, 1].forEach(s => {
@@ -357,10 +368,11 @@ Pets.register({
           }
         });
 
-        eyes.forEach(({ g }) => {
-          g.scale.y = airborne ? 1.1 : squint ? 0.35 : blink;
+        eyes.forEach(({ g, shine }) => {
+          g.scale.y = airborne ? 1.1 : squint ? 0.3 : blink;
+          shine.position.x = lerp(shine.position.x, pointer.x * 0.012, 0.15);
+          shine.position.y = lerp(shine.position.y, pointer.y * 0.01, 0.15);
         });
-        followPupils(eyes, pointer, 0.6);
       }
     };
   }
