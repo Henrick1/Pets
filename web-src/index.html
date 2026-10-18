@@ -40,6 +40,28 @@
   </div>
 </main>
 
+<main id="starter-view" class="starter" hidden>
+  <header class="starter-head">
+    <h1>Escolha seu primeiro companheiro</h1>
+    <p class="hint">Ele sai do ovo assim que você escolher.</p>
+  </header>
+  <section id="starter-wrap" class="stage-wrap starter-stage" aria-label="Prévia do inicial. Arraste para girar.">
+    <canvas id="starter-canvas"></canvas>
+  </section>
+  <div id="starter-pick" class="starter-pick">
+    <div id="starter-options" class="starter-options" role="radiogroup" aria-label="Iniciais"></div>
+    <div class="starter-info">
+      <div id="starter-types" class="type-tags"></div>
+      <p id="starter-desc" class="starter-desc"></p>
+    </div>
+    <button id="starter-go" class="btn primary" type="button">Escolher</button>
+  </div>
+  <div id="starter-done" class="starter-pick" hidden>
+    <p id="starter-hello" class="starter-hello"></p>
+    <button id="starter-start" class="btn primary" type="button">Começar</button>
+  </div>
+</main>
+
 <main id="game-view" class="game" hidden>
   <header class="top">
     <div class="who">
@@ -48,6 +70,10 @@
       <span id="tags" class="tags"></span>
     </div>
     <div class="top-actions">
+      <button id="egg-btn" class="icon-btn" type="button" aria-label="Ovos">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3c3.6 0 6.5 5.4 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.4 8.4 3 12 3z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span id="egg-alert" class="alert-dot" hidden></span>
+      </button>
       <button id="dex-btn" class="icon-btn" type="button" aria-label="Criaturas">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       </button>
@@ -130,6 +156,56 @@
     <p id="dex-desc" class="dex-desc"></p>
     <p id="dex-meta" class="hint"></p>
   </article>
+</dialog>
+
+<dialog id="egg-sheet" class="sheet" aria-labelledby="egg-title">
+  <div class="sheet-head">
+    <div class="dex-head">
+      <h2 id="egg-title">Ovos</h2>
+      <span id="coins" class="badge"></span>
+    </div>
+    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+  </div>
+  <div class="tabs tabs-3" role="tablist">
+    <button id="tab-inc" class="tab" role="tab" type="button" aria-selected="true">Chocadeira</button>
+    <button id="tab-inv" class="tab" role="tab" type="button" aria-selected="false">Inventário</button>
+    <button id="tab-shop" class="tab" role="tab" type="button" aria-selected="false">Loja</button>
+  </div>
+  <section id="egg-incubator" class="egg-pane">
+    <div id="egg-wrap" class="egg-stage">
+      <canvas id="egg-canvas"></canvas>
+      <p id="egg-empty" class="egg-empty" hidden>Espaço vazio. Toque num ovo do inventário para trazê-lo para cá.</p>
+    </div>
+    <div id="egg-slots" class="egg-slots"></div>
+    <div id="egg-controls" class="egg-controls">
+      <p id="egg-timer" class="egg-timer"></p>
+      <div class="stat">
+        <span class="stat-label">Cuidado</span>
+        <div id="care-bar" class="bar" role="progressbar" aria-label="Cuidado" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
+        <span id="care-val" class="stat-val"></span>
+      </div>
+      <p id="egg-hint" class="hint"></p>
+      <div class="btn-row">
+        <button id="egg-clean" class="btn soft" type="button">Limpar</button>
+        <button id="egg-play" class="btn soft" type="button">Brincar</button>
+      </div>
+    </div>
+  </section>
+  <section id="egg-inventory" class="egg-pane" hidden>
+    <p id="inv-hint" class="hint"></p>
+    <div id="egg-list" class="list"></div>
+  </section>
+  <section id="egg-shop" class="egg-pane" hidden>
+    <div class="shop-card">
+      <span class="mini-egg big"></span>
+      <div>
+        <h3>Ovo misterioso</h3>
+        <p class="hint">Dele nasce uma criatura que você ainda não tem.</p>
+      </div>
+    </div>
+    <button id="buy-egg" class="btn primary" type="button">Comprar por 100 moedas</button>
+    <p id="shop-hint" class="hint"></p>
+  </section>
 </dialog>
 
 <dialog id="account-sheet" class="sheet" aria-labelledby="account-title">

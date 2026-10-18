@@ -127,6 +127,15 @@ function disposeTree(node) {
 }
 
 function setPet(id) {
+  if (!id) {
+    if (current) {
+      scene.remove(current.pet.root);
+      pivot.remove(current.pet.root);
+      disposeTree(current.pet.root);
+      current = null;
+    }
+    return;
+  }
   const def = Pets.find(id) || Pets.list[0];
   if (!def || (current && current.def.id === def.id)) return;
   const pet = def.create({ THREE, kit: PetKit, reduceMotion, motion });

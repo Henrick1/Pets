@@ -43,6 +43,15 @@
   let syncTimer = 0;
   let animateList = false;
   let preview = null;
+  let starterStage = null;
+  let starterSel = 0;
+  let eggStage = null;
+  let eggTab = "inc";
+  let eggSlot = 0;
+  let shownEggId = null;
+  let revealing = false;
+  let eggTicker = 0;
+  let firstSyncDone = false;
   let syncing = false;
   let syncAgain = false;
   let account = { offline: false, error: "", lastSync: 0 };
@@ -179,6 +188,335 @@
     $("dex-title").textContent = "Criaturas";
   }
 
+  const reduce = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function makeStage(canvasId) {
+    return PetStage.create({
+      canvas: $(canvasId),
+      THREE: window.THREE,
+      kit: window.PetKit,
+      Pets: window.Pets,
+      reduceMotion: reduce()
+    });
+  }
+
+  function dragSpin(el, getStage) {
+    let down = false;
+    let x = 0;
+    let y = 0;
+    el.addEventListener("pointerdown", e => {
+      const st = getStage();
+      if (!st) return;
+      down = true;
+      x = e.clientX;
+      y = e.clientY;
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch (_) {
+        down = true;
+      }
+      st.spin.begin();
+    });
+    el.addEventListener("pointermove", e => {
+      const st = getStage();
+      if (!down || !st) return;
+      st.spin.drag(e.clientX - x, e.clientY - y);
+      x = e.clientX;
+      y = e.clientY;
+    });
+    const up = () => {
+      const st = getStage();
+      if (down && st) st.spin.end();
+      down = false;
+    };
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  }
+
+  function baseIds() {
+    return petIds.filter(id => !petIds.some(o => meta[o] && meta[o].evolvesTo === id));
+  }
+
+  function route() {
+    if (!state) return;
+    if (Game.needsStarter(state)) {
+      if (cloud && cloud.signedIn() && !firstSyncDone) {
+        $("loading-text").textContent = account.offline ? "Sem conexão. Tentando de novo..." : "Sincronizando...";
+        showView("loading");
+        return;
+      }
+      enterStarter();
+      return;
+    }
+    if (!$("starter-view").hidden && !$("starter-done").hidden) return;
+    if ($("game-view").hidden) {
+      showView("game");
+      lastPetId = null;
+    }
+    render();
+  }
+
+  function enterStarter() {
+    if (!$("starter-view").hidden) return;
+    showView("starter");
+    if (!starterStage) starterStage = makeStage("starter-canvas");
+    $("starter-pick").hidden = false;
+    $("starter-done").hidden = true;
+    renderStarter();
+    requestAnimationFrame(() => {
+      starterStage.resize();
+      starterStage.start();
+    });
+  }
+
+  function renderStarter() {
+    const list = Game.C.STARTERS.filter(id => meta[id]);
+    const id = list[starterSel] || list[0];
+    const m = meta[id];
+    const box = $("starter-options");
+    box.replaceChildren();
+    list.forEach((sid, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "starter-option";
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", String(i === starterSel));
+      b.style.setProperty("--c", meta[sid].color);
+      b.style.setProperty("--i", String(i));
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.background = meta[sid].color;
+      const name = document.createElement("span");
+      name.textContent = meta[sid].name;
+      b.append(dot, name);
+      b.addEventListener("click", () => {
+        starterSel = i;
+        renderStarter();
+      });
+      box.append(b);
+    });
+    document.documentElement.style.setProperty("--pet", m.color);
+    $("starter-types").replaceChildren(...typeTags(m.types).childNodes);
+    $("starter-desc").textContent = m.description;
+    $("starter-go").textContent = "Escolher " + m.name;
+    starterStage.setEgg(null);
+    starterStage.setPet(id);
+  }
+
+  function chooseStarter() {
+    const list = Game.C.STARTERS.filter(id => meta[id]);
+    const id = list[starterSel] || list[0];
+    const r = Game.chooseStarter(state, id);
+    if (!r.changed) {
+      route();
+      return;
+    }
+    saveState();
+    scheduleSync();
+    $("starter-pick").hidden = true;
+    starterStage.setEgg({ color: meta[id].color });
+    setTimeout(() => {
+      starterStage.hatch(id, () => {
+        $("starter-hello").textContent = "Nasceu o seu " + meta[id].name + "!";
+        $("starter-done").hidden = false;
+      });
+    }, 900);
+  }
+
+  const fmtTime = ms => {
+    const sec = Math.ceil(ms / 1000);
+    return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+  };
+
+  function slotEgg(i) {
+    return state.eggs.find(e => e.slot === i) || null;
+  }
+
+  function miniEgg(color) {
+    const egg = document.createElement("span");
+    egg.className = "mini-egg";
+    egg.style.setProperty("--c", color);
+    return egg;
+  }
+
+  function openEggs() {
+    eggTab = "inc";
+    const first = [0, 1, 2].find(i => slotEgg(i));
+    eggSlot = first === undefined ? 0 : first;
+    shownEggId = undefined;
+    revealing = false;
+    if (!eggStage) eggStage = makeStage("egg-canvas");
+    renderEggs();
+    $("egg-sheet").showModal();
+    requestAnimationFrame(() => {
+      eggStage.resize();
+      eggStage.start();
+    });
+    clearInterval(eggTicker);
+    eggTicker = setInterval(tickEggs, 500);
+  }
+
+  function renderEggs() {
+    Game.catchUp(state);
+    $("coins").textContent = state.coins + " moedas";
+    [["inc", "egg-incubator"], ["inv", "egg-inventory"], ["shop", "egg-shop"]].forEach(([k, pane]) => {
+      $("tab-" + k).setAttribute("aria-selected", String(eggTab === k));
+      $(pane).hidden = eggTab !== k;
+    });
+    const slots = $("egg-slots");
+    slots.replaceChildren();
+    for (let i = 0; i < Game.C.INCUBATOR_SLOTS; i++) {
+      const e = slotEgg(i);
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "egg-slot" + (e ? "" : " empty");
+      b.setAttribute("aria-pressed", String(i === eggSlot));
+      if (e) {
+        b.append(miniEgg(meta[e.species] ? meta[e.species].color : "#999999"));
+        const tm = document.createElement("span");
+        tm.className = "slot-time";
+        tm.id = "slot-time-" + i;
+        tm.textContent = e.left <= 0 ? "Pronto!" : fmtTime(e.left);
+        b.append(tm);
+      } else {
+        const tm = document.createElement("span");
+        tm.className = "slot-time";
+        tm.textContent = "Vazio";
+        b.append(tm);
+      }
+      b.addEventListener("click", () => {
+        if (revealing) revealing = false;
+        eggSlot = i;
+        renderEggs();
+      });
+      slots.append(b);
+    }
+    syncEggStage();
+    tickEggs();
+
+    const inv = state.eggs.filter(e => e.slot === null);
+    const full = [0, 1, 2].every(i => slotEgg(i));
+    $("inv-hint").textContent = inv.length
+      ? full
+        ? "A chocadeira está cheia. Espere um ovo chocar para colocar outro."
+        : "Toque num ovo para levá-lo à chocadeira."
+      : "Nenhum ovo guardado. Compre ovos na loja.";
+    const list = $("egg-list");
+    list.replaceChildren();
+    inv.forEach((e, k) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "item enter";
+      b.style.setProperty("--i", String(k));
+      const info = document.createElement("span");
+      info.className = "info";
+      const name = document.createElement("span");
+      name.className = "name-line";
+      name.textContent = "Ovo misterioso";
+      info.append(name);
+      b.append(miniEgg(meta[e.species] ? meta[e.species].color : "#999999"), info);
+      b.addEventListener("click", () => {
+        const r = Game.incubate(state, e.id);
+        if (!r.changed) {
+          showToast("A chocadeira está cheia (3 ovos).");
+          return;
+        }
+        saveState();
+        scheduleSync();
+        eggSlot = r.slot;
+        eggTab = "inc";
+        revealing = false;
+        renderEggs();
+        render();
+      });
+      list.append(b);
+    });
+
+    const pool = Game.eggPool(state, baseIds());
+    const canBuy = state.coins >= Game.C.EGG_PRICE && pool.length > 0;
+    $("buy-egg").disabled = !canBuy;
+    $("buy-egg").textContent = "Comprar por " + Game.C.EGG_PRICE + " moedas";
+    $("shop-hint").textContent = !pool.length
+      ? "Você já tem (ou já tem o ovo de) todas as criaturas disponíveis."
+      : state.coins < Game.C.EGG_PRICE
+        ? "Moedas insuficientes. Ainda não dá para ganhar moedas."
+        : "O ovo vai para o seu inventário.";
+  }
+
+  function syncEggStage() {
+    if (!eggStage || revealing) return;
+    const e = slotEgg(eggSlot);
+    $("egg-empty").hidden = !!e;
+    if (!e) {
+      if (shownEggId !== null) {
+        eggStage.setEgg(null);
+        eggStage.setPet(null);
+        shownEggId = null;
+      }
+      return;
+    }
+    if (shownEggId !== e.id) {
+      eggStage.setPet(null);
+      eggStage.setEgg({ color: meta[e.species] ? meta[e.species].color : "#999999", nest: true, care: e.care });
+      shownEggId = e.id;
+    }
+  }
+
+  function tickEggs() {
+    if (!state) return;
+    Game.catchUp(state);
+    for (let i = 0; i < Game.C.INCUBATOR_SLOTS; i++) {
+      const e = slotEgg(i);
+      const el = $("slot-time-" + i);
+      if (e && el) el.textContent = e.left <= 0 ? "Pronto!" : fmtTime(e.left);
+    }
+    const e = slotEgg(eggSlot);
+    const has = !!e && !revealing;
+    $("egg-controls").hidden = !has && !revealing;
+    if (revealing) return;
+    if (!e) return;
+    setBar($("care-bar"), $("care-val"), e.care);
+    $("care-bar").dataset.level = barLevel(e.care);
+    if (eggStage) eggStage.setEggCare(e.care);
+    $("egg-timer").textContent = e.left <= 0 ? "Chocando!" : fmtTime(e.left);
+    $("egg-hint").textContent =
+      e.left <= 0 ? "" : e.care <= 0 ? "O ovo está sem cuidado e parou de chocar. Limpe e brinque com ele." : "Mantenha o cuidado alto para o tempo continuar correndo.";
+    $("egg-clean").disabled = e.left <= 0 || e.care >= 99.5;
+    $("egg-play").disabled = e.left <= 0 || e.care >= 99.5;
+    if (e.left <= 0 && eggStage && eggStage.hasEgg() && shownEggId === e.id) startHatch(e);
+  }
+
+  function startHatch(e) {
+    revealing = true;
+    const id = e.id;
+    const species = e.species;
+    $("egg-clean").disabled = true;
+    $("egg-play").disabled = true;
+    $("egg-hint").textContent = "";
+    eggStage.hatch(species, () => {
+      const r = Game.hatchEgg(state, id);
+      if (r.changed) {
+        saveState();
+        scheduleSync();
+        render();
+      }
+      shownEggId = null;
+      const name = meta[species] ? meta[species].name : species;
+      $("egg-timer").textContent = "Nasceu um " + name + "!";
+      showToast(name + " nasceu e foi para o seu " + (state.party.includes(species) ? "grupo" : "caixa") + "!");
+      const slots = $("egg-slots");
+      const btn = slots.children[eggSlot];
+      if (btn) {
+        btn.classList.add("empty");
+        btn.replaceChildren();
+        const tm = document.createElement("span");
+        tm.className = "slot-time";
+        tm.textContent = "Vazio";
+        btn.append(tm);
+      }
+    });
+  }
+
   function showToast(text) {
     const el = $("toast");
     el.textContent = text;
@@ -190,9 +528,11 @@
   }
 
   function showView(name) {
-    $("loading").hidden = true;
+    $("loading").hidden = name !== "loading";
     $("auth-view").hidden = name !== "auth";
     $("game-view").hidden = name !== "game";
+    $("starter-view").hidden = name !== "starter";
+    if (name !== "starter" && starterStage) starterStage.stop();
     if (name === "game" && stage) {
       stage.resize();
       stage.start();
@@ -353,7 +693,8 @@
   }
 
   function render() {
-    if (!state || !stage) return;
+    if (!state || !stage || Game.needsStarter(state) || !state.pet) return;
+    $("egg-alert").hidden = !state.eggs.some(e => e.slot !== null && (e.left <= 0 || e.care <= 0));
     const v = view();
     const info = meta[v.pet] || { name: v.pet, color: "#999999" };
     $("pet-name").textContent = info.name;
@@ -423,6 +764,7 @@
       account.offline = false;
       account.error = "";
       account.lastSync = Date.now();
+      firstSyncDone = true;
     } catch (err) {
       if (err.auth) {
         await cloud.signOut().catch(() => null);
@@ -434,7 +776,8 @@
     } finally {
       syncing = false;
       saveState();
-      render();
+      if ($("auth-view").hidden) route();
+      if (!firstSyncDone && cloud.signedIn()) setTimeout(() => syncNow(), 5000);
       if (syncAgain) {
         syncAgain = false;
         scheduleSync();
@@ -480,8 +823,8 @@
         await cloud.signIn(email, password);
       }
       $("password").value = "";
-      showView("game");
-      render();
+      firstSyncDone = false;
+      route();
       await syncNow({ preferRemote: true });
     } catch (err) {
       setAuthMsg(err.offline ? "Sem conexão com a internet." : err.message, "error");
@@ -537,6 +880,54 @@
       swapIn = null;
       animateList = true;
       render();
+    });
+
+    $("starter-go").addEventListener("click", chooseStarter);
+    $("starter-start").addEventListener("click", () => {
+      $("starter-done").hidden = true;
+      if (starterStage) starterStage.stop();
+      showView("game");
+      lastPetId = null;
+      render();
+    });
+    dragSpin($("starter-wrap"), () => starterStage);
+    dragSpin($("egg-wrap"), () => eggStage);
+    $("egg-btn").addEventListener("click", openEggs);
+    $("egg-sheet").addEventListener("close", () => {
+      clearInterval(eggTicker);
+      if (eggStage) eggStage.stop();
+      revealing = false;
+    });
+    [["inc", "tab-inc"], ["inv", "tab-inv"], ["shop", "tab-shop"]].forEach(([k, id]) => {
+      $(id).addEventListener("click", () => {
+        eggTab = k;
+        renderEggs();
+      });
+    });
+    ["clean", "play"].forEach(kind => {
+      $("egg-" + kind).addEventListener("click", () => {
+        const e = slotEgg(eggSlot);
+        if (!e) return;
+        const r = Game.careEgg(state, e.id, kind);
+        if (!r.changed) return;
+        saveState();
+        scheduleSync();
+        if (eggStage) eggStage.eggDo(kind);
+        tickEggs();
+        render();
+      });
+    });
+    $("buy-egg").addEventListener("click", () => {
+      const r = Game.buyEgg(state, baseIds());
+      if (!r.changed) {
+        renderEggs();
+        return;
+      }
+      saveState();
+      scheduleSync();
+      showToast("Ovo comprado! Ele está no inventário.");
+      eggTab = "inv";
+      renderEggs();
     });
 
     $("dex-btn").addEventListener("click", () => {
@@ -595,6 +986,7 @@
       $("account-sheet").close();
       await cloud.signOut().catch(() => null);
       account = { offline: false, error: "", lastSync: 0 };
+      firstSyncDone = false;
       enterAuth("");
     });
 
@@ -711,6 +1103,7 @@
       await loadScript("lib/cloud.js");
       await loadScript("lib/types.js");
       await loadScript("lib/pet-kit.js");
+      await loadScript("lib/egg.js");
       await loadScript("lib/stage.js");
       await loadScript("pets-list.js");
       for (const f of window.PET_FILES || []) await loadScriptSafe(f);
@@ -760,8 +1153,7 @@
       enterAuth("");
       return;
     }
-    showView("game");
-    render();
+    route();
     if (cloud.signedIn()) syncNow();
   }
 
