@@ -121,33 +121,7 @@
       warn.textContent = text;
       line.append(warn);
     });
-    if (!state || p.id !== state.pet) {
-      info.append(line);
-      el.append(dot, info);
-      return el;
-    }
-    const mini = document.createElement("span");
-    mini.className = "mini";
-    [
-      ["Fome", p.hunger],
-      ["Vida", p.life],
-      ["Felicidade", p.joy]
-    ].forEach(([label, v]) => {
-      const bar = document.createElement("span");
-      bar.className = "bar";
-      bar.dataset.level = barLevel(v);
-      bar.setAttribute("role", "progressbar");
-      bar.setAttribute("aria-label", label + " de " + p.name);
-      bar.setAttribute("aria-valuemin", "0");
-      bar.setAttribute("aria-valuemax", "100");
-      bar.setAttribute("aria-valuenow", String(Math.round(v)));
-      const fill = document.createElement("span");
-      fill.className = "fill";
-      fill.style.width = Math.round(v) + "%";
-      bar.append(fill);
-      mini.append(bar);
-    });
-    info.append(line, mini);
+    info.append(line);
     el.append(dot, info);
     return el;
   }
