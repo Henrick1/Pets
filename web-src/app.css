@@ -298,6 +298,11 @@ input:focus-visible {
   text-align: center;
 }
 
+.sheet .toast {
+  z-index: 5;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
 .toast {
   bottom: 12px;
   background: var(--soft);

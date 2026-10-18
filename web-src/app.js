@@ -583,6 +583,10 @@
 
   function showToast(text) {
     const el = $("toast");
+    const host = document.querySelector("dialog[open]") || $("stage-wrap");
+    if (el.parentNode !== host) host.append(el);
+    el.hidden = true;
+    void el.offsetWidth;
     el.textContent = text;
     el.hidden = false;
     clearTimeout(toastTimer);
