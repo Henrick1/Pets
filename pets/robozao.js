@@ -87,20 +87,21 @@ Pets.register({
     const root = new THREE.Group();
     const stance = new THREE.Group();
     root.add(stance);
-    const WAIST = 1.15;
+    const WAIST = 1.01;
     const upper = new THREE.Group();
     upper.position.y = WAIST;
     stance.add(upper);
     const HEAD_Y = 1.74;
 
-    [0.1, 0.32].forEach((y, i) => {
-      const ab = mesh(roundedBox(0.66 - i * 0.06, 0.2, 0.5, 0.08, 0.03), white);
-      ab.position.y = y;
-      upper.add(ab);
-    });
+    const ab = mesh(roundedBox(0.6, 0.22, 0.5, 0.08, 0.03), white);
+    ab.position.y = 0.3;
+    upper.add(ab);
+    const core2 = mesh(roundedBox(0.5, 0.36, 0.4, 0.08, 0.03), dark);
+    core2.position.y = 0.26;
+    upper.add(core2);
     [-1, 1].forEach(s => {
-      const ob = mesh(roundedBox(0.1, 0.42, 0.44, 0.04, 0.015), dark, false);
-      ob.position.set(0.36 * s, 0.22, 0);
+      const ob = mesh(roundedBox(0.1, 0.28, 0.42, 0.04, 0.015), dark, false);
+      ob.position.set(0.33 * s, 0.3, 0);
       ob.rotation.z = 0.12 * s;
       upper.add(ob);
     });
