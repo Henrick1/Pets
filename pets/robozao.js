@@ -108,13 +108,13 @@ Pets.register({
     const CH = 1.0;
     const DEPTH = 0.72;
     const chestShape = new THREE.Shape();
-    chestShape.moveTo(-0.42, 0);
-    chestShape.lineTo(0.42, 0);
-    chestShape.lineTo(0.8, CH - 0.15);
-    chestShape.quadraticCurveTo(0.82, CH, 0.66, CH);
-    chestShape.lineTo(-0.66, CH);
-    chestShape.quadraticCurveTo(-0.82, CH, -0.8, CH - 0.15);
-    chestShape.lineTo(-0.42, 0);
+    chestShape.moveTo(-0.38, 0);
+    chestShape.lineTo(0.38, 0);
+    chestShape.lineTo(0.72, CH - 0.15);
+    chestShape.quadraticCurveTo(0.74, CH, 0.6, CH);
+    chestShape.lineTo(-0.6, CH);
+    chestShape.quadraticCurveTo(-0.74, CH, -0.72, CH - 0.15);
+    chestShape.lineTo(-0.38, 0);
     const chestGeo = new THREE.ExtrudeGeometry(chestShape, { depth: DEPTH, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.07, bevelSegments: 3, curveSegments: 10 });
     chestGeo.translate(0, 0, -DEPTH / 2);
     const chest = new THREE.Group();
@@ -124,13 +124,13 @@ Pets.register({
     const FRONT = DEPTH / 2 + 0.075;
 
     const vShape = new THREE.Shape();
-    vShape.moveTo(-0.54, 0.92);
-    vShape.lineTo(-0.36, 0.92);
-    vShape.lineTo(0, 0.62);
-    vShape.lineTo(0.36, 0.92);
-    vShape.lineTo(0.54, 0.92);
-    vShape.lineTo(0, 0.48);
-    vShape.lineTo(-0.54, 0.92);
+    vShape.moveTo(-0.48, 0.92);
+    vShape.lineTo(-0.32, 0.92);
+    vShape.lineTo(0, 0.63);
+    vShape.lineTo(0.32, 0.92);
+    vShape.lineTo(0.48, 0.92);
+    vShape.lineTo(0, 0.5);
+    vShape.lineTo(-0.48, 0.92);
     const vGeo = new THREE.ExtrudeGeometry(vShape, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2 });
     const vMesh = mesh(vGeo, navy, false);
     vMesh.position.z = FRONT - 0.01;
@@ -140,10 +140,10 @@ Pets.register({
     vLed.position.set(0, 0.12, FRONT + 0.05);
     chest.add(vLed);
 
-    const plate = mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.06, 32), dark, false);
+    const plate = mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.06, 32), dark, false);
     plate.rotation.x = Math.PI / 2;
     plate.position.set(0, 0.27, FRONT);
-    const plateRim = mesh(new THREE.TorusGeometry(0.25, 0.03, 8, 32), navy, false);
+    const plateRim = mesh(new THREE.TorusGeometry(0.23, 0.03, 8, 32), navy, false);
     plateRim.position.set(0, 0.27, FRONT + 0.02);
     chest.add(plate, plateRim);
     const gearA = mesh(gearShape(9, 0.13, 0.095, 0.035, 0.05), blue, false);
@@ -154,7 +154,7 @@ Pets.register({
     gearC.position.set(0.06, 0.15, FRONT + 0.05);
     chest.add(gearA, gearB, gearC);
 
-    [-0.48, 0.48].forEach(x => {
+    [-0.43, 0.43].forEach(x => {
       const rv = mesh(new THREE.SphereGeometry(0.035, 10, 8), steel, false);
       rv.position.set(x, 0.86, FRONT);
       chest.add(rv);
@@ -162,7 +162,7 @@ Pets.register({
 
     const pads = [-1, 1].map(s => {
       const g = new THREE.Group();
-      g.position.set(0.86 * s, 0.44 + CH - 0.02, 0);
+      g.position.set(0.78 * s, 0.44 + CH - 0.02, 0);
       const pad = mesh(roundedBox(0.52, 0.34, 0.72, 0.14, 0.04), white);
       const trim = mesh(roundedBox(0.54, 0.08, 0.74, 0.04, 0.015), navy, false);
       trim.position.y = -0.12;
@@ -247,7 +247,7 @@ Pets.register({
 
     const arms = [-1, 1].map(s => {
       const shoulder = new THREE.Group();
-      shoulder.position.set(0.94 * s, 0.44 + CH - 0.14, 0.12);
+      shoulder.position.set(0.86 * s, 0.44 + CH - 0.14, 0.12);
       upper.add(shoulder);
       const joint = mesh(new THREE.SphereGeometry(0.17, 18, 12), dark);
       const upperArm = mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.58, 16), dark);
@@ -364,9 +364,9 @@ Pets.register({
             if (q <= 0 || q >= 1) return;
             const k = q < 0.35 ? smooth(0, 0.35, q) : 1 - smooth(0.45, 1, q);
             const o = pose[h.side];
-            o.sh = lerp(o.sh, -1.45, k);
-            o.sz = lerp(o.sz, -0.12, k);
-            o.el = lerp(o.el, 0.15, k);
+            o.sh = lerp(o.sh, -1.5, k);
+            o.sz = lerp(o.sz, -0.22, k);
+            o.el = lerp(o.el, 3.05, k);
             twist += (h.side === 0 ? 0.28 : -0.38) * k;
             lunge += 0.18 * k;
           });
@@ -378,9 +378,9 @@ Pets.register({
           const k = smooth(0, 0.18, p) * (1 - smooth(0.85, 1, p));
           const pump = Math.sin(p * Math.PI * 6) * 0.15 * k;
           pose.forEach(o => {
-            o.sh = lerp(o.sh, -2.75, k) + pump;
-            o.sz = lerp(o.sz, 0.35, k);
-            o.el = lerp(o.el, 0.45, k) + pump * 1.5;
+            o.sh = lerp(o.sh, -2.85, k) + pump;
+            o.sz = lerp(o.sz, 0.3, k);
+            o.el = lerp(o.el, 2.9, k) - Math.abs(pump) * 2;
           });
           sy += Math.abs(pump) * 0.2;
           coreFlash = k * (0.5 + 0.5 * Math.sin(p * Math.PI * 12));
