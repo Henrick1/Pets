@@ -1154,6 +1154,16 @@ a.btn.soft {
   animation: flash-out 0.7s ease-out forwards;
 }
 
+.knock {
+  animation: knock-bump 0.4s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes knock-bump {
+  35% {
+    transform: scale(1.025) rotate(-0.4deg);
+  }
+}
+
 @keyframes shake {
   0%,
   100% {

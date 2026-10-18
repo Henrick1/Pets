@@ -45,6 +45,7 @@
   let preview = null;
   let starterStage = null;
   let starterSel = 0;
+  let starterEgg = null;
   let eggStage = null;
   let eggTab = "inc";
   let eggSlot = 0;
@@ -200,16 +201,20 @@
     });
   }
 
-  function dragSpin(el, getStage) {
+  function dragSpin(el, getStage, onTap) {
     let down = false;
     let x = 0;
     let y = 0;
+    let sx = 0;
+    let sy = 0;
     el.addEventListener("pointerdown", e => {
       const st = getStage();
       if (!st) return;
       down = true;
       x = e.clientX;
       y = e.clientY;
+      sx = x;
+      sy = y;
       try {
         el.setPointerCapture(e.pointerId);
       } catch (_) {
@@ -224,13 +229,41 @@
       x = e.clientX;
       y = e.clientY;
     });
-    const up = () => {
+    const up = e => {
       const st = getStage();
       if (down && st) st.spin.end();
+      const tap = down && e && e.type === "pointerup" && Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 10;
       down = false;
+      if (tap && onTap) onTap();
     };
     el.addEventListener("pointerup", up);
     el.addEventListener("pointercancel", up);
+  }
+
+  function hatchLabel(wrap, text, cls) {
+    let label = wrap.querySelector(".hatch-text");
+    if (!label) {
+      label = document.createElement("p");
+      label.className = "hatch-text";
+      wrap.append(label);
+    }
+    label.hidden = !text;
+    label.textContent = text || "";
+    label.className = "hatch-text" + (cls ? " " + cls : "");
+    void label.offsetWidth;
+    return label;
+  }
+
+  const TAP_TEXT = ["Toque no ovo 3 vezes!", "Rachou!", "Está brilhando!", "Lá vem!"];
+
+  function tapEgg(st, wrap, species, onDone) {
+    if (!st || !st.hasEgg() || st.eggCracks() >= 3) return;
+    const level = st.eggTap();
+    hatchLabel(wrap, TAP_TEXT[level], level % 2 ? "again" : "");
+    wrap.classList.remove("knock");
+    void wrap.offsetWidth;
+    wrap.classList.add("knock");
+    if (level >= 3) setTimeout(() => runHatch(st, wrap, species, onDone), 600);
   }
 
   function baseIds() {
@@ -248,7 +281,7 @@
       enterStarter();
       return;
     }
-    if (!$("starter-view").hidden && !$("starter-done").hidden) return;
+    if (!$("starter-view").hidden && (starterEgg || !$("starter-done").hidden)) return;
     if ($("game-view").hidden) {
       showView("game");
       lastPetId = null;
@@ -305,51 +338,23 @@
 
   function runHatch(st, wrap, species, onDone) {
     const name = meta[species] ? meta[species].name : species;
-    let label = wrap.querySelector(".hatch-text");
-    if (!label) {
-      label = document.createElement("p");
-      label.className = "hatch-text";
-      wrap.append(label);
-    }
-    label.hidden = false;
-    label.className = "hatch-text";
-    label.textContent = "Hã?";
-    wrap.classList.remove("burst", "shake-1", "shake-2", "shake-3");
-    wrap.classList.add("hatching", "shake-1");
-    const D = 7000;
-    const timers = [
-      setTimeout(() => {
-        label.textContent = "Está mexendo!";
-        label.className = "hatch-text again";
-      }, D * 0.18),
-      setTimeout(() => {
-        wrap.classList.replace("shake-1", "shake-2");
-        label.textContent = "Vai nascer!";
-        label.className = "hatch-text";
-      }, D * 0.46),
-      setTimeout(() => {
-        wrap.classList.replace("shake-2", "shake-3");
-        label.textContent = "Agora!";
-        label.className = "hatch-text again";
-      }, D * 0.62)
-    ];
+    hatchLabel(wrap, "Vai nascer!", "again");
+    wrap.classList.remove("burst", "knock");
+    wrap.classList.add("hatching", "shake-3");
     st.hatch(
       species,
       () => {
-        timers.forEach(clearTimeout);
         setTimeout(() => {
           wrap.classList.remove("burst");
-          label.hidden = true;
+          hatchLabel(wrap, "");
         }, 2200);
         if (onDone) onDone();
       },
       () => {
-        timers.forEach(clearTimeout);
-        wrap.classList.remove("shake-1", "shake-2", "shake-3", "hatching");
+        wrap.classList.remove("shake-3", "hatching");
         void wrap.offsetWidth;
         wrap.classList.add("burst");
-        label.textContent = name + "!";
-        label.className = "hatch-text reveal";
+        hatchLabel(wrap, name + "!", "reveal");
       }
     );
   }
@@ -366,12 +371,8 @@
     scheduleSync();
     $("starter-pick").hidden = true;
     starterStage.setEgg({ color: meta[id].color });
-    setTimeout(() => {
-      runHatch(starterStage, $("starter-wrap"), id, () => {
-        $("starter-hello").textContent = "Nasceu o seu " + meta[id].name + "!";
-        $("starter-done").hidden = false;
-      });
-    }, 700);
+    starterEgg = id;
+    hatchLabel($("starter-wrap"), TAP_TEXT[0]);
   }
 
   const fmtTime = ms => {
@@ -534,43 +535,50 @@
     setBar($("care-bar"), $("care-val"), e.care);
     $("care-bar").dataset.level = barLevel(e.care);
     if (eggStage) eggStage.setEggCare(e.care);
-    $("egg-timer").textContent = e.left <= 0 ? "Chocando!" : fmtTime(e.left);
+    $("egg-timer").textContent = e.left <= 0 ? "Pronto para chocar!" : fmtTime(e.left);
     $("egg-hint").textContent =
       e.left <= 0 ? "" : e.care <= 0 ? "O ovo está sem cuidado e parou de chocar. Limpe e brinque com ele." : "Mantenha o cuidado alto para o tempo continuar correndo.";
     $("egg-clean").disabled = e.left <= 0 || e.care >= 99.5;
     $("egg-play").disabled = e.left <= 0 || e.care >= 99.5;
-    if (e.left <= 0 && eggStage && eggStage.hasEgg() && shownEggId === e.id) startHatch(e);
+    if (e.left <= 0 && eggStage && eggStage.hasEgg() && shownEggId === e.id && eggStage.eggCracks() === 0) {
+      const lbl = $("egg-wrap").querySelector(".hatch-text");
+      if (!lbl || lbl.hidden) hatchLabel($("egg-wrap"), TAP_TEXT[0]);
+    }
   }
 
-  function startHatch(e) {
-    revealing = true;
-    const id = e.id;
-    const species = e.species;
-    $("egg-clean").disabled = true;
-    $("egg-play").disabled = true;
-    $("egg-hint").textContent = "";
-    runHatch(eggStage, $("egg-wrap"), species, () => {
-      const r = Game.hatchEgg(state, id);
-      if (r.changed) {
-        saveState();
-        scheduleSync();
-        render();
-      }
-      shownEggId = null;
-      const name = meta[species] ? meta[species].name : species;
-      $("egg-timer").textContent = "Nasceu um " + name + "!";
-      showToast(name + " nasceu e foi para o seu " + (state.party.includes(species) ? "grupo" : "caixa") + "!");
-      const slots = $("egg-slots");
-      const btn = slots.children[eggSlot];
-      if (btn) {
-        btn.classList.add("empty");
-        btn.replaceChildren();
-        const tm = document.createElement("span");
-        tm.className = "slot-time";
-        tm.textContent = "Vazio";
-        btn.append(tm);
-      }
-    });
+  function tapIncubatorEgg() {
+    const e = slotEgg(eggSlot);
+    if (!e || revealing || e.left > 0 || !eggStage || !eggStage.hasEgg()) return;
+    if (eggStage.eggCracks() >= 2) {
+      revealing = true;
+      $("egg-clean").disabled = true;
+      $("egg-play").disabled = true;
+      $("egg-hint").textContent = "";
+    }
+    tapEgg(eggStage, $("egg-wrap"), e.species, () => finishHatch(e.id, e.species));
+  }
+
+  function finishHatch(id, species) {
+    const r = Game.hatchEgg(state, id);
+    if (r.changed) {
+      saveState();
+      scheduleSync();
+      render();
+    }
+    shownEggId = null;
+    const name = meta[species] ? meta[species].name : species;
+    $("egg-timer").textContent = "Nasceu um " + name + "!";
+    showToast(name + " nasceu e foi para o seu " + (state.party.includes(species) ? "grupo" : "caixa") + "!");
+    const slots = $("egg-slots");
+    const btn = slots.children[eggSlot];
+    if (btn) {
+      btn.classList.add("empty");
+      btn.replaceChildren();
+      const tm = document.createElement("span");
+      tm.className = "slot-time";
+      tm.textContent = "Vazio";
+      btn.append(tm);
+    }
   }
 
   function showToast(text) {
@@ -947,8 +955,16 @@
       lastPetId = null;
       render();
     });
-    dragSpin($("starter-wrap"), () => starterStage);
-    dragSpin($("egg-wrap"), () => eggStage);
+    dragSpin($("starter-wrap"), () => starterStage, () => {
+      if (!starterEgg) return;
+      const id = starterEgg;
+      tapEgg(starterStage, $("starter-wrap"), id, () => {
+        starterEgg = null;
+        $("starter-hello").textContent = "Nasceu o seu " + meta[id].name + "!";
+        $("starter-done").hidden = false;
+      });
+    });
+    dragSpin($("egg-wrap"), () => eggStage, tapIncubatorEgg);
     $("egg-btn").addEventListener("click", openEggs);
     $("egg-sheet").addEventListener("close", () => {
       clearInterval(eggTicker);
