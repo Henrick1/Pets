@@ -27,6 +27,7 @@ Pets.register({
     const led = new THREE.MeshBasicMaterial({ color: 0x6ff3ff });
     const glow = new THREE.MeshBasicMaterial({ color: 0xff9f43 });
     const flameMat = new THREE.MeshBasicMaterial({ color: 0xffb347 });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xd8402f, roughness: 0.35, metalness: 0.05 });
 
     const roundedBox = (w, h, d, r, bev = 0.05) => {
       const ir = Math.max(0.001, r - bev);
@@ -98,9 +99,12 @@ Pets.register({
     panel.position.set(0, 0.98, 0.4);
     squash.add(panel);
 
-    const gear = mesh(gearShape(8, 0.19, 0.14, 0.05, 0.05), blue, false);
-    gear.position.set(0, 0.98, 0.45);
+    const gear = mesh(gearShape(8, 0.15, 0.11, 0.04, 0.05), blue, false);
+    gear.position.set(-0.1, 1.05, 0.45);
     squash.add(gear);
+    const gear2 = mesh(gearShape(7, 0.12, 0.085, 0.032, 0.05), metal(0xb8c2cc, 0.35), false);
+    gear2.position.set(0.1, 0.9, 0.45);
+    squash.add(gear2);
 
     const neck = mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.14, 16), dark);
     neck.position.set(0, 1.38, 0);
@@ -134,9 +138,19 @@ Pets.register({
       joint.rotation.z = Math.PI / 2;
       const upper = mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.4, 12), white);
       upper.position.set(0.04 * s, -0.22, 0);
-      const hand = mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.16, 6), blue);
-      hand.position.set(0.05 * s, -0.5, 0);
-      pivot.add(joint, upper, hand);
+      const cuff = mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.09, 16), blue);
+      cuff.position.set(0.045 * s, -0.43, 0);
+      const glove = mesh(new THREE.SphereGeometry(1, 24, 18), gloveMat);
+      glove.scale.set(0.16, 0.17, 0.19);
+      glove.position.set(0.05 * s, -0.57, 0.03);
+      const thumb = mesh(new THREE.SphereGeometry(1, 16, 12), gloveMat);
+      thumb.scale.set(0.06, 0.09, 0.07);
+      thumb.rotation.z = 0.5 * s;
+      thumb.position.set(-0.07 * s, -0.53, 0.13);
+      const lace = mesh(new THREE.TorusGeometry(0.1, 0.014, 6, 20), white, false);
+      lace.rotation.x = Math.PI / 2;
+      lace.position.set(0.045 * s, -0.47, 0);
+      pivot.add(joint, upper, cuff, glove, thumb, lace);
       squash.add(pivot);
       return { pivot, side: s };
     });
@@ -300,6 +314,7 @@ Pets.register({
         tip.scale.setScalar(1 + flash * 0.5 + Math.sin(t * 4) * 0.1 * motion);
 
         gear.rotation.z = gearAngle;
+        gear2.rotation.z = -gearAngle * (8 / 7) + 0.22;
 
         arms.forEach(({ pivot, side }) => {
           const target = side === -1 ? armL : armR;
