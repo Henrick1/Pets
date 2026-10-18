@@ -45,8 +45,6 @@ Pets.register({
     const blushMat = new THREE.MeshBasicMaterial({ color: 0xffa6c1, transparent: true, opacity: 0.7 });
     const finMat = std(0xffffff, 0.5, {
       vertexColors: true,
-      transparent: true,
-      opacity: 0.92,
       side: THREE.DoubleSide
     });
 
@@ -407,7 +405,7 @@ Pets.register({
         const b = i * M + ((j + 1) % M);
         const c = (i + 1) * M + j;
         const d = (i + 1) * M + ((j + 1) % M);
-        tailIdx.push(a, c, b, b, c, d);
+        tailIdx.push(a, b, c, b, d, c);
       }
     }
     const tailGeo = new THREE.BufferGeometry();
@@ -416,6 +414,8 @@ Pets.register({
     const tailMesh = mesh(tailGeo, skin);
     tailMesh.frustumCulled = false;
     pose.add(tailMesh);
+    const tailTip = mesh(new THREE.SphereGeometry(1, 12, 10), skin);
+    pose.add(tailTip);
 
     const finPos = new Float32Array(NT * 4 * 3);
     const finCol = new Float32Array(NT * 4 * 3);
@@ -491,6 +491,9 @@ Pets.register({
         finPos[o + 10] = c[1] - h * 0.95 - dV;
         finPos[o + 11] = c[2] + nzv * sway;
       }
+      const tip = pts[NT - 1];
+      tailTip.position.set(tip[0], tip[1], tip[2]);
+      tailTip.scale.set(0.045 * 0.62, 0.045, 0.045 * 0.62);
       tailGeo.attributes.position.needsUpdate = true;
       tailGeo.computeVertexNormals();
       finGeo.attributes.position.needsUpdate = true;
