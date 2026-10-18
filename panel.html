@@ -359,13 +359,10 @@ button:focus-visible {
   text-align: center;
 }
 #status {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #fde8e6;
   color: #8c1d18;
   font-size: 12px;
   font-weight: 600;
+  word-spacing: 4px;
 }
 #pets {
   display: flex;
@@ -432,11 +429,10 @@ button:focus-visible {
     <div id="box-list"></div>
   </section>
   <header>
-    <div class="title"><h1 id="pet-name"></h1><span id="level-badge"></span></div>
+    <div class="title"><h1 id="pet-name"></h1><span id="level-badge"></span><span id="status"></span></div>
     <button id="close" type="button" aria-label="Fechar">&times;</button>
   </header>
   <p id="toast" role="status" hidden></p>
-  <p id="status" hidden>Morrendo: alimente e trate até chegar a 20% de vida.</p>
   <section>
     <div class="row"><span>Fome</span><span id="hunger-val">100%</span></div>
     <div class="track"><div id="fill"></div></div>

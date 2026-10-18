@@ -73,7 +73,9 @@ function renderStats() {
   joyFill.style.width = j + "%";
   joyFill.style.background = barColor(joy);
   joyText.textContent = j + "%";
-  statusEl.hidden = !dying;
+  const tags = [hunger <= 25 && "Fome", joy <= 25 && "Triste", dying && "Morrendo"].filter(Boolean).join(" · ");
+  statusEl.textContent = tags;
+  statusEl.hidden = !tags;
   const pct = Math.round((xp / xpNext) * 100);
   xpFill.style.width = pct + "%";
   xpText.textContent = pct + "%";

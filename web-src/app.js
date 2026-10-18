@@ -251,7 +251,18 @@
     setBar($("xp-bar"), $("xp-val"), (v.xp / v.xpNext) * 100);
     $("hunger-bar").dataset.level = barLevel(v.hunger);
     $("life-bar").dataset.level = barLevel(v.life);
-    $("dying").hidden = !v.dying;
+    $("tags").textContent = "";
+    [
+      [v.hunger <= 25, "Fome"],
+      [v.joy <= 25, "Triste"],
+      [v.dying, "Morrendo"]
+    ].forEach(([on, text]) => {
+      if (!on) return;
+      const t = document.createElement("span");
+      t.className = "warn-tag";
+      t.textContent = text;
+      $("tags").append(t);
+    });
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = v.life >= 100;
     $("party-alert").hidden = !v.party.some(p => p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25);

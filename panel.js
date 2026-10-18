@@ -212,7 +212,7 @@ function render(s) {
   joyFillEl.style.width = j + "%";
   joyFillEl.style.background = barColor(j);
   joyValueEl.textContent = j + "%";
-  statusEl.hidden = !s.dying;
+  statusEl.textContent = [s.hunger <= 25 && "Fome", s.joy <= 25 && "Triste", s.dying && "Morrendo"].filter(Boolean).join(" ");
   treatBtn.disabled = s.life >= 100;
   feedBtn.disabled = Math.round(s.hunger) >= 100;
   levelBadge.textContent = "Nível " + s.level;
