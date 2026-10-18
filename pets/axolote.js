@@ -301,13 +301,13 @@ Pets.register({
     const buildFoot = () => {
       const g = new THREE.Group();
       const palm = mesh(new THREE.SphereGeometry(1, 18, 12), skin, false);
-      palm.scale.set(0.075, 0.036, 0.07);
+      palm.scale.set(0.05, 0.034, 0.07);
       palm.position.z = 0.02;
       g.add(palm);
       [
-        [-0.028, -0.22, 0.09, 0.075, -0.14],
+        [-0.027, -0.08, 0.09, 0.07, 0],
         [0, 0, 0.11, 0.1, 0.05],
-        [0.028, 0.22, 0.09, 0.075, 0.14]
+        [0.027, 0.08, 0.09, 0.07, 0]
       ].forEach(([fx, ang, l1, l2, curl]) => {
         const f = new THREE.Group();
         f.position.set(fx, 0, 0.05);
