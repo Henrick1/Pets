@@ -436,7 +436,7 @@
     if (dl) {
       $("desk-dl-link").href = dl.url;
       $("desk-dl-link").textContent = dl.label;
-      $("desk-dl").hidden = false;
+      $("desk-dl-link").hidden = false;
     }
 
     $("signout").addEventListener("click", async () => {
