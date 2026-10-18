@@ -35,7 +35,8 @@ Pets.register({
       emissive: 0x4a1c88,
       emissiveIntensity: 0.5,
       transparent: true,
-      opacity: 0.92
+      opacity: 0.5,
+      depthWrite: false
     });
     const dotMat = std(0x7234b0, 0.3, { emissive: 0x2a1055, emissiveIntensity: 0.5 });
     const stalkMat = std(0xa24fc4, 0.5);
