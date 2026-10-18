@@ -42,6 +42,7 @@
   let meta = {};
   let syncTimer = 0;
   let animateList = false;
+  let preview = null;
   let syncing = false;
   let syncAgain = false;
   let account = { offline: false, error: "", lastSync: 0 };
@@ -127,10 +128,7 @@
       name.className = "dex-card-name";
       name.textContent = known ? m.name : "???";
       card.append(sw, name);
-      if (known) {
-        card.append(typeTags(m.types));
-        card.addEventListener("click", () => openDexDetail(id));
-      }
+      if (known) card.addEventListener("click", () => openDexDetail(id));
       list.append(card);
     });
   }
@@ -155,9 +153,25 @@
     $("dex-detail").hidden = false;
     $("dex-back").hidden = false;
     $("dex-title").textContent = m.name;
+    if (!preview) {
+      preview = PetStage.create({
+        canvas: $("dex-canvas"),
+        THREE: window.THREE,
+        kit: window.PetKit,
+        Pets: window.Pets,
+        reduceMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      });
+    }
+    preview.setPet(id);
+    preview.setStatus({ hunger: 100, life: 100, dying: false });
+    requestAnimationFrame(() => {
+      preview.resize();
+      preview.start();
+    });
   }
 
   function closeDexDetail() {
+    if (preview) preview.stop();
     $("dex-detail").hidden = true;
     $("dex-list").hidden = false;
     $("dex-count").hidden = false;
@@ -531,6 +545,37 @@
       $("dex-sheet").showModal();
     });
     $("dex-back").addEventListener("click", closeDexDetail);
+    $("dex-sheet").addEventListener("close", () => {
+      if (preview) preview.stop();
+    });
+    const pv = $("dex-preview");
+    let pvDown = false;
+    let pvX = 0;
+    let pvY = 0;
+    pv.addEventListener("pointerdown", e => {
+      if (!preview) return;
+      pvDown = true;
+      pvX = e.clientX;
+      pvY = e.clientY;
+      try {
+        pv.setPointerCapture(e.pointerId);
+      } catch (_) {
+        pvDown = true;
+      }
+      preview.spin.begin();
+    });
+    pv.addEventListener("pointermove", e => {
+      if (!pvDown || !preview) return;
+      preview.spin.drag(e.clientX - pvX, e.clientY - pvY);
+      pvX = e.clientX;
+      pvY = e.clientY;
+    });
+    const pvUp = () => {
+      if (pvDown && preview) preview.spin.end();
+      pvDown = false;
+    };
+    pv.addEventListener("pointerup", pvUp);
+    pv.addEventListener("pointercancel", pvUp);
 
     $("account-btn").addEventListener("click", () => {
       $("account-sheet").showModal();
