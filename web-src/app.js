@@ -470,7 +470,7 @@
       b.addEventListener("click", () => {
         const r = Game.incubate(state, e.id);
         if (!r.changed) {
-          showToast("A chocadeira está cheia (3 ovos).");
+          showToast("A chocadeira está cheia.");
           return;
         }
         saveState();
