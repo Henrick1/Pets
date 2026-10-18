@@ -157,10 +157,8 @@
     const bits = [];
     if (rows.length > 1) bits.push("Você tem " + rows.length + " · maior nível " + row.level);
     else if (row) bits.push("Nível " + row.level + " · " + (v.party.some(p => p.id === row.id) ? "No grupo" : "Na caixa"));
-    if (m.evolvesTo && meta[m.evolvesTo]) bits.push("Evolui para " + meta[m.evolvesTo].name + (m.evolveLevel ? " no nível " + m.evolveLevel : ""));
-    const pre = petIds.find(o => meta[o] && meta[o].evolvesTo === id);
-    if (pre) bits.push("Evolução de " + meta[pre].name);
     $("dex-meta").textContent = bits.join(" · ");
+    renderEvoChain(id, new Set(v.ownedSpecies));
     $("dex-list").hidden = true;
     $("dex-count").hidden = true;
     $("dex-detail").hidden = false;
@@ -180,6 +178,61 @@
     requestAnimationFrame(() => {
       preview.resize();
       preview.start();
+    });
+  }
+
+  function renderEvoChain(id, owned) {
+    let first = id;
+    const seen = new Set([id]);
+    for (;;) {
+      const pre = petIds.find(o => meta[o] && meta[o].evolvesTo === first);
+      if (!pre || seen.has(pre)) break;
+      seen.add(pre);
+      first = pre;
+    }
+    const chain = [first];
+    while (meta[chain[chain.length - 1]] && meta[chain[chain.length - 1]].evolvesTo && chain.length < 6) {
+      const nx = meta[chain[chain.length - 1]].evolvesTo;
+      if (!meta[nx] || chain.includes(nx)) break;
+      chain.push(nx);
+    }
+    $("dex-evo").hidden = chain.length < 2;
+    const box = $("dex-evo-chain");
+    box.replaceChildren();
+    if (chain.length < 2) return;
+    chain.forEach((sp, i) => {
+      if (i > 0) {
+        const arrow = document.createElement("span");
+        arrow.className = "evo-arrow";
+        arrow.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        const lv = document.createElement("span");
+        lv.className = "evo-lv";
+        lv.textContent = meta[chain[i - 1]].evolveLevel ? "Nv " + meta[chain[i - 1]].evolveLevel : "";
+        arrow.append(lv);
+        box.append(arrow);
+      }
+      const known = owned.has(sp);
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = "evo-node" + (sp === id ? " current" : "") + (known ? "" : " unknown");
+      node.style.setProperty("--c", meta[sp].color);
+      node.style.setProperty("--i", String(i));
+      node.disabled = !known || sp === id;
+      const circle = document.createElement("span");
+      circle.className = "evo-circle";
+      const url = PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp);
+      if (url) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = known ? meta[sp].name : "Criatura desconhecida";
+        circle.append(img);
+      }
+      const name = document.createElement("span");
+      name.className = "evo-name";
+      name.textContent = known ? meta[sp].name : "???";
+      node.append(circle, name);
+      if (known && sp !== id) node.addEventListener("click", () => openDexDetail(sp));
+      box.append(node);
     });
   }
 
@@ -864,7 +917,7 @@
     if ($("egg-sheet").open) refreshShop();
     const evo = evolvingNow ? null : evolveTarget();
     $("evolve-btn").hidden = !evo;
-    if (evo) $("evolve-btn").textContent = "Evoluir para " + meta[evo].name;
+
     if (evolvingNow) {
       ["feed", "treat", "party-btn"].forEach(b => ($(b).disabled = true));
     } else {

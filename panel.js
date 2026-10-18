@@ -218,7 +218,7 @@ function render(s) {
     : [s.hunger <= 25 && "Fome", s.joy <= 25 && "Triste", s.dying && "Morrendo"].filter(Boolean).join(" ");
   treatBtn.disabled = s.life >= 100;
   evolveBtn.hidden = !s.evolveTo;
-  if (s.evolveTo) evolveBtn.textContent = "Evoluir para " + s.evolveTo;
+
   feedBtn.disabled = Math.round(s.hunger) >= 100;
   levelBadge.textContent = "Nível " + s.level;
   xpFillEl.style.width = Math.min(100, (s.xp / s.xpNext) * 100) + "%";
