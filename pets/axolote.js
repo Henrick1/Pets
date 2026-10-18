@@ -173,21 +173,23 @@ Pets.register({
     const dripPts = [];
     for (let i = 14; i >= 0; i--) {
       const u = i / 14;
-      dripPts.push(new THREE.Vector2(0.024 + 0.034 * Math.exp(-u * 10), 0.08 - u * 1.08));
+      dripPts.push(new THREE.Vector2(0.022 + 0.006 * Math.exp(-u * 6), 0.02 - u * 1.02));
     }
     const dripGeo = new THREE.LatheGeometry(dripPts, 16);
     const drips = [];
     for (let k = 0; k < 9; k++) {
       [-1, 1].forEach(s => {
         const z = -0.68 + k * 0.15 + (s > 0 ? 0.05 : 0);
-        const phi = phiMax(z) * 0.86 * s;
+        const phi = phiMax(z) * 0.98 * s;
         const r = rAt(z);
         const g = new THREE.Group();
-        g.position.set(Math.sin(phi) * (r + 0.015), CY + Math.cos(phi) * (r * 0.72 + 0.015), z);
-        g.rotation.z = s * 0.6 * Math.atan2(Math.cos(phi), 0.72 * Math.abs(Math.sin(phi)));
+        g.position.set(Math.sin(phi) * (r - 0.005), CY + Math.cos(phi) * (r * 0.72 - 0.005), z);
         const cone = mesh(dripGeo, slimeMat, false);
         const bulb = mesh(new THREE.SphereGeometry(0.048, 10, 8), slimeMat, false);
-        g.add(cone, bulb);
+        const base = mesh(new THREE.SphereGeometry(1, 20, 14), slimeMat, false);
+        base.scale.set(0.05, 0.085, 0.055);
+        base.position.set(-0.012 * s, 0.01, 0);
+        g.add(cone, bulb, base);
         pose.add(g);
         drips.push({ cone, bulb, len: 0.1 + 0.2 * (((k * 7 + (s > 0 ? 3 : 0)) % 6) / 6), ph: k * 1.7 + (s > 0 ? 1 : 0) });
       });
