@@ -110,11 +110,21 @@
     lv.className = "lv";
     lv.textContent = "Nv " + p.level;
     line.append(name, lv);
-    if (p.dying) {
+    [
+      [p.hunger <= 25, "Fome"],
+      [p.joy <= 25, "Triste"],
+      [p.dying, "Morrendo"]
+    ].forEach(([on, text]) => {
+      if (!on) return;
       const warn = document.createElement("span");
       warn.className = "warn-tag";
-      warn.textContent = "Morrendo";
+      warn.textContent = text;
       line.append(warn);
+    });
+    if (!state || p.id !== state.pet) {
+      info.append(line);
+      el.append(dot, info);
+      return el;
     }
     const mini = document.createElement("span");
     mini.className = "mini";
@@ -153,11 +163,11 @@
     $("tab-party").textContent = "Grupo (" + v.party.length + "/" + Game.C.PARTY_SIZE + ")";
 
     if (tab === "party") {
-      $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todos do grupo gastam fome e vida, mesmo fora da tela.";
+      $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todos do grupo gastam fome, vida e felicidade, mesmo fora da tela.";
     } else if (swapIn) {
       $("sheet-hint").textContent = "Escolha quem sai do grupo para dar lugar ao novo bichinho.";
     } else {
-      $("sheet-hint").textContent = "Quem está na caixa fica parado: não gasta fome nem vida.";
+      $("sheet-hint").textContent = "Quem está na caixa fica parado: não gasta fome, vida nem felicidade.";
     }
 
     partyList.replaceChildren();
@@ -270,7 +280,7 @@
     $("dying").hidden = !v.dying;
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = v.life >= 100;
-    $("party-alert").hidden = !v.party.some(p => p.dying || p.hunger <= 25 || p.life <= 25);
+    $("party-alert").hidden = !v.party.some(p => p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25);
     if (lastPetId !== v.pet) {
       lastPetId = v.pet;
       stage.setPet(v.pet);

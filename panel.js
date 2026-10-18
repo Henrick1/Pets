@@ -95,6 +95,8 @@ function el(tag, cls, text) {
   return n;
 }
 
+let selectedId = null;
+
 function miniBar(v, label) {
   const track = el("span", "mini-track");
   track.title = label + " " + Math.round(v) + "%";
@@ -110,10 +112,14 @@ function petInfo(p) {
   const line = el("span", "name-line");
   line.appendChild(el("span", "", p.name));
   line.appendChild(el("span", "lv", "Nv " + p.level));
+  if (p.hunger <= 25) line.appendChild(el("span", "warn", "Fome"));
+  if (p.joy <= 25) line.appendChild(el("span", "warn", "Triste"));
   if (p.dying) line.appendChild(el("span", "warn", "Morrendo"));
+  info.appendChild(line);
+  if (p.id !== selectedId) return info;
   const mini = el("span", "mini");
   mini.append(miniBar(p.hunger, "Fome"), miniBar(p.life, "Vida"), miniBar(p.joy, "Felicidade"));
-  info.append(line, mini);
+  info.appendChild(mini);
   return info;
 }
 
@@ -206,6 +212,7 @@ function render(s) {
   if (pickFor && !s.box.some(p => p.id === pickFor)) pickFor = null;
   if (boxMode && s.box.length === 0) boxMode = false;
   if (!cardEl.classList.contains("auth-mode")) cardEl.classList.toggle("box-mode", boxMode);
+  selectedId = s.pet;
   renderParty(s);
   renderBox(s);
   const cur = s.party.find(p => p.id === s.pet);
