@@ -583,7 +583,7 @@
 
   function showToast(text) {
     const el = $("toast");
-    const host = document.querySelector("dialog[open]") || $("stage-wrap");
+    const host = document.querySelector("dialog[open]") || document.body;
     if (el.parentNode !== host) host.append(el);
     el.hidden = true;
     void el.offsetWidth;

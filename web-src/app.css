@@ -287,26 +287,23 @@ input:focus-visible {
 }
 
 .toast {
-  position: absolute;
-  left: 12px;
-  right: 12px;
+  position: fixed;
+  z-index: 50;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  width: max-content;
+  max-width: min(92vw, 420px);
   margin: 0;
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 10px 18px;
+  border-radius: 999px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   text-align: center;
-}
-
-.sheet .toast {
-  z-index: 5;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-}
-
-.toast {
-  bottom: 12px;
-  background: var(--soft);
-  color: var(--soft-text);
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .panel {
@@ -827,7 +824,18 @@ a.btn.soft {
 }
 
 .toast:not([hidden]) {
-  animation: pop 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  animation: toast-in 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }
 
 .warn-tag {
