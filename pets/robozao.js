@@ -144,10 +144,10 @@ Pets.register({
     ledShape.lineTo(0.43, 0.89);
     ledShape.lineTo(0, 0.54);
     ledShape.lineTo(-0.43, 0.89);
-    const ledGeo = new THREE.ExtrudeGeometry(ledShape, { depth: 0.02, bevelEnabled: false });
+    const ledGeo = new THREE.ExtrudeGeometry(ledShape, { depth: 0.004, bevelEnabled: false });
     ledGeo.translate(0, -0.72, 0);
     const vLed = new THREE.Mesh(ledGeo, led);
-    vLed.position.set(0, 0.72, FRONT + 0.045);
+    vLed.position.set(0, 0.72, FRONT + 0.056);
     chest.add(vLed);
 
     const plate = mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.06, 32), dark, false);
