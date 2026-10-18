@@ -136,9 +136,18 @@ Pets.register({
     const vMesh = mesh(vGeo, navy, false);
     vMesh.position.z = FRONT - 0.01;
     chest.add(vMesh);
-    const vLed = new THREE.Mesh(new THREE.ExtrudeGeometry(vShape, { depth: 0.02, bevelEnabled: false }), led);
-    vLed.scale.set(0.82, 0.82, 1);
-    vLed.position.set(0, 0.12, FRONT + 0.05);
+    const ledShape = new THREE.Shape();
+    ledShape.moveTo(-0.43, 0.89);
+    ledShape.lineTo(-0.35, 0.89);
+    ledShape.lineTo(0, 0.6);
+    ledShape.lineTo(0.35, 0.89);
+    ledShape.lineTo(0.43, 0.89);
+    ledShape.lineTo(0, 0.54);
+    ledShape.lineTo(-0.43, 0.89);
+    const ledGeo = new THREE.ExtrudeGeometry(ledShape, { depth: 0.02, bevelEnabled: false });
+    ledGeo.translate(0, -0.72, 0);
+    const vLed = new THREE.Mesh(ledGeo, led);
+    vLed.position.set(0, 0.72, FRONT + 0.045);
     chest.add(vLed);
 
     const plate = mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.06, 32), dark, false);
@@ -414,7 +423,7 @@ Pets.register({
         gearB.rotation.z = -gearAngle * (9 / 7) + 0.2;
         gearC.rotation.z = -gearAngle * (9 / 6) + 0.4;
         vLed.visible = coreFlash > 0.05 || Math.sin(t * 2.2) > -0.2;
-        vLed.scale.set(0.82 + coreFlash * 0.08, 0.82 + coreFlash * 0.08, 1);
+        vLed.scale.set(1 + coreFlash * 0.03, 1 + coreFlash * 0.03, 1);
 
         const sx = 1 / Math.sqrt(sy);
         stance.scale.set(sx, sy, sx);
