@@ -1,0 +1,488 @@
+Pets.register({
+  id: "robozao",
+  name: "Robozão",
+  color: "#3f7fb5",
+  types: ["steel", "fighting"],
+  description: "A forma final do Robô. Vestiu uma armadura pesada que deixou o corpo enorme perto da cabecinha, e vive em guarda com as luvas erguidas, pronto para o próximo round.",
+  actions: {
+    jump: { duration: 1.1 },
+    eat: { duration: 2.4 },
+    punch: { duration: 1.8 },
+    flex: { duration: 2.4 }
+  },
+  idle: [
+    { action: "punch", min: 18, max: 40 },
+    { action: "flex", min: 35, max: 70 },
+    { action: "jump", min: 50, max: 90 }
+  ],
+  clickAction: n => ["punch", "jump", "punch", "flex"][(n - 1) % 4],
+
+  create({ THREE, kit }) {
+    const { mesh, lerp, smooth, eatPhase } = kit;
+
+    const metal = (color, rough = 0.42, mt = 0.3) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: mt });
+    const white = metal(0xe6ecf2);
+    const blue = metal(0x5fa8d3, 0.4);
+    const navy = metal(0x3f7fb5, 0.38);
+    const dark = metal(0x2b3550, 0.5);
+    const steel = metal(0xb8c2cc, 0.3, 0.45);
+    const led = new THREE.MeshBasicMaterial({ color: 0x6ff3ff });
+    const ledRed = new THREE.MeshBasicMaterial({ color: 0xff4d5a });
+    const glow = new THREE.MeshBasicMaterial({ color: 0xff9f43 });
+    const core = new THREE.MeshBasicMaterial({ color: 0x14182a });
+
+    const roundedBox = (w, h, d, r, bev = 0.05) => {
+      const ir = Math.max(0.001, r - bev);
+      const x = (w - 2 * bev) / 2;
+      const y = (h - 2 * bev) / 2;
+      const pts = [];
+      [
+        [x - ir, -y + ir, -Math.PI / 2],
+        [x - ir, y - ir, 0],
+        [-x + ir, y - ir, Math.PI / 2],
+        [-x + ir, -y + ir, Math.PI]
+      ].forEach(([cx, cy, a0]) => {
+        for (let i = 0; i <= 8; i++) {
+          const a = a0 + (i / 8) * (Math.PI / 2);
+          pts.push(new THREE.Vector2(cx + ir * Math.cos(a), cy + ir * Math.sin(a)));
+        }
+      });
+      const g = new THREE.ExtrudeGeometry(new THREE.Shape(pts), {
+        depth: d - 2 * bev,
+        bevelEnabled: true,
+        bevelThickness: bev,
+        bevelSize: bev,
+        bevelSegments: 3,
+        curveSegments: 8
+      });
+      g.center();
+      return g;
+    };
+
+    const gearShape = (teeth, ro, ri, hole, depth) => {
+      const s = new THREE.Shape();
+      const step = (Math.PI * 2) / teeth;
+      for (let i = 0; i < teeth; i++) {
+        const a = i * step;
+        [
+          [ri, a],
+          [ro, a + step * 0.15],
+          [ro, a + step * 0.35],
+          [ri, a + step * 0.5]
+        ].forEach(([r, ang], k) => {
+          const px = r * Math.cos(ang);
+          const py = r * Math.sin(ang);
+          if (i === 0 && k === 0) s.moveTo(px, py);
+          else s.lineTo(px, py);
+        });
+      }
+      const h = new THREE.Path();
+      h.absarc(0, 0, hole, 0, Math.PI * 2, true);
+      s.holes.push(h);
+      const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false });
+      g.center();
+      return g;
+    };
+
+    const root = new THREE.Group();
+    const stance = new THREE.Group();
+    root.add(stance);
+    const upper = new THREE.Group();
+    upper.position.y = 0.85;
+    stance.add(upper);
+
+    const TY = 0.82;
+
+    const torso = mesh(roundedBox(2.3, 1.62, 1.5, 0.36), white);
+    torso.position.y = TY;
+    upper.add(torso);
+    const band = mesh(roundedBox(2.36, 0.66, 1.56, 0.32, 0.04), dark);
+    band.position.y = TY + 0.5;
+    upper.add(band);
+    const waistTrim = mesh(roundedBox(2.36, 0.12, 1.56, 0.06, 0.02), navy);
+    waistTrim.position.y = TY - 0.7;
+    upper.add(waistTrim);
+
+    for (let i = 0; i < 9; i++) {
+      const rv = mesh(new THREE.SphereGeometry(0.035, 10, 8), steel, false);
+      rv.position.set(-0.96 + i * 0.24, TY + 0.2, 0.79);
+      upper.add(rv);
+    }
+
+    const coreG = new THREE.Group();
+    coreG.position.set(0, TY + 0.45, 0.8);
+    upper.add(coreG);
+    const coreRing = mesh(new THREE.TorusGeometry(0.29, 0.11, 16, 36), white);
+    const coreDisc = mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 32), core, false);
+    coreDisc.rotation.x = Math.PI / 2;
+    const dots = new THREE.Group();
+    const dotMats = [led, ledRed];
+    [[0, 0, 0.045, 0]].concat(
+      Array.from({ length: 6 }, (_, i) => [Math.cos((i / 6) * Math.PI * 2) * 0.1, Math.sin((i / 6) * Math.PI * 2) * 0.1, 0.03, i % 2]),
+      Array.from({ length: 10 }, (_, i) => [Math.cos((i / 10) * Math.PI * 2 + 0.3) * 0.2, Math.sin((i / 10) * Math.PI * 2 + 0.3) * 0.2, 0.035, (i + 1) % 2])
+    ).forEach(([x, y, r, m]) => {
+      const d = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), dotMats[m]);
+      d.position.set(x, y, 0.04);
+      dots.add(d);
+    });
+    coreG.add(coreRing, coreDisc, dots);
+
+    const gearA = mesh(gearShape(9, 0.17, 0.125, 0.045, 0.05), blue, false);
+    gearA.position.set(-0.55, TY - 0.28, 0.77);
+    const gearB = mesh(gearShape(7, 0.12, 0.085, 0.03, 0.05), steel, false);
+    gearB.position.set(-0.36, TY - 0.44, 0.77);
+    const gearPlate = mesh(roundedBox(0.62, 0.5, 0.06, 0.12, 0.02), dark, false);
+    gearPlate.position.set(-0.46, TY - 0.36, 0.74);
+    upper.add(gearPlate, gearA, gearB);
+
+    const button = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 20), ledRed, false);
+    button.rotation.x = Math.PI / 2;
+    button.position.set(0.55, TY - 0.32, 0.77);
+    const buttonRim = mesh(new THREE.TorusGeometry(0.08, 0.02, 8, 20), dark, false);
+    buttonRim.position.copy(button.position);
+    upper.add(button, buttonRim);
+
+    [-1, 1].forEach(s => {
+      for (let k = 0; k < 4; k++) {
+        const slat = mesh(roundedBox(0.05, 0.08, 0.9, 0.02, 0.01), dark, false);
+        slat.position.set(1.16 * s, TY - 0.15 - k * 0.14, 0);
+        upper.add(slat);
+      }
+    });
+
+    [-1, 1].forEach(s => {
+      const stack = mesh(roundedBox(0.4, 0.8, 0.34, 0.17, 0.04), white);
+      stack.position.set(0.58 * s, TY + 1.0, -0.42);
+      upper.add(stack);
+      [0.2, -0.05].forEach(dy => {
+        const bolt = mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 18), dark, false);
+        bolt.rotation.x = Math.PI / 2;
+        bolt.position.set(0.58 * s, TY + 1.0 + dy, -0.24);
+        const cap = mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.12, 18), white, false);
+        cap.rotation.x = Math.PI / 2;
+        cap.position.set(0.58 * s, TY + 1.0 + dy, -0.22);
+        upper.add(bolt, cap);
+      });
+    });
+
+    const collar = mesh(new THREE.TorusGeometry(0.4, 0.09, 12, 32), dark, false);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.set(0, TY + 0.8, 0.05);
+    upper.add(collar);
+
+    const head = new THREE.Group();
+    head.position.set(0, TY + 1.08, 0.08);
+    head.scale.setScalar(0.62);
+    upper.add(head);
+    head.add(mesh(roundedBox(1.35, 0.9, 1.0, 0.25), white));
+    const visor = mesh(roundedBox(1.05, 0.5, 0.1, 0.16, 0.03), dark, false);
+    visor.position.set(0, 0.1, 0.47);
+    head.add(visor);
+    const eyes = [-1, 1].map(s => {
+      const e = mesh(roundedBox(0.2, 0.26, 0.04, 0.08, 0.015), led, false);
+      e.position.set(0.25 * s, 0.14, 0.52);
+      head.add(e);
+      return e;
+    });
+    const brows = [-1, 1].map(s => {
+      const b = mesh(roundedBox(0.24, 0.05, 0.03, 0.02, 0.01), led, false);
+      b.position.set(0.25 * s, 0.33, 0.52);
+      b.rotation.z = -0.25 * s;
+      head.add(b);
+      return b;
+    });
+    const smile = mesh(new THREE.TorusGeometry(0.09, 0.02, 8, 20, Math.PI), led, false);
+    smile.rotation.z = Math.PI;
+    smile.position.set(0, -0.03, 0.53);
+    head.add(smile);
+    const mouth = mesh(new THREE.BoxGeometry(0.26, 0.1, 0.03), led, false);
+    mouth.position.set(0, -0.08, 0.53);
+    mouth.visible = false;
+    head.add(mouth);
+    [-1, 1].forEach(s => {
+      const ear = mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.12, 16), blue);
+      ear.rotation.z = Math.PI / 2;
+      ear.position.set(0.72 * s, 0, 0);
+      const cap = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.05, 6), dark, false);
+      cap.rotation.z = Math.PI / 2;
+      cap.position.set(0.78 * s, 0, 0);
+      head.add(ear, cap);
+    });
+    const antenna = new THREE.Group();
+    antenna.position.y = 0.45;
+    const stem = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8), dark);
+    stem.position.y = 0.15;
+    const tip = mesh(new THREE.OctahedronGeometry(0.1), glow, false);
+    tip.position.y = 0.36;
+    antenna.add(stem, tip);
+    head.add(antenna);
+
+    const pauldron = s => {
+      const g = new THREE.Group();
+      g.position.set(1.3 * s, TY + 0.48, 0);
+      const drum = mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.42, 32), white);
+      drum.rotation.z = Math.PI / 2;
+      const face = mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.06, 32), dark, false);
+      face.rotation.z = Math.PI / 2;
+      face.position.x = 0.22 * s;
+      const hub = mesh(new THREE.TorusGeometry(0.13, 0.07, 12, 24), white, false);
+      hub.rotation.y = Math.PI / 2;
+      hub.position.x = 0.26 * s;
+      g.add(drum, face, hub);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const bolt = mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.08, 14), white, false);
+        bolt.rotation.z = Math.PI / 2;
+        bolt.position.set(0.27 * s, Math.sin(a) * 0.3, Math.cos(a) * 0.3);
+        g.add(bolt);
+      }
+      [-1, 1].forEach(v => {
+        const clamp = mesh(roundedBox(0.2, 0.12, 0.34, 0.04, 0.015), dark);
+        clamp.position.set(0.05 * s, 0.5 * v, 0);
+        g.add(clamp);
+        const hook = mesh(roundedBox(0.08, 0.24, 0.34, 0.03, 0.012), dark);
+        hook.position.set(0.14 * s, 0.4 * v, 0);
+        g.add(hook);
+      });
+      upper.add(g);
+      return g;
+    };
+    const pauldrons = [-1, 1].map(pauldron);
+
+    const glove = s => {
+      const g = new THREE.Group();
+      const cuff = mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.14, 20), dark);
+      cuff.position.y = -0.04;
+      const body = mesh(new THREE.SphereGeometry(1, 28, 20), blue);
+      body.scale.set(0.3, 0.32, 0.34);
+      body.position.y = 0.26;
+      const knuckle = mesh(new THREE.SphereGeometry(1, 24, 16), blue);
+      knuckle.scale.set(0.27, 0.16, 0.28);
+      knuckle.position.set(0, 0.44, 0.05);
+      const thumb = mesh(new THREE.SphereGeometry(1, 16, 12), blue);
+      thumb.scale.set(0.1, 0.16, 0.11);
+      thumb.rotation.z = 0.6 * s;
+      thumb.position.set(-0.2 * s, 0.26, 0.17);
+      const lace = mesh(new THREE.TorusGeometry(0.21, 0.025, 8, 24), white, false);
+      lace.rotation.x = Math.PI / 2;
+      lace.position.y = 0.06;
+      g.add(cuff, body, knuckle, thumb, lace);
+      return g;
+    };
+
+    const arms = [-1, 1].map(s => {
+      const shoulder = new THREE.Group();
+      shoulder.position.set(1.18 * s, TY + 0.46, 0.05);
+      upper.add(shoulder);
+      const joint = mesh(new THREE.SphereGeometry(0.24, 20, 14), dark);
+      const upperArm = mesh(new THREE.CylinderGeometry(0.17, 0.2, 0.62, 18), dark);
+      upperArm.position.y = -0.31;
+      const plate = mesh(roundedBox(0.36, 0.42, 0.42, 0.12, 0.03), white);
+      plate.position.y = -0.3;
+      shoulder.add(joint, upperArm, plate);
+      const elbow = new THREE.Group();
+      elbow.position.y = -0.62;
+      shoulder.add(elbow);
+      const ejoint = mesh(new THREE.SphereGeometry(0.2, 18, 12), dark);
+      const forearm = mesh(roundedBox(0.44, 0.62, 0.44, 0.14, 0.04), white);
+      forearm.position.y = 0.32;
+      const fband = mesh(roundedBox(0.47, 0.1, 0.47, 0.05, 0.015), navy, false);
+      fband.position.y = 0.16;
+      const fband2 = mesh(roundedBox(0.47, 0.1, 0.47, 0.05, 0.015), navy, false);
+      fband2.position.y = 0.46;
+      elbow.add(ejoint, forearm, fband, fband2);
+      const gl = glove(s);
+      gl.position.y = 0.66;
+      elbow.add(gl);
+      return { shoulder, elbow, side: s };
+    });
+
+    const hips = mesh(roundedBox(1.7, 0.3, 1.2, 0.12, 0.04), dark);
+    hips.position.y = 0.82;
+    stance.add(hips);
+    const buckle = mesh(roundedBox(0.4, 0.22, 0.08, 0.06, 0.02), steel, false);
+    buckle.position.set(0, 0.82, 0.62);
+    stance.add(buckle);
+
+    const legs = [-1, 1].map(s => {
+      const g = new THREE.Group();
+      g.position.set(0.5 * s, 0, 0);
+      const thigh = mesh(new THREE.CylinderGeometry(0.27, 0.3, 0.42, 20), white);
+      thigh.position.y = 0.58;
+      const knee = mesh(new THREE.TorusGeometry(0.27, 0.07, 10, 24), dark, false);
+      knee.rotation.x = Math.PI / 2;
+      knee.position.y = 0.38;
+      const boot = mesh(roundedBox(0.66, 0.34, 0.86, 0.12, 0.04), blue);
+      boot.position.set(0, 0.17, 0.1);
+      const toe = mesh(roundedBox(0.6, 0.08, 0.2, 0.03, 0.015), dark, false);
+      toe.position.set(0, 0.06, 0.5);
+      g.add(thigh, knee, boot, toe);
+      stance.add(g);
+      return g;
+    });
+
+    const food = new THREE.Group();
+    const cell = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.34, 16), metal(0xf6c443, 0.4), false);
+    const cband = mesh(new THREE.CylinderGeometry(0.104, 0.104, 0.08, 16), dark, false);
+    const ccap = mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.07, 12), steel, false);
+    ccap.position.y = 0.2;
+    food.add(cell, cband, ccap);
+    food.visible = false;
+    root.add(food);
+
+    const GUARD = { sh: -0.55, sz: -0.4, el: 1.55 };
+    let last = 0;
+    let gearAngle = 0;
+
+    return {
+      root,
+      update(s) {
+        const { t, pointer, lookYaw, lookPitch, blink, action, motion } = s;
+        const dt = Math.min(0.1, Math.max(0, t - last));
+        last = t;
+        const a = action ? action.name : null;
+        const p = action ? action.p : 0;
+        const ph = a === "eat" ? eatPhase(p) : null;
+
+        let y = 0;
+        let sy = 1 + Math.sin(t * 2) * 0.012 * motion;
+        let twist = 0;
+        let lean = 0;
+        let lunge = 0;
+        let mouthOpen = false;
+        let squint = false;
+        let happy = false;
+        let coreFlash = 0;
+        let gearSpeed = 1;
+        const bob = Math.sin(t * 3.2) * 0.04 * motion;
+        const pose = arms.map(({ side }) => ({
+          sh: GUARD.sh + (side < 0 ? bob : -bob),
+          sz: GUARD.sz,
+          el: GUARD.el + (side < 0 ? -bob : bob) * 1.5
+        }));
+
+        if (a === "jump") {
+          if (p < 0.2) sy = 1 - 0.14 * Math.sin((p / 0.2) * Math.PI / 2);
+          else if (p < 0.72) {
+            const q = (p - 0.2) / 0.52;
+            y = Math.sin(q * Math.PI) * 0.75;
+            sy = 1 + 0.06 * Math.cos(q * Math.PI);
+            pose.forEach(o => {
+              o.sh = -1.2;
+              o.el = 2.3;
+            });
+          } else {
+            const q = (p - 0.72) / 0.28;
+            sy = 1 - 0.2 * Math.sin(q * Math.PI) * (1 - q * 0.5);
+            lean = Math.sin(q * Math.PI * 3) * 0.03 * (1 - q);
+          }
+          gearSpeed = 4;
+        }
+
+        if (a === "punch") {
+          const hits = [
+            { side: 0, at: 0.08 },
+            { side: 0, at: 0.36 },
+            { side: 1, at: 0.66 }
+          ];
+          hits.forEach(h => {
+            const q = (p - h.at) / 0.24;
+            if (q <= 0 || q >= 1) return;
+            const k = q < 0.35 ? smooth(0, 0.35, q) : 1 - smooth(0.45, 1, q);
+            const o = pose[h.side];
+            o.sh = lerp(o.sh, -1.45, k);
+            o.sz = lerp(o.sz, -0.12, k);
+            o.el = lerp(o.el, 0.15, k);
+            twist += (h.side === 0 ? 0.28 : -0.38) * k;
+            lunge += 0.18 * k;
+          });
+          squint = true;
+          gearSpeed = 6;
+        }
+
+        if (a === "flex") {
+          const k = smooth(0, 0.18, p) * (1 - smooth(0.85, 1, p));
+          const pump = Math.sin(p * Math.PI * 6) * 0.15 * k;
+          pose.forEach(o => {
+            o.sh = lerp(o.sh, -2.75, k) + pump;
+            o.sz = lerp(o.sz, 0.35, k);
+            o.el = lerp(o.el, 0.45, k) + pump * 1.5;
+          });
+          sy += Math.abs(pump) * 0.2;
+          coreFlash = k * (0.5 + 0.5 * Math.sin(p * Math.PI * 12));
+          happy = true;
+          gearSpeed = 8;
+        }
+
+        if (a === "eat") {
+          sy += 0.03 * Math.sin(ph.fall * Math.PI) - ph.chew * 0.04 * motion;
+          food.visible = ph.visible;
+          const hy = 0.85 + TY + 1.0;
+          food.position.set(0, lerp(4.2, hy, ph.fall * ph.fall), lerp(1.2, 0.5, ph.fall));
+          food.rotation.x = ph.fall * (Math.PI / 2);
+          food.scale.setScalar(1 - 0.85 * ph.bite);
+          mouthOpen = p > 0.12 && p < 0.85;
+          mouth.scale.y = 0.6 + ph.chew * 1.2;
+          squint = p > 0.3 && p < 0.85;
+          pose.forEach(o => {
+            o.sh = -0.9;
+            o.el = 2.0;
+          });
+          gearSpeed = p > 0.3 ? 4 : 1.5;
+          coreFlash = p > 0.85 ? 1 : 0;
+        } else {
+          food.visible = false;
+        }
+
+        gearAngle += dt * gearSpeed;
+        gearA.rotation.z = gearAngle;
+        gearB.rotation.z = -gearAngle * (9 / 7) + 0.2;
+        dots.rotation.z = gearAngle * 0.4;
+        coreRing.scale.setScalar(1 + coreFlash * 0.15);
+        dots.scale.setScalar(1 + coreFlash * 0.4);
+
+        const sx = 1 / Math.sqrt(sy);
+        stance.scale.set(sx, sy, sx);
+        root.position.y = y;
+        root.rotation.y = lookYaw * 0.3;
+        stance.rotation.z = lean + Math.sin(t * 1.6) * 0.02 * motion;
+        upper.rotation.y = twist;
+        upper.rotation.x = lunge * 0.4;
+        upper.position.z = lunge;
+
+        arms.forEach(({ shoulder, elbow, side }, i) => {
+          const o = pose[i];
+          shoulder.rotation.x = lerp(shoulder.rotation.x, o.sh, 0.28);
+          shoulder.rotation.z = lerp(shoulder.rotation.z, o.sz * side, 0.28);
+          elbow.rotation.x = lerp(elbow.rotation.x, o.el, 0.28);
+        });
+
+        legs.forEach((g, i) => {
+          g.rotation.x = a === "punch" ? (i ? -0.08 : 0.12) * Math.min(1, lunge * 5) : 0;
+        });
+        pauldrons.forEach((g, i) => {
+          g.rotation.x = Math.sin(t * 3.2 + i) * 0.03 * motion;
+        });
+
+        head.rotation.y = lookYaw * 0.6 - twist * 0.6;
+        head.rotation.x = lookPitch;
+        head.position.y = TY + 1.08 + Math.sin(t * 2.4) * 0.012 * motion;
+        antenna.rotation.z = Math.sin(t * 1.7) * 0.1 * motion;
+        tip.scale.setScalar(1 + coreFlash * 0.5 + Math.sin(t * 4) * 0.1 * motion);
+
+        mouth.visible = mouthOpen;
+        smile.visible = !mouthOpen;
+        brows.forEach((b, i) => {
+          b.visible = !happy;
+          b.rotation.z = (i ? 1 : -1) * (a === "punch" ? 0.45 : 0.25);
+        });
+        eyes.forEach((e, i) => {
+          const base = i === 0 ? -0.25 : 0.25;
+          e.position.x = lerp(e.position.x, base + pointer.x * 0.07, 0.2);
+          e.position.y = lerp(e.position.y, 0.14 + pointer.y * 0.04, 0.2);
+          e.scale.y = squint ? 0.35 : happy ? 0.55 : blink;
+        });
+      }
+    };
+  }
+});

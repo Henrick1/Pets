@@ -4,6 +4,8 @@ Pets.register({
   color: "#5fa8d3",
   types: ["steel", "fighting"],
   description: "Ganhou pernas, uma segunda engrenagem e luvas de boxe. Junta a resistência do aço com o espírito de um lutador.",
+  evolvesTo: "robozao",
+  evolveLevel: 15,
   actions: {
     jump: { duration: 0.9 },
     eat: { duration: 2.4 },
