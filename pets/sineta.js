@@ -2,6 +2,7 @@ Pets.register({
   id: "sineta",
   name: "Sineta",
   color: "#d9a441",
+  types: ["ghost"],
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },

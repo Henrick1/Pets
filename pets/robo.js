@@ -2,6 +2,7 @@ Pets.register({
   id: "robo",
   name: "Robô",
   color: "#5fa8d3",
+  types: ["steel", "fighting"],
   actions: {
     jump: { duration: 0.9 },
     eat: { duration: 2.4 },

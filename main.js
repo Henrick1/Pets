@@ -6,6 +6,7 @@ app.commandLine.appendSwitch("ozone-platform", "x11");
 app.commandLine.appendSwitch("enable-transparent-visuals");
 
 const Game = require("./lib/game.js");
+const PetTypes = require("./lib/types.js");
 const PetsCloud = require("./lib/cloud.js");
 const config = require("./config.js");
 
@@ -103,7 +104,8 @@ function snapshot() {
   const meta = petIds.map(id => ({
     id,
     name: (petMeta[id] && petMeta[id].name) || id,
-    color: (petMeta[id] && petMeta[id].color) || "#999999"
+    color: (petMeta[id] && petMeta[id].color) || "#999999",
+    types: (petMeta[id] && petMeta[id].types) || []
   }));
   return Object.assign(Game.view(state, meta), {
     account: {
@@ -291,7 +293,8 @@ ipcMain.on("pets-meta", (_e, list) => {
     if (!p || !petIds.includes(p.id)) return;
     petMeta[p.id] = {
       name: String(p.name || p.id).slice(0, 40),
-      color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : "#999999"
+      color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : "#999999",
+      types: PetTypes.clean(p.types)
     };
   });
   broadcast();

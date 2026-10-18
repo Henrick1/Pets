@@ -67,7 +67,8 @@
     const list = petIds.map(id => ({
       id,
       name: (meta[id] && meta[id].name) || id,
-      color: (meta[id] && meta[id].color) || "#999999"
+      color: (meta[id] && meta[id].color) || "#999999",
+      types: (meta[id] && meta[id].types) || []
     }));
     return Game.view(state, list);
   }
@@ -537,6 +538,7 @@
       if (!window.THREE) throw new Error("three");
       await loadScript("lib/game.js");
       await loadScript("lib/cloud.js");
+      await loadScript("lib/types.js");
       await loadScript("lib/pet-kit.js");
       await loadScript("lib/stage.js");
       await loadScript("pets-list.js");
@@ -547,7 +549,7 @@
     }
 
     window.Pets.list.forEach(p => {
-      meta[p.id] = { id: p.id, name: p.name, color: p.color };
+      meta[p.id] = { id: p.id, name: p.name, color: p.color, types: p.types };
     });
     petIds = window.Pets.list.map(p => p.id).sort();
 

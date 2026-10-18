@@ -2,6 +2,7 @@ Pets.register({
   id: "brasa",
   name: "Brasa",
   color: "#ff7a2e",
+  types: ["fire"],
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },

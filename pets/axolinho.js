@@ -2,6 +2,7 @@ Pets.register({
   id: "axolinho",
   name: "Axolinho",
   color: "#c48ae8",
+  types: ["poison"],
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },
