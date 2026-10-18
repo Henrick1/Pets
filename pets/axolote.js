@@ -300,20 +300,34 @@ Pets.register({
 
     const buildFoot = () => {
       const g = new THREE.Group();
-      const palm = mesh(new THREE.SphereGeometry(1, 20, 14), skin, false);
-      palm.scale.set(0.125, 0.058, 0.105);
+      const palm = mesh(new THREE.SphereGeometry(1, 18, 12), skin, false);
+      palm.scale.set(0.075, 0.036, 0.07);
       palm.position.z = 0.02;
       g.add(palm);
       [
-        [-0.085, 0.095, 0.9],
-        [-0.03, 0.128, 1],
-        [0.03, 0.128, 1],
-        [0.085, 0.095, 0.9]
-      ].forEach(([tx, tz, sc]) => {
-        const toe = mesh(new THREE.SphereGeometry(0.043 * sc, 14, 12), skin, false);
-        toe.scale.set(1, 0.9, 1.15);
-        toe.position.set(tx, -0.003, tz);
-        g.add(toe);
+        [-0.05, -0.62, 0.08, 0.07, -0.35],
+        [-0.017, -0.2, 0.1, 0.09, -0.2],
+        [0.017, 0.2, 0.1, 0.09, 0.2],
+        [0.05, 0.62, 0.08, 0.07, 0.35]
+      ].forEach(([fx, ang, l1, l2, curl]) => {
+        const f = new THREE.Group();
+        f.position.set(fx, 0, 0.05);
+        f.rotation.y = ang;
+        const a1 = mesh(new THREE.CylinderGeometry(0.019, 0.026, l1, 10), skin, false);
+        a1.rotation.x = Math.PI / 2;
+        a1.position.z = l1 / 2;
+        const knuckle = new THREE.Group();
+        knuckle.position.z = l1;
+        knuckle.rotation.y = curl;
+        const a2 = mesh(new THREE.CylinderGeometry(0.011, 0.019, l2, 10), skin, false);
+        a2.rotation.x = Math.PI / 2;
+        a2.position.z = l2 / 2;
+        const tip = mesh(new THREE.SphereGeometry(0.0125, 10, 8), skin, false);
+        tip.position.z = l2;
+        const joint = mesh(new THREE.SphereGeometry(0.019, 10, 8), skin, false);
+        knuckle.add(joint, a2, tip);
+        f.add(a1, knuckle);
+        g.add(f);
       });
       return g;
     };
