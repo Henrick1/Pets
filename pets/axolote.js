@@ -301,26 +301,19 @@ Pets.register({
     const buildFoot = () => {
       const g = new THREE.Group();
       const palm = mesh(new THREE.SphereGeometry(1, 20, 14), skin, false);
-      palm.scale.set(0.108, 0.042, 0.095);
+      palm.scale.set(0.125, 0.058, 0.105);
       palm.position.z = 0.02;
       g.add(palm);
       [
-        [-0.078, -0.5, 0.15],
-        [-0.028, -0.17, 0.21],
-        [0.028, 0.17, 0.21],
-        [0.078, 0.5, 0.15]
-      ].forEach(([fx, ang, len]) => {
-        const f = new THREE.Group();
-        f.position.set(fx, 0, 0.07);
-        f.rotation.y = ang;
-        const seg = mesh(new THREE.CylinderGeometry(0.019, 0.03, len, 12), skin, false);
-        seg.rotation.x = Math.PI / 2;
-        seg.position.z = len / 2;
-        const tip = mesh(new THREE.SphereGeometry(0.027, 12, 10), skin, false);
-        tip.scale.set(1, 0.82, 1.2);
-        tip.position.z = len;
-        f.add(seg, tip);
-        g.add(f);
+        [-0.085, 0.095, 0.9],
+        [-0.03, 0.128, 1],
+        [0.03, 0.128, 1],
+        [0.085, 0.095, 0.9]
+      ].forEach(([tx, tz, sc]) => {
+        const toe = mesh(new THREE.SphereGeometry(0.043 * sc, 14, 12), skin, false);
+        toe.scale.set(1, 0.9, 1.15);
+        toe.position.set(tx, -0.003, tz);
+        g.add(toe);
       });
       return g;
     };
