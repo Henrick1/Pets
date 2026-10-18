@@ -96,12 +96,12 @@ Pets.register({
     const ab = mesh(roundedBox(0.6, 0.22, 0.5, 0.08, 0.03), white);
     ab.position.y = 0.3;
     upper.add(ab);
-    const core2 = mesh(roundedBox(0.5, 0.36, 0.4, 0.08, 0.03), dark);
+    const core2 = mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.36, 24), dark);
     core2.position.y = 0.26;
     upper.add(core2);
     [-1, 1].forEach(s => {
-      const ob = mesh(roundedBox(0.1, 0.28, 0.42, 0.04, 0.015), dark, false);
-      ob.position.set(0.33 * s, 0.3, 0);
+      const ob = mesh(roundedBox(0.1, 0.24, 0.4, 0.04, 0.015), dark, false);
+      ob.position.set(0.31 * s, 0.33, 0);
       ob.rotation.z = 0.12 * s;
       upper.add(ob);
     });
@@ -422,8 +422,9 @@ Pets.register({
         root.rotation.y = lookYaw * 0.3;
         stance.rotation.z = lean + Math.sin(t * 1.6) * 0.02 * motion;
         upper.rotation.y = twist;
-        upper.rotation.x = lunge * 0.4;
-        upper.position.z = lunge;
+        upper.rotation.x = lunge * 0.35;
+        upper.position.z = 0;
+        root.position.z = lunge * 0.7;
 
         arms.forEach(({ shoulder, elbow, side }, i) => {
           const o = pose[i];
