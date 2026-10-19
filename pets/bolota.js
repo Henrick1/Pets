@@ -1,5 +1,6 @@
 Pets.register({
   id: "bolota",
+  dex: 1,
   name: "Bolota",
   color: "#7fd6a8",
   types: ["grass"],

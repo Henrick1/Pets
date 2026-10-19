@@ -1,5 +1,6 @@
 Pets.register({
   id: "leviatrom",
+  dex: 9,
   name: "Leviatrom",
   color: "#1f4fb0",
   types: ["water", "electric"],

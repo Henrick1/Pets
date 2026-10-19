@@ -1,5 +1,6 @@
 Pets.register({
   id: "robo",
+  dex: 5,
   name: "Robô",
   color: "#5fa8d3",
   types: ["steel", "fighting"],

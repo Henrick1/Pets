@@ -1,5 +1,6 @@
 Pets.register({
   id: "turboa",
+  dex: 8,
   name: "Turbóa",
   color: "#2f8fe0",
   types: ["water", "electric"],

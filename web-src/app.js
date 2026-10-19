@@ -123,7 +123,8 @@
     $("dex-count").textContent = found + " de " + petIds.length + " descobertas";
     const list = $("dex-list");
     list.replaceChildren();
-    petIds.forEach((id, i) => {
+    const dexOrder = petIds.slice().sort((a, b) => (meta[a] ? meta[a].dex : 999) - (meta[b] ? meta[b].dex : 999) || a.localeCompare(b));
+    dexOrder.forEach((id, i) => {
       const m = meta[id] || { name: id, color: "#999999", types: [] };
       const known = owned.has(id);
       const card = document.createElement("button");
@@ -138,10 +139,18 @@
       const name = document.createElement("span");
       name.className = "dex-card-name";
       name.textContent = known ? m.name : "???";
-      card.append(sw, name);
+      const num = document.createElement("span");
+      num.className = "dex-card-num";
+      num.textContent = dexNum(id);
+      card.append(sw, name, num);
       if (known) card.addEventListener("click", () => openDexDetail(id));
       list.append(card);
     });
+  }
+
+  function dexNum(id) {
+    const n = meta[id] && meta[id].dex < 999 ? meta[id].dex : 0;
+    return "#" + String(n).padStart(3, "0");
   }
 
   function openDexDetail(id) {
@@ -154,7 +163,7 @@
     $("dex-name").textContent = m.name;
     $("dex-types").replaceChildren(...typeTags(m.types).childNodes);
     $("dex-desc").textContent = m.description || "Ainda não há muito o que dizer sobre esta criatura.";
-    const bits = [];
+    const bits = [dexNum(id)];
     if (rows.length > 1) bits.push("Você tem " + rows.length + " · maior nível " + row.level);
     else if (row) bits.push("Nível " + row.level + " · " + (v.party.some(p => p.id === row.id) ? "No grupo" : "Na caixa"));
     $("dex-meta").textContent = bits.join(" · ");
@@ -1311,7 +1320,7 @@
     }
 
     window.Pets.list.forEach(p => {
-      meta[p.id] = { id: p.id, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveLevel: p.evolveLevel || 0 };
+      meta[p.id] = { id: p.id, dex: p.dex || 999, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveLevel: p.evolveLevel || 0 };
     });
     petIds = window.Pets.list.map(p => p.id).sort();
 
