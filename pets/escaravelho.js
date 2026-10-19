@@ -25,10 +25,12 @@ Pets.register({
 
     const root = new THREE.Group();
     const scaleG = new THREE.Group();
-    scaleG.scale.setScalar(1.6);
+    scaleG.scale.setScalar(1.3);
     root.add(scaleG);
+    const uprightG = new THREE.Group();
+    scaleG.add(uprightG);
     const bodyG = new THREE.Group();
-    scaleG.add(bodyG);
+    uprightG.add(bodyG);
 
     const hexParts = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map(v => v / 255);
     const paintY = (geo, stops) => {
@@ -54,6 +56,8 @@ Pets.register({
     const RX = 0.62;
     const RY = 0.46;
     const RZ = 0.76;
+    const HOVER = 1.15;
+    bodyG.position.y = -BODY_Y;
 
     const darkMat = mat(0x3b2410, 0.45);
     const bronzeMat = new THREE.MeshStandardMaterial({ color: 0x6b4316, roughness: 0.3, metalness: 0.35 });
@@ -321,7 +325,7 @@ Pets.register({
       orbRays.add(ray);
     }
     orbG.add(orbRays);
-    const ORB_REST = V3(0, 0.26, RZ + 0.62);
+    const ORB_REST = V3(0, BODY_Y - RY - 0.34, RZ * 0.2);
     const arms = [-1, 1].map(s => {
       const g = new THREE.Group();
       g.position.set(0.24 * s, BODY_Y - 0.12, RZ * 0.75);
@@ -350,7 +354,7 @@ Pets.register({
       const mount = new THREE.Group();
       mount.position.set(0.14 * s, BODY_Y + RY * 0.55, RZ * 0.3);
       const w = buildWing();
-      w.scale.set(s * 1.75, 1, 1.4);
+      w.scale.set(s * 1.25, 1, 1.15);
       const flapG = new THREE.Group();
       flapG.add(w);
       mount.add(flapG);
@@ -389,6 +393,7 @@ Pets.register({
     const tmpH = V3(0, 0, 0);
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 6, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff1b0, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
     beam.geometry.translate(0, 3, 0);
+    beam.rotation.x = Math.PI / 2;
     beam.visible = false;
     bodyG.add(beam);
     const ring = new THREE.Mesh(
@@ -419,14 +424,15 @@ Pets.register({
         const ph = eat ? eatPhase(eat.p) : null;
         const light = s.dying ? 0.25 : 0.55 + 0.45 * Math.max(0, Math.min(1, hunger / 100));
 
-        let open = 0;
-        let lift = 0;
-        let flapAmp = 0;
+        const open = 1;
+        const lift = 0;
+        let flapAmp = 0.7;
+        let swoop = 0;
         if (fly) {
           const p = fly.p;
-          open = smooth(0, 0.15, p) * (1 - smooth(0.85, 1, p));
-          lift = smooth(0.1, 0.3, p) * (1 - smooth(0.75, 0.95, p));
-          flapAmp = smooth(0.08, 0.2, p) * (1 - smooth(0.88, 1, p));
+          const k = smooth(0, 0.15, p) * (1 - smooth(0.85, 1, p));
+          flapAmp = 0.7 + 0.3 * k;
+          swoop = Math.sin(p * Math.PI * 2) * k;
         }
         let burst = 0;
         let charge = 0;
@@ -444,9 +450,9 @@ Pets.register({
           spinOrb += rollA.p * Math.PI * 6;
         }
 
-        let y = lift * (0.75 + Math.sin(t * 3) * 0.06);
+        let y = 0;
         let sy = 1 + Math.sin(t * 2.4) * 0.02 * motion;
-        let airborne = lift > 0.05;
+        const airborne = true;
         if (jump) {
           const p = jump.p;
           if (p < 0.2) sy = 1 - 0.2 * Math.sin((p / 0.2) * Math.PI / 2);
@@ -454,9 +460,7 @@ Pets.register({
             const q = (p - 0.2) / 0.6;
             y = Math.sin(q * Math.PI) * 0.9;
             sy = 1 + 0.1 * Math.cos(q * Math.PI);
-            airborne = true;
           } else sy = 1 - 0.15 * Math.sin(((p - 0.8) / 0.2) * Math.PI);
-          open = Math.max(open, y > 0.3 ? 0.35 : 0);
         }
         sy -= charge * 0.1;
         sy += burst * 0.06;
@@ -467,8 +471,10 @@ Pets.register({
         root.position.y = y;
         root.position.z = push * 0.35;
         root.rotation.y = lookYaw;
-        root.rotation.x = lookPitch + (fly ? -0.12 * lift : 0);
-        bodyG.rotation.z = Math.sin(t * 1.4) * 0.03 * motion + (fly ? Math.sin(t * 2.2) * 0.06 * lift : 0);
+        root.rotation.x = lookPitch;
+        uprightG.position.set(swoop * 0.5, HOVER + Math.sin(t * 2.6) * 0.06 * motion + Math.abs(swoop) * 0.25, 0);
+        uprightG.rotation.set(-1.32 + Math.sin(t * 1.3) * 0.04 * motion - raise * 0.12, swoop * 0.5, Math.sin(t * 1.1) * 0.05 * motion - swoop * 0.3);
+        bodyG.rotation.z = 0;
 
         elytra.forEach(({ pivot, s: sd }) => {
           pivot.rotation.x = open * 0.38;
@@ -488,7 +494,7 @@ Pets.register({
           m.opacity = (0.62 + flapAmp * 0.15 + Math.sin(t * 4 + k) * 0.06) * (0.6 + light * 0.4);
         });
 
-        head.rotation.x = eat ? -0.25 * (1 - ph.fall) + Math.sin(ph.chew * Math.PI) * 0.08 : burst * -0.2;
+        head.rotation.x = 1.15 + (eat ? -0.25 * (1 - ph.fall) + Math.sin(ph.chew * Math.PI) * 0.08 : burst * -0.2);
         head.rotation.y = Math.sin(t * 0.7) * 0.08 * motion;
         mandibles.forEach(({ g, s: sd }) => {
           g.rotation.y = sd * ((eat ? ph.chew * 0.5 : 0) + Math.sin(t * 3 + sd) * 0.05 * motion);
@@ -514,8 +520,8 @@ Pets.register({
         sun.scale.setScalar(1.4 * (1 + burst * 0.4 + Math.sin(t * 3) * 0.05 * motion));
         const orbPos = tmpO.copy(ORB_REST);
         orbPos.z += push * 0.12;
-        orbPos.y += raise * 0.85 + Math.sin(t * 2) * 0.02 * motion + (airborne ? -0.05 : 0);
-        orbPos.z -= raise * 0.55;
+        orbPos.y += -raise * 0.4 + Math.sin(t * 2) * 0.02 * motion;
+        orbPos.z += raise * 0.95;
         orbG.position.copy(orbPos);
         orbG.rotation.x = spinOrb;
         orbShell.rotation.y = t * 0.5;
@@ -575,7 +581,9 @@ Pets.register({
 
         if (eat) {
           food.visible = ph.visible;
-          food.position.set(0, lerp(3.0, BODY_Y + 0.1, ph.fall * ph.fall), RZ * 1.02 + 0.25);
+          root.updateMatrixWorld(true);
+          const mouthW = scaleG.worldToLocal(head.localToWorld(tmpH.set(0, -0.05, 0.4)));
+          food.position.set(mouthW.x, lerp(3.2, mouthW.y, ph.fall * ph.fall), mouthW.z);
           food.scale.setScalar((1 - 0.85 * ph.bite) * 0.7);
         } else food.visible = false;
 
