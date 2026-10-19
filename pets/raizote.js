@@ -345,25 +345,27 @@ Pets.register({
         let p = phi;
         let t = th;
         let d = dir;
-        const steps = 5;
+        const steps = 4;
         for (let i = 0; i <= steps; i++) {
           pts.push(onBody(p, t, 1.018 + w * 0.15));
           d += (rnd() - 0.5) * 0.35;
-          p += Math.cos(d) * 0.06;
-          t += Math.sin(d) * 0.06;
+          p += Math.cos(d) * 0.055;
+          t += Math.sin(d) * 0.055;
         }
         torsoMesh.add(mesh(taperTube(pts, w, w * 0.62, 20, 14), limbMat, false));
         if (depth > 1) {
-          grow(p - Math.cos(d) * 0.07, t - Math.sin(d) * 0.07, d + (rnd() - 0.5) * 0.4, w * 0.7, depth - 1);
-          if (rnd() < 0.7) grow(p - Math.cos(d) * 0.07, t - Math.sin(d) * 0.07, d + (rnd() < 0.5 ? -1 : 1) * (0.6 + rnd() * 0.5), w * 0.55, depth - 1);
+          grow(p - Math.cos(d) * 0.055, t - Math.sin(d) * 0.055, d - 0.55 - rnd() * 0.25, w * 0.62, depth - 1);
+          grow(p - Math.cos(d) * 0.055, t - Math.sin(d) * 0.055, d + 0.55 + rnd() * 0.25, w * 0.62, depth - 1);
         } else {
           const tip = onBody(p, t, 1.022);
           torsoMesh.add(mesh(taperTube([pts[pts.length - 1], tip], w * 0.62, 0.003, 4, 8), limbMat, false));
         }
       };
-      grow(Math.PI / 2 - 0.8, Math.PI * 0.44, 0.2, 0.07, 3);
-      grow(Math.PI / 2 + 0.8, Math.PI * 0.48, Math.PI - 0.15, 0.07, 3);
-      grow(Math.PI / 2 + 0.06, Math.PI * 0.88, -Math.PI / 2 - 0.1, 0.065, 3);
+      [0.35, 1.05, 1.65, 2.35, 3.0, 3.75, 4.6, 5.45].forEach((a, k) => {
+        const p0 = Math.PI / 2 + Math.cos(a) * 0.72;
+        const t0 = Math.PI * 0.57 + Math.sin(a) * 0.72;
+        grow(p0, t0, a + Math.PI + (rnd() - 0.5) * 0.3, 0.042 + (k % 3) * 0.006, 2);
+      });
     }
     [[-1.0, 0.25, -1.3, -0.25], [-2.1, 0.3, -1.9, -0.2]].forEach(([t0, p0, t1, p1], k) => {
       const pts = [];
