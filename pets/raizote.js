@@ -340,31 +340,43 @@ Pets.register({
         return sd / 2147483647;
       };
       const onBody = (phi, th, lift) => V3(-Math.cos(phi) * Math.sin(th) * TR.x * lift, Math.cos(th) * TR.y * lift, Math.sin(phi) * Math.sin(th) * TR.z * lift);
-      const grow = (phi, th, dir, w, depth) => {
+      const grow = (phi, th, dir, w, depth, steps, bend, split) => {
         const pts = [];
         let p = phi;
         let t = th;
         let d = dir;
-        const steps = 4;
+        const len = 0.06 + w * 0.7;
         for (let i = 0; i <= steps; i++) {
           pts.push(onBody(p, t, 1.018 + w * 0.15));
-          d += (rnd() - 0.5) * 0.35;
-          p += Math.cos(d) * 0.055;
-          t += Math.sin(d) * 0.055;
+          d += bend + (rnd() - 0.5) * 0.4;
+          p += Math.cos(d) * len;
+          t += Math.sin(d) * len;
         }
-        torsoMesh.add(mesh(taperTube(pts, w, w * 0.62, 20, 14), limbMat, false));
+        torsoMesh.add(mesh(taperTube(pts, w, w * 0.6, 6 + steps * 4, 12), limbMat, false));
         if (depth > 1) {
-          grow(p - Math.cos(d) * 0.055, t - Math.sin(d) * 0.055, d - 0.55 - rnd() * 0.25, w * 0.62, depth - 1);
-          grow(p - Math.cos(d) * 0.055, t - Math.sin(d) * 0.055, d + 0.55 + rnd() * 0.25, w * 0.62, depth - 1);
+          const n = rnd() < split ? 3 : 2;
+          for (let k = 0; k < n; k++) {
+            const off = n === 3 ? (k - 1) * (0.5 + rnd() * 0.4) : (k ? 1 : -1) * (0.3 + rnd() * 0.7);
+            const sub = Math.max(1, steps - 1 - ((rnd() * 2) | 0));
+            grow(p - Math.cos(d) * len, t - Math.sin(d) * len, d + off, w * (0.45 + rnd() * 0.25), depth - 1, sub, -bend * 0.5 + (rnd() - 0.5) * 0.3, split * 0.5);
+          }
         } else {
-          const tip = onBody(p, t, 1.022);
-          torsoMesh.add(mesh(taperTube([pts[pts.length - 1], tip], w * 0.62, 0.003, 4, 8), limbMat, false));
+          torsoMesh.add(mesh(taperTube([pts[pts.length - 1], onBody(p, t, 1.016)], w * 0.6, 0.003, 4, 8), limbMat, false));
         }
       };
-      [0.35, 1.05, 1.65, 2.35, 3.0, 3.75, 4.6, 5.45].forEach((a, k) => {
+      [
+        [0.25, 0.06, 3, 5, 0.12, 0.6],
+        [0.95, 0.032, 1, 3, -0.2, 0],
+        [1.5, 0.05, 2, 4, 0.18, 0.3],
+        [2.1, 0.028, 2, 2, -0.1, 0],
+        [2.9, 0.065, 3, 3, -0.15, 0.8],
+        [3.85, 0.038, 2, 5, 0.25, 0.2],
+        [4.45, 0.03, 1, 4, -0.3, 0],
+        [5.3, 0.055, 3, 2, 0.1, 0.5]
+      ].forEach(([a, w, depth, steps, bend, split]) => {
         const p0 = Math.PI / 2 + Math.cos(a) * 0.72;
         const t0 = Math.PI * 0.57 + Math.sin(a) * 0.72;
-        grow(p0, t0, a + Math.PI + (rnd() - 0.5) * 0.3, 0.042 + (k % 3) * 0.006, 2);
+        grow(p0, t0, a + Math.PI + (rnd() - 0.5) * 0.5, w, depth, steps, bend * 0.4, split);
       });
     }
     [[-1.0, 0.25, -1.3, -0.25], [-2.1, 0.3, -1.9, -0.2]].forEach(([t0, p0, t1, p1], k) => {
