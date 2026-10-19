@@ -115,7 +115,20 @@ function snapshot() {
   const em = petMeta[Game.speciesOf(state)];
   const et = state.pet ? Game.evolveTarget(em, state) : null;
   const evolveTo = et && Game.canEvolve(state, state.pet, et, em.evolveLevel || Infinity) ? (petMeta[et] ? petMeta[et].name : et) : null;
-  return Object.assign(Game.view(state, meta), {
+  const view = Game.view(state, meta);
+  const now = Date.now();
+  view.party.forEach(p => {
+    p.canExplore = Game.canExplore(state, p.id);
+    p.ready = !!p.away && p.away.endsAt <= now;
+  });
+  const items = Object.keys(Game.ITEMS).map(id =>
+    Object.assign({ id, count: state.inventory[id] || 0, canUse: Game.canUseItem(state, id, state.pet) }, Game.ITEMS[id])
+  );
+  return Object.assign(view, {
+    now,
+    items,
+    daily: Game.dailyStatus(state, now),
+    dailyRewards: Game.C.DAILY_REWARDS,
     evolveTo,
     account: {
       configured: cloud.configured,
@@ -386,6 +399,45 @@ ipcMain.on("swap-party", (_e, p) => {
   saveState();
   broadcast();
   scheduleSync();
+});
+
+const lootText = r =>
+  [r.coins + " moedas"].concat(Object.keys(r.items || {}).map(k => Game.ITEMS[k].name + (r.items[k] > 1 ? " x" + r.items[k] : ""))).join(", ");
+
+ipcMain.handle("eco", (_e, p) => {
+  if (!p || typeof p.op !== "string") return null;
+  const name = id => {
+    const sp = Game.speciesOf(state, id);
+    return (petMeta[sp] && petMeta[sp].name) || sp;
+  };
+  let r = { changed: false };
+  let msg = "";
+  if (p.op === "daily") {
+    r = Game.claimDaily(state);
+    if (r.changed) msg = "+" + r.coins + " moedas" + (r.item ? " e " + Game.ITEMS[r.item].name : "");
+  } else if (p.op === "buy") {
+    r = Game.buyItem(state, p.item);
+    if (r.changed) msg = Game.ITEMS[p.item].name + " foi para a mochila";
+  } else if (p.op === "sell") {
+    r = Game.sellItem(state, p.item);
+    if (r.changed) msg = "+" + r.coins + " moedas";
+  } else if (p.op === "use") {
+    r = Game.useItem(state, p.item, state.pet);
+    if (r.changed) msg = r.levels > 0 ? "Subiu para o nível " + r.level + "!" : Game.ITEMS[p.item].name + " usado";
+    if (r.changed && Game.ITEMS[p.item].hunger && alive(win)) win.webContents.send("feed");
+  } else if (p.op === "explore") {
+    r = Game.startExpedition(state, p.id, p.kind);
+    if (r.changed) msg = name(p.id) + " partiu em expedição";
+  } else if (p.op === "collect") {
+    const sp = Game.speciesOf(state, p.id);
+    r = Game.collectExpedition(state, p.id, (petMeta[sp] && petMeta[sp].types) || []);
+    if (r.changed) msg = name(p.id) + " voltou com " + lootText(r) + (r.levels > 0 ? ". Subiu para o nível " + r.level + "!" : "");
+  }
+  if (!r.changed) return null;
+  saveState();
+  broadcast();
+  scheduleSync();
+  return msg;
 });
 
 ipcMain.handle("auth-signin", async (_e, creds) => {

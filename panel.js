@@ -33,6 +33,14 @@ const accountBtn = document.getElementById("account-btn");
 const openBoxBtn = document.getElementById("open-box");
 const boxList = document.getElementById("box-list");
 const boxClose = document.getElementById("box-close");
+const openBagBtn = document.getElementById("open-bag");
+const bagClose = document.getElementById("bag-close");
+const bagScroll = document.getElementById("bag-scroll");
+const bagCoins = document.getElementById("bag-coins");
+const bagToast = document.getElementById("bag-toast");
+const EXP_LABEL = { curta: "30 min", media: "2 h", longa: "8 h" };
+let bagMode = false;
+let bagToastTimer = 0;
 let lastState = null;
 let boxMode = false;
 let pickFor = null;
@@ -100,6 +108,7 @@ function petInfo(p) {
   if (p.hunger <= 25) line.appendChild(el("span", "warn", "Fome"));
   if (p.joy <= 25) line.appendChild(el("span", "warn", "Triste"));
   if (p.dying) line.appendChild(el("span", "warn", "Morrendo"));
+  if (p.away) line.appendChild(el("span", "away", p.ready ? "Voltou" : "Explorando"));
   info.appendChild(line);
   return info;
 }
@@ -124,6 +133,7 @@ function renderParty(s) {
     btn.type = "button";
     btn.setAttribute("aria-label", describe(p));
     btn.setAttribute("aria-pressed", String(p.id === s.pet));
+    btn.disabled = !!p.away;
     btn.append(dotFor(p), petInfo(p));
     btn.addEventListener("click", () => window.pet.selectPet(p.id));
     listEl.appendChild(btn);
@@ -170,6 +180,111 @@ function renderBox(s) {
   });
 }
 
+function fmtTime(ms) {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const ss = String(sec % 60).padStart(2, "0");
+  return h ? h + ":" + String(m).padStart(2, "0") + ":" + ss : m + ":" + ss;
+}
+
+function effect(it) {
+  const parts = [];
+  if (it.revive) parts.push("Tira do estado Morrendo");
+  if (it.hunger) parts.push(it.hunger >= 100 ? "Fome cheia" : "+" + it.hunger + " fome");
+  if (it.life && !it.revive) parts.push(it.life >= 100 ? "Vida cheia" : "+" + it.life + " vida");
+  if (it.joy) parts.push(it.joy >= 100 ? "Felicidade cheia" : "+" + it.joy + " felicidade");
+  if (it.xp) parts.push("+" + it.xp + " XP");
+  if (!parts.length && it.sell) parts.push("Vale " + it.sell + " moedas");
+  return parts.join(" · ");
+}
+
+function bagSay(text) {
+  if (!text) return;
+  bagToast.textContent = text;
+  bagToast.hidden = false;
+  clearTimeout(bagToastTimer);
+  bagToastTimer = setTimeout(() => {
+    bagToast.hidden = true;
+  }, 4000);
+}
+
+async function eco(p) {
+  const msg = await window.pet.eco(p);
+  if (msg) bagSay(msg);
+}
+
+function btn(text, cls, onClick, disabled) {
+  const b = el("button", cls || "", text);
+  b.type = "button";
+  b.disabled = !!disabled;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function itemLine(it, extra) {
+  const row = el("div", "it");
+  const info = el("span", "info");
+  const line = el("span", "name-line");
+  line.appendChild(el("span", "", it.name));
+  if (extra) line.appendChild(el("span", "lv", extra));
+  info.append(line, el("span", "eff", effect(it)));
+  row.appendChild(info);
+  return row;
+}
+
+function renderBag(s) {
+  bagCoins.textContent = s.coins + " moedas";
+  bagScroll.textContent = "";
+  if (s.daily && s.daily.available) {
+    bagScroll.appendChild(el("h2", "", "Presente do dia"));
+    const row = el("div", "it");
+    const info = el("span", "info");
+    info.append(el("span", "name-line", "Dia " + s.daily.step + " de " + s.dailyRewards.length), el("span", "eff", s.daily.streak > 1 ? s.daily.streak + " dias seguidos" : "Volte todo dia para ganhar mais"));
+    const box = el("span", "it-btns");
+    box.appendChild(btn("Pegar " + s.daily.coins + " moedas", "", () => eco({ op: "daily" })));
+    row.append(info, box);
+    bagScroll.appendChild(row);
+  }
+  bagScroll.appendChild(el("h2", "", "Expedições"));
+  bagScroll.appendChild(el("p", "", "Quem sai some da tela e não gasta nada. Volta com moedas e itens do seu tipo."));
+  s.party.forEach(p => {
+    const row = el("div", p.away ? "it" : "it wrap");
+    row.append(dotFor(p), petInfo(p));
+    const box = el("span", "it-btns");
+    if (p.away && !p.ready) {
+      const t = el("span", "time", "Volta em " + fmtTime(p.away.endsAt - Date.now()));
+      t.dataset.ends = String(p.away.endsAt);
+      box.appendChild(t);
+    }
+    else if (p.away) box.appendChild(btn("Receber", "", () => eco({ op: "collect", id: p.id })));
+    else Object.keys(EXP_LABEL).forEach(k => box.appendChild(btn(EXP_LABEL[k], "ghost", () => eco({ op: "explore", id: p.id, kind: k }), !p.canExplore)));
+    row.appendChild(box);
+    bagScroll.appendChild(row);
+  });
+  const cur = s.party.find(p => p.id === s.pet);
+  const have = s.items.filter(it => it.count > 0);
+  bagScroll.appendChild(el("h2", "", "Itens"));
+  if (!have.length) bagScroll.appendChild(el("p", "", "A mochila está vazia."));
+  else bagScroll.appendChild(el("p", "", "Os itens são usados em " + (cur ? cur.name : "") + "."));
+  have.forEach(it => {
+    const row = itemLine(it, "x" + it.count);
+    const box = el("span", "it-btns");
+    if (it.hunger || it.life || it.joy || it.xp || it.revive) box.appendChild(btn("Usar", "", () => eco({ op: "use", item: it.id }), !it.canUse));
+    if (it.sell) box.appendChild(btn("Vender " + it.sell, "ghost", () => eco({ op: "sell", item: it.id })));
+    row.appendChild(box);
+    bagScroll.appendChild(row);
+  });
+  bagScroll.appendChild(el("h2", "", "Loja"));
+  s.items.filter(it => it.price).forEach(it => {
+    const row = itemLine(it, it.count ? "tem " + it.count : "");
+    const box = el("span", "it-btns");
+    box.appendChild(btn(it.price + " moedas", "", () => eco({ op: "buy", item: it.id }), s.coins < it.price));
+    row.appendChild(box);
+    bagScroll.appendChild(row);
+  });
+}
+
 function renderAccount(acc) {
   signedIn = acc.signedIn;
   const showAuth = acc.configured && !acc.signedIn && (!acc.guest || forceAuth);
@@ -194,7 +309,13 @@ function render(s) {
   renderAccount(s.account);
   if (pickFor && !s.box.some(p => p.id === pickFor)) pickFor = null;
   if (boxMode && s.box.length === 0) boxMode = false;
-  if (!cardEl.classList.contains("auth-mode")) cardEl.classList.toggle("box-mode", boxMode);
+  if (s.needsStarter) bagMode = false;
+  if (!cardEl.classList.contains("auth-mode")) {
+    cardEl.classList.toggle("box-mode", boxMode);
+    cardEl.classList.toggle("bag-mode", bagMode && !boxMode);
+  }
+  openBagBtn.textContent = "Mochila e expedições · " + s.coins + " moedas" + (s.daily && s.daily.available ? " · presente do dia!" : s.party.some(p => p.ready) ? " · expedição voltou!" : "");
+  if (bagMode) renderBag(s);
   renderParty(s);
   renderBox(s);
   cardEl.classList.toggle("empty-mode", !!s.needsStarter);
@@ -253,6 +374,20 @@ accountBtn.addEventListener("click", async () => {
   }
 });
 
+openBagBtn.addEventListener("click", () => {
+  bagMode = true;
+  boxMode = false;
+  if (lastState) render(lastState);
+});
+bagClose.addEventListener("click", () => {
+  bagMode = false;
+  if (lastState) render(lastState);
+});
+setInterval(() => {
+  if (!bagMode || !lastState) return;
+  if (lastState.party.some(p => p.away && !p.ready && p.away.endsAt <= Date.now())) window.pet.getState().then(render);
+  else bagScroll.querySelectorAll("[data-ends]").forEach(t => (t.textContent = "Volta em " + fmtTime(Number(t.dataset.ends) - Date.now())));
+}, 1000);
 openBoxBtn.addEventListener("click", () => {
   boxMode = true;
   pickFor = null;
@@ -270,7 +405,10 @@ evolveBtn.addEventListener("click", () => window.pet.evolve());
 closeBtn.addEventListener("click", () => window.pet.closePanel());
 window.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if (boxMode) {
+  if (bagMode) {
+    bagMode = false;
+    if (lastState) render(lastState);
+  } else if (boxMode) {
     boxMode = false;
     pickFor = null;
     if (lastState) render(lastState);

@@ -62,6 +62,24 @@
   let tab = "party";
   let swapIn = null;
   let lastPetId = null;
+  let bagTab = "bag";
+  let expTicker = 0;
+  let dailyShown = "";
+  let lastCoins = null;
+
+  const ITEM_ICONS = {
+    fruta: '<circle cx="12" cy="14" r="7" fill="#e5484d"/><path d="M12 7c0-2 1-3 3-4" stroke="#6b4423" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M13 6c2-1 4 0 5 1-2 1-4 1-5-1z" fill="#4caf50"/>',
+    doce: '<path d="M3 9l4 3-4 3zM21 9l-4 3 4 3z" fill="#f48fb1"/><circle cx="12" cy="12" r="5.5" fill="#ec407a"/><path d="M9 10c2 1 4 3 6 4" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/>',
+    petisco: '<path d="M6 8a2.5 2.5 0 1 1 3-3l6 6a2.5 2.5 0 1 1 3 3 2.5 2.5 0 1 1-3 3l-6-6a2.5 2.5 0 1 1-3-3z" fill="#d7a86e"/>',
+    peixe: '<path d="M3 12c3-5 10-6 14 0-4 6-11 5-14 0z" fill="#4fa3e0"/><path d="M17 12l4-4v8z" fill="#3a86c0"/><circle cx="8" cy="11" r="1.2" fill="#123"/>',
+    pocao: '<path d="M10 3h4v4l3 5a5 5 0 1 1-10 0l3-5z" fill="#f06363"/><rect x="9.5" y="2" width="5" height="2" rx="1" fill="#8d6e63"/>',
+    "pocao-grande": '<path d="M9 2h6v4l4 6a7 7 0 1 1-14 0l4-6z" fill="#d32f2f"/><rect x="8.5" y="1" width="7" height="2.4" rx="1" fill="#8d6e63"/><path d="M9 14h6M12 11v6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>',
+    reviver: '<path d="M12 2l2.6 6.3 6.4.4-5 4.2 1.7 6.6L12 16l-5.7 3.5L8 12.9 3 8.7l6.4-.4z" fill="#ffca28"/><path d="M12 8v6M9 11h6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>',
+    dourada: '<circle cx="12" cy="14" r="7" fill="#f6c343"/><circle cx="9.5" cy="11.5" r="1.8" fill="#fff6c8"/><path d="M12 7c0-2 1-3 3-4" stroke="#6b4423" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M13 6c2-1 4 0 5 1-2 1-4 1-5-1z" fill="#4caf50"/>',
+    cristal: '<path d="M12 2l6 7-6 13-6-13z" fill="#9c7cf4"/><path d="M6 9h12M12 2l-2 7 2 13 2-13z" stroke="#e6dcff" stroke-width="1" fill="none"/>'
+  };
+
+  const EXP_LABEL = { curta: "30 min", media: "2 h", longa: "8 h" };
 
   const barLevel = v => (v > 50 ? "ok" : v > 25 ? "warn" : "low");
 
@@ -394,6 +412,7 @@
       lastPetId = null;
     }
     render();
+    maybeDaily();
   }
 
   function enterStarter() {
@@ -484,6 +503,7 @@
 
   const fmtTime = ms => {
     const sec = Math.ceil(ms / 1000);
+    if (sec >= 3600) return Math.floor(sec / 3600) + ":" + String(Math.floor((sec % 3600) / 60)).padStart(2, "0") + ":" + String(sec % 60).padStart(2, "0");
     return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
   };
 
@@ -603,7 +623,7 @@
     $("shop-hint").textContent = !pool.length
       ? "Nenhuma criatura disponível nos ovos."
       : state.coins < Game.C.EGG_PRICE
-        ? "Moedas insuficientes. Ainda não dá para ganhar moedas."
+        ? "Moedas insuficientes. Cuide do grupo, pegue o presente do dia e faça expedições para ganhar mais."
         : "O ovo vai para o seu inventário.";
   }
 
@@ -749,6 +769,253 @@
     );
   }
 
+  function itemIcon(id) {
+    const el = document.createElement("span");
+    el.className = "item-ico";
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">' + (ITEM_ICONS[id] || "") + "</svg>";
+    return el;
+  }
+
+  function itemEffect(it) {
+    const parts = [];
+    if (it.revive) parts.push("Tira do estado Morrendo");
+    if (it.hunger) parts.push(it.hunger >= 100 ? "Fome cheia" : "+" + it.hunger + " fome");
+    if (it.life && !it.revive) parts.push(it.life >= 100 ? "Vida cheia" : "+" + it.life + " vida");
+    if (it.joy) parts.push(it.joy >= 100 ? "Felicidade cheia" : "+" + it.joy + " felicidade");
+    if (it.xp) parts.push("+" + it.xp + " XP");
+    if (!parts.length && it.sell) parts.push("Vale " + it.sell + " moedas");
+    return parts.join(" · ");
+  }
+
+  function itemRow(id, it, extra) {
+    const el = document.createElement("div");
+    el.className = "item";
+    const info = document.createElement("span");
+    info.className = "info";
+    const line = document.createElement("span");
+    line.className = "name-line";
+    const name = document.createElement("span");
+    name.textContent = it.name;
+    line.append(name);
+    if (extra) {
+      const c = document.createElement("span");
+      c.className = "lv";
+      c.textContent = extra;
+      line.append(c);
+    }
+    const eff = document.createElement("span");
+    eff.className = "lv";
+    eff.textContent = itemEffect(it);
+    info.append(line, eff);
+    el.append(itemIcon(id), info);
+    return el;
+  }
+
+  function lootText(r) {
+    const parts = [r.coins + " moedas"];
+    Object.keys(r.items || {}).forEach(k => parts.push(Game.ITEMS[k].name + (r.items[k] > 1 ? " x" + r.items[k] : "")));
+    return parts.join(", ");
+  }
+
+  function openBag(t) {
+    bagTab = t || "bag";
+    renderBag();
+    $("bag-sheet").showModal();
+  }
+
+  function renderBag() {
+    Game.catchUp(state);
+    $("bag-coins").textContent = state.coins + " moedas";
+    $("tab-bag").setAttribute("aria-selected", String(bagTab === "bag"));
+    $("tab-store").setAttribute("aria-selected", String(bagTab === "store"));
+    $("bag-list").hidden = bagTab !== "bag";
+    $("store-list").hidden = bagTab !== "store";
+    const petName = state.pet ? (meta[Game.speciesOf(state)] || {}).name || "" : "";
+    const bag = $("bag-list");
+    const store = $("store-list");
+    bag.replaceChildren();
+    store.replaceChildren();
+    const ids = Object.keys(Game.ITEMS);
+    if (bagTab === "bag") {
+      const have = ids.filter(k => state.inventory[k] > 0);
+      $("bag-hint").textContent = have.length
+        ? "Os itens são usados em " + petName + ". Para usar em outro, troque de bichinho no Grupo."
+        : "A mochila está vazia. Compre itens na loja ou mande bichinhos em expedições.";
+      have.forEach(k => {
+        const it = Game.ITEMS[k];
+        const el = itemRow(k, it, "x" + state.inventory[k]);
+        const box = document.createElement("span");
+        box.className = "row-btns";
+        if (it.hunger || it.life || it.joy || it.xp || it.revive) {
+          const use = document.createElement("button");
+          use.type = "button";
+          use.className = "btn primary small";
+          use.textContent = "Usar";
+          use.disabled = !Game.canUseItem(state, k, state.pet);
+          use.addEventListener("click", () => useItem(k));
+          box.append(use);
+        }
+        if (it.sell) {
+          const sell = document.createElement("button");
+          sell.type = "button";
+          sell.className = "btn soft small";
+          sell.textContent = "Vender " + it.sell;
+          sell.setAttribute("aria-label", "Vender por " + it.sell + " moedas");
+          sell.addEventListener("click", () => {
+            const r = Game.sellItem(state, k);
+            if (!r.changed) return;
+            saveState();
+            scheduleSync();
+            showToast("+" + r.coins + " moedas");
+            renderBag();
+            render();
+          });
+          box.append(sell);
+        }
+        el.append(box);
+        bag.append(el);
+      });
+    } else {
+      $("bag-hint").textContent = "Seu grupo rende moedas toda hora enquanto está alimentado e feliz.";
+      ids.filter(k => Game.ITEMS[k].price).forEach(k => {
+        const it = Game.ITEMS[k];
+        const el = itemRow(k, it, state.inventory[k] ? "tem " + state.inventory[k] : "");
+        const buy = document.createElement("button");
+        buy.type = "button";
+        buy.className = "btn primary small";
+        buy.textContent = it.price + " moedas";
+        buy.setAttribute("aria-label", "Comprar " + it.name + " por " + it.price + " moedas");
+        buy.disabled = state.coins < it.price;
+        buy.addEventListener("click", () => {
+          const r = Game.buyItem(state, k);
+          if (!r.changed) return;
+          saveState();
+          scheduleSync();
+          showToast(it.name + " foi para a mochila");
+          renderBag();
+          render();
+        });
+        el.append(buy);
+        store.append(el);
+      });
+    }
+  }
+
+  function useItem(k) {
+    const r = Game.useItem(state, k, state.pet);
+    if (!r.changed) return;
+    saveState();
+    scheduleSync();
+    const it = Game.ITEMS[k];
+    if (it.hunger) stage.play("eat", true);
+    if (r.levels > 0) {
+      stage.play("jump", true);
+      showToast("Subiu para o nível " + r.level + "!");
+    } else {
+      showToast(it.name + " usado");
+    }
+    renderBag();
+    render();
+  }
+
+  function renderExp(v) {
+    const list = $("exp-list");
+    list.replaceChildren();
+    const now = Date.now();
+    v.party.forEach(p => {
+      const el = itemNode(p, "div");
+      el.classList.add("exp-row");
+      const box = document.createElement("span");
+      box.className = "row-btns exp-btns";
+      if (p.away) {
+        if (p.away.endsAt > now) {
+          const t = document.createElement("span");
+          t.className = "exp-time";
+          t.dataset.ends = String(p.away.endsAt);
+          t.textContent = "Volta em " + fmtTime(p.away.endsAt - now);
+          box.append(t);
+        } else {
+          const c = document.createElement("button");
+          c.type = "button";
+          c.className = "btn primary small";
+          c.textContent = "Receber";
+          c.addEventListener("click", () => {
+            const r = Game.collectExpedition(state, p.id, (meta[p.species] || {}).types || []);
+            if (!r.changed) return;
+            saveState();
+            scheduleSync();
+            showToast(p.name + " voltou com " + lootText(r) + (r.levels > 0 ? ". Subiu para o nível " + r.level + "!" : ""));
+            render();
+          });
+          box.append(c);
+        }
+      } else {
+        const ok = Game.canExplore(state, p.id);
+        Object.keys(Game.C.EXPEDITIONS).forEach(kind => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "btn soft small";
+          b.textContent = EXP_LABEL[kind];
+          b.setAttribute("aria-label", "Mandar " + p.name + " por " + EXP_LABEL[kind]);
+          b.disabled = !ok;
+          b.addEventListener("click", () => {
+            const r = Game.startExpedition(state, p.id, kind);
+            if (!r.changed) return;
+            saveState();
+            scheduleSync();
+            showToast(p.name + " partiu em expedição");
+            render();
+          });
+          box.append(b);
+        });
+      }
+      el.append(box);
+      list.append(el);
+    });
+  }
+
+  function tickExp() {
+    if (!$("party-sheet").open || tab !== "exp") return;
+    const now = Date.now();
+    let done = false;
+    document.querySelectorAll("#exp-list [data-ends]").forEach(t => {
+      const left = Number(t.dataset.ends) - now;
+      if (left <= 0) done = true;
+      else t.textContent = "Volta em " + fmtTime(left);
+    });
+    if (done) render();
+  }
+
+  function maybeDaily() {
+    if (!state || Game.needsStarter(state) || $("game-view").hidden) return;
+    if (cloud && cloud.signedIn() && !firstSyncDone) return;
+    if (document.querySelector("dialog[open]")) return;
+    const d = Game.dailyStatus(state);
+    const key = new Date().toDateString();
+    if (!d.available || dailyShown === key) return;
+    dailyShown = key;
+    const days = $("daily-days");
+    days.replaceChildren();
+    Game.C.DAILY_REWARDS.forEach((c, i) => {
+      const el = document.createElement("span");
+      el.className = "daily-day" + (i + 1 < d.step ? " done" : i + 1 === d.step ? " today" : "") + (i === Game.C.DAILY_REWARDS.length - 1 ? " big" : "");
+      const n = document.createElement("span");
+      n.className = "daily-n";
+      n.textContent = "Dia " + (i + 1);
+      const v = document.createElement("span");
+      v.className = "daily-v";
+      v.textContent = String(c);
+      el.append(n, v);
+      days.append(el);
+    });
+    $("daily-hint").textContent =
+      d.streak > 1
+        ? d.streak + " dias seguidos! Hoje: " + d.coins + " moedas" + (d.item ? " e uma " + Game.ITEMS[d.item].name : "") + "."
+        : "Volte todo dia para ganhar mais. Se faltar um dia, recomeça do dia 1.";
+    $("daily-claim").textContent = "Pegar " + d.coins + " moedas";
+    $("daily-sheet").showModal();
+  }
+
   function showToast(text) {
     const el = $("toast");
     const host = document.querySelector("dialog[open]") || document.body;
@@ -796,11 +1063,12 @@
     [
       [p.hunger <= 25, "Fome"],
       [p.joy <= 25, "Triste"],
-      [p.dying, "Morrendo"]
-    ].forEach(([on, text]) => {
+      [p.dying, "Morrendo"],
+      [!!p.away, p.away && p.away.endsAt <= Date.now() ? "Voltou" : "Explorando", "away-tag"]
+    ].forEach(([on, text, cls]) => {
       if (!on) return;
       const warn = document.createElement("span");
-      warn.className = "warn-tag";
+      warn.className = cls || "warn-tag";
       warn.textContent = text;
       line.append(warn);
     });
@@ -814,13 +1082,18 @@
     const boxList = $("box-list");
     $("tab-party").setAttribute("aria-selected", String(tab === "party"));
     $("tab-box").setAttribute("aria-selected", String(tab === "box"));
+    $("tab-exp").setAttribute("aria-selected", String(tab === "exp"));
     partyList.hidden = tab !== "party";
     boxList.hidden = tab !== "box";
+    $("exp-list").hidden = tab !== "exp";
+    $("exp-alert").hidden = !v.party.some(p => p.away && p.away.endsAt <= Date.now());
     $("tab-box").textContent = "Caixa (" + v.box.length + ")";
     $("tab-party").textContent = "Grupo (" + v.party.length + "/" + Game.C.PARTY_SIZE + ")";
 
     if (tab === "party") {
-      $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todos do grupo gastam fome, vida e felicidade, mesmo fora da tela.";
+      $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todos do grupo gastam fome, vida e felicidade, mesmo fora da tela, e rendem moedas enquanto estão alimentados e felizes.";
+    } else if (tab === "exp") {
+      $("sheet-hint").textContent = "Quem sai em expedição some da tela e não gasta nada. Volta com moedas e itens que dependem do seu tipo. Pelo menos um precisa ficar em casa.";
     } else if (swapIn) {
       $("sheet-hint").textContent = "Escolha quem sai do grupo para dar lugar ao novo bichinho.";
     } else {
@@ -829,11 +1102,13 @@
 
     const stagger = animateList;
     animateList = false;
+    if (tab === "exp") renderExp(v);
     partyList.replaceChildren();
     v.party.forEach(p => {
       const el = itemNode(p, "button");
       el.type = "button";
       el.setAttribute("aria-pressed", String(p.id === v.pet));
+      el.disabled = !!p.away;
       el.addEventListener("click", () => {
         const r = Game.selectPet(state, p.id);
         if (r.changed) {
@@ -860,6 +1135,7 @@
           const el = itemNode(p, "button");
           el.type = "button";
           el.setAttribute("aria-label", "Trocar " + p.name + " por " + incoming.name);
+          el.disabled = !!p.away;
           el.addEventListener("click", () => {
             const r = Game.swapParty(state, p.id, incoming.id, petIds);
             swapIn = null;
@@ -905,7 +1181,7 @@
       boxList.append(el);
     });
     if (stagger) {
-      Array.from((tab === "party" ? partyList : boxList).children).forEach((el, k) => {
+      Array.from((tab === "party" ? partyList : tab === "exp" ? $("exp-list") : boxList).children).forEach((el, k) => {
         el.classList.add("enter");
         el.style.setProperty("--i", String(k));
       });
@@ -966,7 +1242,15 @@
     });
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = v.life >= 100;
-    $("party-alert").hidden = !v.party.some(p => p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25);
+    $("party-alert").hidden = !v.party.some(p => (p.away ? p.away.endsAt <= Date.now() : p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25));
+    $("coin-count").textContent = String(v.coins);
+    if (lastCoins !== null && v.coins > lastCoins) {
+      $("bag-btn").classList.remove("bump");
+      void $("bag-btn").offsetWidth;
+      $("bag-btn").classList.add("bump");
+    }
+    lastCoins = v.coins;
+    if ($("bag-sheet").open) renderBag();
     if (lastPetId !== v.pet + ":" + v.species) {
       lastPetId = v.pet + ":" + v.species;
       stage.setPet(v.species);
@@ -1111,6 +1395,8 @@
       swapIn = null;
       animateList = true;
       $("party-sheet").showModal();
+      clearInterval(expTicker);
+      expTicker = setInterval(tickExp, 1000);
       render();
     });
 
@@ -1118,6 +1404,39 @@
       tab = "party";
       swapIn = null;
       animateList = true;
+      render();
+    });
+    $("tab-exp").addEventListener("click", () => {
+      tab = "exp";
+      swapIn = null;
+      animateList = true;
+      render();
+    });
+    $("party-sheet").addEventListener("close", () => clearInterval(expTicker));
+    ["pointerdown", "pointerup"].forEach(t => $("bag-btn").addEventListener(t, e => e.stopPropagation()));
+    $("bag-btn").addEventListener("click", () => {
+      if (Game.dailyStatus(state).available) {
+        dailyShown = "";
+        maybeDaily();
+        if ($("daily-sheet").open) return;
+      }
+      openBag("bag");
+    });
+    $("tab-bag").addEventListener("click", () => {
+      bagTab = "bag";
+      renderBag();
+    });
+    $("tab-store").addEventListener("click", () => {
+      bagTab = "store";
+      renderBag();
+    });
+    $("daily-claim").addEventListener("click", () => {
+      const r = Game.claimDaily(state);
+      $("daily-sheet").close();
+      if (!r.changed) return;
+      saveState();
+      scheduleSync();
+      showToast("+" + r.coins + " moedas" + (r.item ? " e " + Game.ITEMS[r.item].name : ""));
       render();
     });
     $("tab-box").addEventListener("click", () => {
@@ -1403,6 +1722,7 @@
       Game.catchUp(state);
       saveState();
       render();
+      maybeDaily();
     }, Game.C.TICK_MS);
     setInterval(() => syncNow(), SYNC_EVERY_MS);
 

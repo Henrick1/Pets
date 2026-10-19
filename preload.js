@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld("pet", {
   swapParty: (out, incoming) => ipcRenderer.send("swap-party", { out, in: incoming }),
   closePanel: () => ipcRenderer.send("close-panel"),
   openSite: () => ipcRenderer.send("open-site"),
+  eco: p => ipcRenderer.invoke("eco", p),
   dragStart: p => ipcRenderer.send("drag-start", p),
   dragMove: p => ipcRenderer.send("drag-move", p),
   dragEnd: () => ipcRenderer.send("drag-end"),

@@ -15,12 +15,117 @@ html, body {
   color: #243029;
 }
 #card.auth-mode > :not(#auth),
-#card.box-mode > :not(#box) {
+#card.box-mode > :not(#box),
+#card.bag-mode > :not(#bag) {
   display: none;
 }
 #card:not(.auth-mode) > #auth,
-#card:not(.box-mode) > #box {
+#card:not(.box-mode) > #box,
+#card:not(.bag-mode) > #bag {
   display: none;
+}
+#bag {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+#bag-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+}
+#bag-scroll p {
+  margin: 0;
+  color: #5b6b63;
+  font-size: 12px;
+  line-height: 1.4;
+}
+#bag-scroll h2 {
+  margin-top: 6px;
+}
+.it {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: #f3f7f5;
+}
+.it .eff {
+  font-size: 11px;
+  color: #5b6b63;
+  font-weight: 500;
+}
+.it-btns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.it-btns button {
+  border: 0;
+  border-radius: 9px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #2e7d54;
+  color: #ffffff;
+}
+.it-btns button.ghost {
+  background: #e1f1e8;
+  color: #1b5e3b;
+}
+.it-btns button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.it-btns .time {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6b63;
+  font-variant-numeric: tabular-nums;
+}
+#coins {
+  margin-left: auto;
+  margin-right: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff3c4;
+  color: #6b4d00;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.name-line .away {
+  font-size: 11px;
+  color: #1b5e3b;
+  font-weight: 600;
+}
+.pet:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.links .link {
+  text-align: left;
+}
+.it.wrap {
+  flex-wrap: wrap;
+}
+.it.wrap .it-btns {
+  flex: 1 0 100%;
+}
+.it.wrap .it-btns button {
+  flex: 1;
 }
 #card.empty-mode > :not(header):not(#empty):not(#account):not(#auth):not(#box),
 #card.empty-mode #level-badge,
@@ -295,7 +400,7 @@ button:focus-visible {
   outline: 2px solid #2e7d54;
   outline-offset: 2px;
 }
-#close, #box-close, #auth-close {
+#close, #box-close, #auth-close, #bag-close {
   border: 0;
   background: transparent;
   font-size: 20px;
@@ -304,7 +409,7 @@ button:focus-visible {
   border-radius: 8px;
   color: #5b6b63;
 }
-#close:hover, #box-close:hover, #auth-close:hover {
+#close:hover, #box-close:hover, #auth-close:hover, #bag-close:hover {
   background: #eef3f0;
 }
 .row {
@@ -372,7 +477,7 @@ button:focus-visible {
   font-size: 12px;
   font-weight: 600;
 }
-#toast {
+#toast, #bag-toast {
   margin: 0;
   padding: 8px 10px;
   border-radius: 10px;
@@ -452,6 +557,14 @@ button:focus-visible {
     <p>As criaturas na caixa ficam paradas: não gastam fome nem vida. Escolha uma para entrar no grupo no lugar de outra.</p>
     <div id="box-list"></div>
   </section>
+  <section id="bag" aria-labelledby="bag-title">
+    <header>
+      <div class="title"><h1 id="bag-title">Mochila</h1><span id="bag-coins"></span></div>
+      <button id="bag-close" type="button" aria-label="Voltar">&times;</button>
+    </header>
+    <p id="bag-toast" role="status" hidden></p>
+    <div id="bag-scroll"></div>
+  </section>
   <header>
     <div class="title"><h1 id="pet-name"></h1><span id="level-badge"></span><span id="status"></span></div>
     <button id="close" type="button" aria-label="Fechar">&times;</button>
@@ -484,7 +597,10 @@ button:focus-visible {
   </div>
   <h2>Seu grupo</h2>
   <div id="pets"></div>
-  <button id="open-box" class="link" type="button"></button>
+  <div class="links">
+    <button id="open-bag" class="link" type="button">Mochila e expedições</button>
+    <button id="open-box" class="link" type="button"></button>
+  </div>
   <footer id="account" hidden>
     <div id="account-info"><span id="acc-email"></span><span id="acc-status"></span></div>
     <button id="account-btn" class="link" type="button">Sair</button>

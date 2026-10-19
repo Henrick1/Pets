@@ -85,6 +85,10 @@
 
   <section id="stage-wrap" class="stage-wrap" aria-label="Seu bichinho. Toque para interagir.">
     <canvas id="stage"></canvas>
+    <button id="bag-btn" class="coin-btn" type="button" aria-label="Mochila e loja">
+      <span class="coin-ico" aria-hidden="true"></span>
+      <span id="coin-count">0</span>
+    </button>
     <p id="toast" class="toast" role="status" hidden></p>
   </section>
 
@@ -125,12 +129,14 @@
     <h2 id="party-title">Seus bichinhos</h2>
     <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
   </div>
-  <div class="tabs" role="tablist">
+  <div class="tabs tabs-3" role="tablist">
     <button id="tab-party" class="tab" role="tab" type="button" aria-selected="true" aria-controls="party-list">Grupo</button>
+    <button id="tab-exp" class="tab" role="tab" type="button" aria-selected="false" aria-controls="exp-list">Expedições<span id="exp-alert" class="alert-dot" hidden></span></button>
     <button id="tab-box" class="tab" role="tab" type="button" aria-selected="false" aria-controls="box-list">Caixa</button>
   </div>
   <p id="sheet-hint" class="hint"></p>
   <div id="party-list" class="list" role="tabpanel" aria-labelledby="tab-party"></div>
+  <div id="exp-list" class="list" role="tabpanel" aria-labelledby="tab-exp" hidden></div>
   <div id="box-list" class="list" role="tabpanel" aria-labelledby="tab-box" hidden></div>
 </dialog>
 
@@ -211,6 +217,30 @@
     <button id="buy-egg" class="btn primary" type="button">Comprar por 100 moedas</button>
     <p id="shop-hint" class="hint"></p>
   </section>
+</dialog>
+
+<dialog id="bag-sheet" class="sheet" aria-labelledby="bag-title">
+  <div class="sheet-head">
+    <div class="dex-head">
+      <h2 id="bag-title">Mochila</h2>
+      <span id="bag-coins" class="badge"></span>
+    </div>
+    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button id="tab-bag" class="tab" role="tab" type="button" aria-selected="true" aria-controls="bag-list">Itens</button>
+    <button id="tab-store" class="tab" role="tab" type="button" aria-selected="false" aria-controls="store-list">Loja</button>
+  </div>
+  <p id="bag-hint" class="hint"></p>
+  <div id="bag-list" class="list" role="tabpanel" aria-labelledby="tab-bag"></div>
+  <div id="store-list" class="list" role="tabpanel" aria-labelledby="tab-store" hidden></div>
+</dialog>
+
+<dialog id="daily-sheet" class="daily" aria-labelledby="daily-title">
+  <h2 id="daily-title">Presente do dia</h2>
+  <p id="daily-hint" class="hint"></p>
+  <div id="daily-days" class="daily-days"></div>
+  <button id="daily-claim" class="btn primary" type="button">Pegar</button>
 </dialog>
 
 <dialog id="account-sheet" class="sheet" aria-labelledby="account-title">
