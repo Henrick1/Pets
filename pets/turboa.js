@@ -53,13 +53,10 @@ Pets.register({
     const navyMat = mat(0x0f2a5c, 0.4);
     const elecMat = new THREE.MeshStandardMaterial({ color: 0xffe45a, emissive: 0xffc21a, emissiveIntensity: 0.7, roughness: 0.35 });
     const finMat = new THREE.MeshStandardMaterial({ color: 0x8fe6ff, emissive: 0x2a8fd0, emissiveIntensity: 0.25, roughness: 0.25, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x9cc2e6, roughness: 0.28, metalness: 0.65, side: THREE.DoubleSide });
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0x8ff8ff });
-    const jetMat = new THREE.MeshBasicMaterial({ color: 0x9ff4ff, transparent: true, opacity: 0.55, depthWrite: false });
 
     const N = 96;
     const M = 20;
-    const radiusAt = u => 0.1 + 0.17 * smooth(0, 0.42, u) - 0.06 * smooth(0.72, 1, u);
+    const radiusAt = u => 0.035 + 0.235 * smooth(0, 0.45, u) - 0.06 * smooth(0.72, 1, u);
 
     const bodyGeo = new THREE.BufferGeometry();
     const bodyPos = new Float32Array((N + 1) * M * 3);
@@ -98,6 +95,8 @@ Pets.register({
       if (i < 7) p[1] = radiusAt(i / 10) * 0.8;
     });
     const ctrl = REST.map(() => V3(0, 0, 0));
+    const REST_LEN = new THREE.CatmullRomCurve3(REST.map(p => V3(p[0], p[1], p[2])), false, "centripetal").getLength();
+    const RING_R = REST_LEN / (Math.PI * 2 * 0.86);
     const curve = new THREE.CatmullRomCurve3(ctrl, false, "centripetal");
 
     const pts = [];
@@ -215,67 +214,37 @@ Pets.register({
       return { m, i: Math.round(u * N), u, sc };
     });
 
-    const nozzle = new THREE.Group();
-    nozzle.scale.setScalar(1.3);
-    swim.add(nozzle);
-    const lathePts = [
-      [0.07, -0.08],
-      [0.11, -0.02],
-      [0.165, 0.07],
-      [0.185, 0.16],
-      [0.17, 0.25],
-      [0.14, 0.275],
-      [0.125, 0.2]
-    ].map(([r, y]) => new THREE.Vector2(r, y));
-    const shellGeo = new THREE.LatheGeometry(lathePts, 28);
-    shellGeo.rotateX(Math.PI / 2);
-    nozzle.add(mesh(shellGeo, metalMat));
-    const rim = mesh(new THREE.TorusGeometry(0.152, 0.026, 10, 28), navyMat, false);
-    rim.position.z = 0.268;
-    nozzle.add(rim);
-    const bandRing = mesh(new THREE.TorusGeometry(0.18, 0.018, 8, 28), elecMat, false);
-    bandRing.position.z = 0.14;
-    nozzle.add(bandRing);
-    const fan = new THREE.Group();
-    fan.position.z = 0.17;
-    for (let k = 0; k < 6; k++) {
-      const blade = mesh(new THREE.BoxGeometry(0.035, 0.11, 0.012), navyMat, false);
-      blade.position.y = 0.055;
-      const arm = new THREE.Group();
-      arm.rotation.z = (k / 6) * Math.PI * 2;
-      blade.rotation.y = 0.5;
-      arm.add(blade);
-      fan.add(arm);
-    }
-    nozzle.add(fan);
-    const core = new THREE.Mesh(new THREE.CircleGeometry(0.12, 24), coreMat);
-    core.position.z = 0.15;
-    nozzle.add(core);
-    const jetGeo = new THREE.ConeGeometry(0.12, 1, 20, 1, true);
-    jetGeo.translate(0, -0.5, 0);
-    jetGeo.rotateX(-Math.PI / 2);
-    const jet = new THREE.Mesh(jetGeo, jetMat);
-    jet.position.z = 0.27;
-    nozzle.add(jet);
-    const jetInner = new THREE.Mesh(jetGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthWrite: false }));
-    jetInner.position.z = 0.27;
-    nozzle.add(jetInner);
-    const stabShape = new THREE.Shape();
-    stabShape.moveTo(0, 0);
-    stabShape.lineTo(0.22, 0);
-    stabShape.lineTo(0.3, 0.16);
-    stabShape.lineTo(0.12, 0.1);
-    stabShape.lineTo(0, 0);
-    const stabGeo = new THREE.ExtrudeGeometry(stabShape, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 1 });
-    stabGeo.translate(0, 0.14, -0.01);
-    stabGeo.rotateY(-Math.PI / 2);
-    for (let k = 0; k < 3; k++) {
-      const arm = new THREE.Group();
-      arm.rotation.z = (k / 3) * Math.PI * 2 + Math.PI / 6;
-      const f = mesh(stabGeo, finMat, false);
-      f.position.z = -0.02;
-      arm.add(f);
-      nozzle.add(arm);
+    const tailShape = new THREE.Shape();
+    tailShape.moveTo(-0.02, 0.03);
+    tailShape.lineTo(0.2, 0.2);
+    tailShape.lineTo(0.16, 0.07);
+    tailShape.lineTo(0.42, 0.13);
+    tailShape.lineTo(0.3, 0.0);
+    tailShape.lineTo(0.42, -0.13);
+    tailShape.lineTo(0.16, -0.07);
+    tailShape.lineTo(0.2, -0.2);
+    tailShape.lineTo(-0.02, -0.03);
+    tailShape.lineTo(-0.02, 0.03);
+    const tailGeo = new THREE.ExtrudeGeometry(tailShape, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 });
+    tailGeo.translate(0, 0, -0.015);
+    tailGeo.rotateY(Math.PI / 2);
+    const tailFin = mesh(tailGeo, elecMat, false);
+    swim.add(tailFin);
+    const orbMat = new THREE.MeshBasicMaterial({ color: 0xfffbd0 });
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 12), orbMat);
+    swim.add(orb);
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xffe45a, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending });
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 12), haloMat);
+    swim.add(halo);
+    const plasma = [];
+    for (let k = 0; k < 14; k++) {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 14, 10),
+        new THREE.MeshBasicMaterial({ color: k % 3 === 1 ? 0x8ff4ff : 0xffe96a, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      m.visible = false;
+      swim.add(m);
+      plasma.push({ m, k, ph: k * 0.37 });
     }
 
     const head = new THREE.Group();
@@ -499,7 +468,7 @@ Pets.register({
           const p = dash.p;
           stream = smooth(0.02, 0.2, p) * (1 - smooth(0.84, 1, p));
           thrust = 0.12 + 0.5 * smooth(0.05, 0.2, p) + 0.5 * smooth(0.18, 0.26, p) * (1 - smooth(0.8, 0.9, p));
-          orbit = smooth(0.2, 0.84, p) * Math.PI * 2;
+          orbit = smooth(0.2, 0.84, p) * Math.PI * 4;
         }
         let charge = 0;
         let blast = 0;
@@ -539,23 +508,21 @@ Pets.register({
           } else {
             y = Math.max(r[1] * 0.92, y - crouch * 0.03);
           }
-          const sx = Math.sin(t * 9 - i * 0.9) * 0.08 * (1 - u) * motion;
-          const sy = 0.95 + 0.02 * i + Math.sin(t * 3 - i * 0.6) * 0.03 * motion;
-          const sz = -1.9 + i * 0.27;
+          const along = (1 - u) * REST_LEN;
+          const ang = -along / RING_R;
+          const rr = RING_R + Math.sin(along * 4.2 - t * 12) * 0.1 * Math.min(1, along) * motion;
+          const sx = Math.sin(ang) * rr;
+          const sy = 1.0 + Math.sin(along * 3 - t * 8) * 0.06 * motion;
+          const sz = Math.cos(ang) * rr - 0.15;
           c.set(lerp(x, sx, stream), lerp(y, sy, stream), lerp(z, sz, stream));
         }
         buildBody();
 
-        if (stream > 0.001) {
-          swim.position.set(Math.sin(orbit) * 1.15, 0, (Math.cos(orbit) - 1) * 1.15);
-          swim.rotation.set(0, stream * Math.PI * 0.5 + orbit, Math.sin(orbit * 0.5) * 0.3 * stream);
-        } else {
-          swim.position.set(0, 0, 0);
-          swim.rotation.set(0, 0, 0);
-        }
+        swim.position.set(0, 0, 0);
+        swim.rotation.set(0.22 * stream + Math.sin(orbit) * 0.1 * stream, orbit, Math.cos(orbit) * 0.08 * stream);
 
         const end = pts[N];
-        headDir.copy(tans[N]).multiplyScalar(0.35).addScaledVector(FWD, 0.65).normalize();
+        headDir.copy(tans[N]).multiplyScalar(0.35 + 0.65 * stream).addScaledVector(FWD, 0.65 * (1 - stream)).normalize();
         q.setFromUnitVectors(FWD, headDir);
         head.position.copy(end).addScaledVector(tans[N], -0.05);
         head.quaternion.copy(q);
@@ -600,24 +567,35 @@ Pets.register({
           b.m.scale.setScalar(b.sc * (1 + blast * 0.25 + Math.sin(t * 4 + k) * 0.03 * motion));
         });
 
-        orientAt(nozzle, 0, 0);
-        nozzle.rotateY(Math.PI);
-        nozzle.position.addScaledVector(tans[0], 0.04);
-        fan.rotation.z = t * (6 + thrust * 30);
-        const jl = 0.15 + thrust * 1.6 + Math.sin(t * 30) * 0.04 * thrust;
-        jet.scale.set(1 + thrust * 0.4, 1 + thrust * 0.4, jl);
-        jetInner.scale.set(0.45, 0.45, jl * 0.7);
-        jet.material.opacity = 0.25 + thrust * 0.45;
-        jet.visible = thrust > 0.13;
-        jetInner.visible = thrust > 0.3;
-        core.scale.setScalar(0.85 + thrust * 0.3 + Math.sin(t * 8) * 0.05);
-
+        orientAt(tailFin, 2, 0);
+        tailFin.position.addScaledVector(tans[2], -0.02);
+        tailFin.scale.set(1.4, 1.4 * (1 + thrust * 0.5 + Math.sin(t * 7) * 0.05 * motion), 1.4 * (1 + thrust * 0.3));
         const back = tmp2.copy(tans[0]).negate();
+        orb.position.copy(pts[0]).addScaledVector(back, 0.5);
+        halo.position.copy(orb.position);
+        const orbPulse = 1 + Math.sin(t * 6) * 0.15 * motion + thrust * 1.2 + (charge + blast) * 0.8;
+        orb.scale.setScalar(orbPulse * elec);
+        halo.scale.setScalar((1 + thrust * 2.4 + Math.sin(t * 13) * 0.12) * elec);
+        haloMat.opacity = 0.25 + thrust * 0.35;
+        plasma.forEach(pl => {
+          const on = thrust > 0.2;
+          pl.m.visible = on;
+          if (!on) return;
+          const u = (((t * (2.5 + thrust * 3) + pl.ph) % 1) + 1) % 1;
+          const d = 0.4 + u * (0.6 + thrust * 1.6);
+          pl.m.position.copy(pts[0]).addScaledVector(back, d);
+          const wob = Math.sin(t * 31 + pl.k * 2.3) * 0.06 * u;
+          pl.m.position.x += wob;
+          pl.m.position.y += Math.cos(t * 27 + pl.k) * 0.06 * u;
+          const size = (0.16 - u * 0.12) * (0.6 + thrust * 0.7) * (0.75 + 0.25 * Math.sin(t * 40 + pl.k));
+          pl.m.scale.setScalar(Math.max(0.005, size));
+          pl.m.material.opacity = (1 - u) * 0.75;
+        });
         bubbles.forEach(b => {
           const speed = 0.35 + thrust * 1.6;
           const u = (((t * speed + b.ph) % 1) + 1) % 1;
           const reach = 0.4 + thrust * 2.2;
-          b.m.position.copy(pts[0]).addScaledVector(back, 0.32 + u * reach);
+          b.m.position.copy(pts[0]).addScaledVector(back, 0.45 + u * reach);
           b.m.position.x += b.jx * u * 0.35 * (1 - stream * 0.6);
           b.m.position.y += b.jy * u * 0.3 + u * u * 0.6 * (1 - stream);
           b.m.position.z += b.jy * u * 0.2;
@@ -626,7 +604,7 @@ Pets.register({
           b.m.visible = !reduceMotion || thrust > 0.2;
         });
 
-        const live = charge + blast;
+        const live = charge + blast + Math.max(0, thrust - 0.5) * 0.9;
         sparks.forEach((sp, k) => {
           const i = sp.i;
           const a = sp.a + t * (1.5 + live * 4);
