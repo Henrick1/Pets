@@ -172,7 +172,7 @@ Pets.register({
         for (let j = 0; j < rad; j++) {
           const a = i * (rad + 1) + j;
           const b = a + rad + 1;
-          idx.push(a, b, a + 1, a + 1, b, b + 1);
+          idx.push(a, a + 1, b, a + 1, b + 1, b);
         }
       }
       const g = new THREE.BufferGeometry();
