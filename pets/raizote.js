@@ -311,8 +311,8 @@ Pets.register({
       }
       bg.setAttribute("color", new THREE.BufferAttribute(col, 3));
       const belly = mesh(bg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
-      belly.position.set(0, 0.92, 0.2);
-      belly.scale.set(0.95, 1.05, 0.85);
+      belly.position.set(0, 0.9, 0.24);
+      belly.scale.set(0.72, 0.82, 0.72);
       torso.add(belly);
     }
     [[-1.0, 0.25, -1.3, -0.25], [-2.1, 0.3, -1.9, -0.2]].forEach(([t0, p0, t1, p1], k) => {
@@ -507,8 +507,8 @@ Pets.register({
     }
 
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.68 });
-      e.g.position.set(0.16 * s, 0.03, headR * 0.92);
+      const e = eye({ size: 0.52 });
+      e.g.position.set(0.15 * s, 0.04, headR * 0.95);
       e.g.rotation.y = 0.3 * s;
       headPivot.add(e.g);
       return e;
@@ -538,9 +538,6 @@ Pets.register({
     openMouth.position.set(0, -0.18, headR * 0.9);
     openMouth.visible = false;
     headPivot.add(openMouth);
-    [-1, 1].forEach(s => {
-      headPivot.add(mesh(taperTube([V3(0.11 * s, -0.2, headR * 0.86), V3(0.13 * s, -0.15, headR * 0.93), V3(0.12 * s, -0.09, headR * 0.94)], 0.022, 0.006, 8, 6), new THREE.MeshStandardMaterial({ color: 0xece0c0, roughness: 0.5 }), false));
-    });
     const earLeaves = [-1, 1].map(s => {
       const pv = new THREE.Group();
       pv.position.set(0.46 * s, 0.1, -0.05);
