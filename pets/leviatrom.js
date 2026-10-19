@@ -354,21 +354,26 @@ Pets.register({
     const G_EDGE = hexParts(0xe0587e);
     const G_DEEP = hexParts(0x4a1028);
     const innerMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide });
-    const CAV_T = 0.46;
-    const cavT = u => lerp(CAV_T, 1, u);
+    const CAV_T = (HINGE_Z - HZ0) / (HZ1 - HZ0);
+    const cavT = u => lerp(CAV_T, 0.97, u);
     const roofAt = (t, th, sc, out) => {
       const k = rollK(t);
-      return out.set(hw(t) * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9) * sc, MOUTH_Y - LIP_D * k + ht(t) * 0.55 * Math.pow(Math.sin(th), 0.8) * sc, hz(t));
+      return out.set(hw(t) * (1 - LIP_IN * Math.max(k, 0.8)) * spow(Math.cos(th), 0.9) * sc, MOUTH_Y - LIP_D * k + ht(t) * 0.55 * Math.pow(Math.sin(th), 0.8) * sc, hz(t));
     };
     const floorAt = (t, th, sc, out) => {
       const k = rollK(t);
-      return out.set(hw(t) * JAW_W * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9) * sc, MOUTH_Y - LIP_D * 0.4 * k - hd(t) * 0.6 * Math.pow(Math.abs(Math.sin(th)), 0.8) * sc, hz(t));
+      return out.set(hw(t) * JAW_W * (1 - LIP_IN * Math.max(k, 0.8)) * spow(Math.cos(th), 0.9) * sc, MOUTH_Y - LIP_D * 0.4 * k - hd(t) * 0.6 * Math.pow(Math.abs(Math.sin(th)), 0.8) * sc, hz(t));
     };
     const cavColor = (u, v) => mixC(G_EDGE, G_DEEP, smooth(0.15, 0.9, Math.abs(Math.sin(v * Math.PI))) * 0.7 + (1 - smooth(0, 0.4, u)) * 0.3);
     const roofGeo = surface((u, v, out) => roofAt(cavT(u), v * Math.PI, 1, out), 40, 24, cavColor, true);
     const roof = mesh(roofGeo, innerMat, false);
     head.add(roof);
-    const throatUp = mesh(surface((u, v, out) => roofAt(CAV_T, v * Math.PI, u, out), 6, 24, () => G_DEEP, false), innerMat, false);
+    const throatUp = mesh(surface((u, v, out) => {
+      const th = v * Math.PI * 2;
+      if (th <= Math.PI) return roofAt(CAV_T, th, u, out);
+      const x = hw(CAV_T) * JAW_W * (1 - LIP_IN) * spow(Math.cos(th), 0.9) * u;
+      return out.set(x, MOUTH_Y - LIP_D - hd(CAV_T) * 0.3 * Math.pow(Math.abs(Math.sin(th)), 0.8) * u, hz(CAV_T));
+    }, 6, 48, () => G_DEEP, false), innerMat, false);
     head.add(throatUp);
 
     const lipPts = [];
@@ -520,7 +525,7 @@ Pets.register({
     const hoodMat = new THREE.MeshStandardMaterial({ color: 0x2f7fe0, emissive: 0x1450b0, emissiveIntensity: 0.45, roughness: 0.65, transparent: true, opacity: 0.86, side: THREE.DoubleSide });
     const RIB_Y = 0.12;
     const hood = new THREE.Group();
-    hood.position.set(0, -0.2, 0);
+    hood.position.set(0, -0.546, -0.546);
     hood.rotation.x = -0.34;
     hood.add(mesh(hoodGeo, hoodMat, false));
     tips.forEach(([x, y]) => {
@@ -540,8 +545,6 @@ Pets.register({
     const hoodMount = new THREE.Group();
     hoodMount.add(hood);
     swim.add(hoodMount);
-    const hoodX = V3(0, 0, 0);
-    const hoodZ = V3(0, 0, 0);
 
 
     const crestShape = new THREE.Shape();
@@ -763,12 +766,8 @@ Pets.register({
         head.rotateZ(Math.sin(t * 0.9) * 0.06 * motion);
         head.rotateY(survey);
         hood.scale.set(1.95 * (1 + rise * 0.18 + roar * 0.12), 1.69 * (1 + rise * 0.22 + roar * 0.14), 1.69);
-        const hi = N - 9;
-        hoodX.crossVectors(tans[hi], bellies[hi]).normalize();
-        hoodZ.crossVectors(hoodX, tans[hi]);
-        basis.makeBasis(hoodX, tans[hi], hoodZ);
-        hoodMount.quaternion.setFromRotationMatrix(basis);
-        hoodMount.position.copy(pts[hi]);
+        hoodMount.quaternion.copy(q);
+        hoodMount.position.copy(head.position);
 
         let mouth = 0;
         if (eat) mouth = eat.p < 0.3 ? smooth(0.08, 0.28, eat.p) * 0.55 : eat.p < 0.85 ? 0.08 + ph.chew * 0.3 : 0;
