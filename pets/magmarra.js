@@ -95,23 +95,24 @@ Pets.register({
 
     const root = new THREE.Group();
     const body = new THREE.Group();
+    body.scale.setScalar(0.86);
     root.add(body);
 
     const pelvis = mesh(blob(0.06, 2), bodyRock);
     pelvis.scale.set(0.6, 0.45, 0.55);
-    pelvis.position.set(0, 1.22, -0.08);
+    pelvis.position.set(0, 1.6, -0.08);
     body.add(pelvis);
 
     const upper = new THREE.Group();
-    upper.position.set(0, 1.25, 0);
+    upper.position.set(0, 1.62, 0);
     body.add(upper);
 
     const torso = mesh(blob(0.05, 3, 36, 26), bodyRock);
-    torso.scale.set(0.66, 0.82, 0.58);
+    torso.scale.set(0.6, 0.84, 0.52);
     torso.position.set(0, 0.55, 0);
     upper.add(torso);
     const belly = mesh(rocky(new THREE.SphereGeometry(1, 32, 26), 0.02, 4), bellyMat);
-    belly.scale.set(0.48, 0.74, 0.34);
+    belly.scale.set(0.4, 0.68, 0.3);
     belly.position.set(0, 0.42, 0.28);
     upper.add(belly);
 
@@ -203,7 +204,7 @@ Pets.register({
 
     const arms = [-1, 1].map(s => {
       const pivot = new THREE.Group();
-      pivot.position.set(0.62 * s, 0.92, 0.12);
+      pivot.position.set(0.58 * s, 0.92, 0.12);
       const pad = mesh(blob(0.12, 5 + s, 14, 10), basalt);
       pad.scale.set(0.24, 0.2, 0.24);
       pad.position.set(0.04 * s, 0.04, 0);
@@ -231,39 +232,52 @@ Pets.register({
       return { pivot, elbow, s };
     });
 
+    const HIP = 1.62;
     const legs = [-1, 1].map(s => {
       const hip = new THREE.Group();
-      hip.position.set(0.42 * s, 1.25, -0.05);
+      hip.position.set(0.36 * s, HIP, -0.02);
       const thigh = mesh(blob(0.05, 10 + s, 28, 20), limbRock);
-      thigh.scale.set(0.3, 0.42, 0.36);
-      thigh.position.set(0.05 * s, -0.24, 0.06);
-      thigh.rotation.x = -0.3;
+      thigh.scale.set(0.31, 0.5, 0.36);
+      thigh.position.set(0.04 * s, -0.28, 0.1);
+      thigh.rotation.x = -0.45;
       const knee = new THREE.Group();
-      knee.position.set(0.05 * s, -0.52, 0.16);
+      knee.position.set(0.04 * s, -0.6, 0.26);
+      const kneeCap = mesh(new THREE.DodecahedronGeometry(0.12, 0), basalt, false);
+      kneeCap.position.set(0, 0.02, 0.08);
       const shin = mesh(blob(0.06, 12 + s, 22, 16), limbRock);
-      shin.scale.set(0.17, 0.28, 0.19);
-      shin.position.set(0, -0.22, -0.06);
-      shin.rotation.x = 0.35;
+      shin.scale.set(0.15, 0.32, 0.17);
+      shin.position.set(0, -0.25, -0.14);
+      shin.rotation.x = 0.55;
       const ankle = new THREE.Group();
-      ankle.position.set(0, -0.45, -0.16);
-      const foot = mesh(blob(0.07, 14 + s, 24, 16), limbRock);
-      foot.scale.set(0.25, 0.12, 0.36);
-      foot.position.set(0, -0.15, 0.14);
-      ankle.add(foot);
+      ankle.position.set(0, -0.5, -0.3);
+      const meta = mesh(blob(0.06, 14 + s, 18, 14), limbRock);
+      meta.scale.set(0.11, 0.25, 0.13);
+      meta.position.set(0, -0.2, 0.05);
+      meta.rotation.x = -0.25;
+      const foot = new THREE.Group();
+      foot.position.set(0, -0.42, 0.1);
+      const pad = mesh(blob(0.07, 16 + s, 22, 14), limbRock);
+      pad.scale.set(0.2, 0.09, 0.3);
+      pad.position.set(0, -0.01, 0.14);
+      foot.add(pad);
       [-1, 0, 1].forEach(j => {
-        const c = mesh(new THREE.ConeGeometry(0.045, 0.14, 6), clawMat, false);
-        c.rotation.x = Math.PI / 2;
-        c.position.set(j * 0.12, -0.2, 0.5 - Math.abs(j) * 0.06);
-        ankle.add(c);
+        const toe = mesh(blob(0.05, 18 + j, 12, 10), limbRock, false);
+        toe.scale.set(0.06, 0.06, 0.12);
+        toe.position.set(j * 0.1, -0.02, 0.36 - Math.abs(j) * 0.05);
+        toe.rotation.y = -j * 0.25;
+        const c = mesh(new THREE.ConeGeometry(0.04, 0.13, 6), clawMat, false);
+        c.rotation.x = Math.PI / 2 + 0.3;
+        c.position.set(j * 0.12, -0.04, 0.5 - Math.abs(j) * 0.06);
+        foot.add(toe, c);
       });
-      const spur = mesh(shard(0.05, 0.16, s), basalt, false);
-      spur.position.set(0, -0.12, -0.12);
-      spur.rotation.x = -2.2;
-      ankle.add(spur);
-      knee.add(shin, ankle);
+      const spur = mesh(shard(0.05, 0.18, s), basalt, false);
+      spur.position.set(0, 0, -0.08);
+      spur.rotation.x = -2.4;
+      ankle.add(meta, foot, spur);
+      knee.add(kneeCap, shin, ankle);
       hip.add(thigh, knee);
       body.add(hip);
-      return { hip, knee, ankle, s };
+      return { hip, knee, ankle, foot, s };
     });
 
     const neck = mesh(blob(0.05, 20, 24, 18), bodyRock);
@@ -386,8 +400,8 @@ Pets.register({
     const tail = [];
     {
       const base = new THREE.Group();
-      base.position.set(0, 1.1, -0.48);
-      base.rotation.x = -2.2;
+      base.position.set(0, 1.5, -0.44);
+      base.rotation.x = -2.35;
       body.add(base);
       let parent = base;
       const n = 12;
@@ -552,7 +566,7 @@ Pets.register({
         jaw.rotation.x = jawOpen;
         throat.visible = jawOpen > 0.12;
 
-        legs.forEach(({ hip, knee, ankle, s: sd }) => {
+        legs.forEach(({ hip, knee, ankle, foot, s: sd }) => {
           let lift = 0;
           if (a === "stomp" && sd === stompSide) {
             const q = (p % 0.5) / 0.5;
@@ -561,7 +575,8 @@ Pets.register({
           hip.rotation.x = -lift * 0.8 - crouch * 2.2;
           knee.rotation.x = lift * 0.6 + crouch * 3;
           ankle.rotation.x = -crouch * 1.2 + lift * 0.3;
-          hip.position.y = 1.25 - crouch;
+          foot.rotation.x = -lift * 0.3;
+          hip.position.y = HIP - crouch;
         });
 
         arms.forEach(({ pivot, elbow, s: sd }) => {
@@ -573,7 +588,7 @@ Pets.register({
 
         tail.forEach((g, i) => {
           if (i === 0) {
-            g.parent.rotation.x = -2.2 + tailLift * 0.55;
+            g.parent.rotation.x = -2.35 + tailLift * 0.55;
             return;
           }
           const u = i / tail.length;
@@ -628,7 +643,7 @@ Pets.register({
         tail.tip.getWorldPosition(tipW);
         fx.worldToLocal(tipW);
         if (a === "slam") hitPos.set(tipW.x, 0.05, tipW.z);
-        else if (a === "stomp") legs.forEach(({ hip, s: sd }) => sd === stompSide && hitPos.set(hip.position.x, 0.05, 0.3));
+        else if (a === "stomp") legs.forEach(({ hip, s: sd }) => sd === stompSide && hitPos.set(hip.position.x * 0.86, 0.05, 0.3));
         const showSparks = impact >= 0 && !reduceMotion;
         sparks.forEach((spk, i) => {
           const q = a === "slam" ? impact * 1.1 : impact * 0.8;
