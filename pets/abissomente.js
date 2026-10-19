@@ -259,10 +259,37 @@ Pets.register({
     gem.scale.set(0.75, 1.15, 0.55);
     third.add(gem);
 
-    const beak = mesh(new THREE.ConeGeometry(0.05, 0.1, 10), new THREE.MeshStandardMaterial({ color: 0x1a1428, roughness: 0.3 }), false);
-    beak.rotation.x = Math.PI;
-    beak.position.set(0, -0.58, 0.05);
+    const beak = new THREE.Group();
+    beak.position.set(0, -0.54, 0.02);
+    beak.scale.setScalar(1.7);
     head.add(beak);
+    const lip = mesh(new THREE.TorusGeometry(0.13, 0.055, 14, 32), new THREE.MeshPhysicalMaterial({ color: 0x9a6ae8, roughness: 0.35, clearcoat: 0.6, emissive: 0x3a1a8a, emissiveIntensity: 0.3 }), false);
+    lip.rotation.x = Math.PI / 2;
+    lip.scale.set(1, 1, 0.8);
+    beak.add(lip);
+    const gullet = mesh(new THREE.CircleGeometry(0.13, 28), new THREE.MeshStandardMaterial({ color: 0x1a0a30, roughness: 0.8 }), false);
+    gullet.rotation.x = Math.PI / 2;
+    gullet.position.y = 0.01;
+    beak.add(gullet);
+    const jawMat = new THREE.MeshPhysicalMaterial({ color: 0x24183a, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.1 });
+    const jaws = [-1, 1].map(s => {
+      const h = 0.2;
+      const g = new THREE.ConeGeometry(0.075, h, 20, 10);
+      g.rotateX(Math.PI);
+      g.translate(0, -h / 2, 0);
+      const pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const t = -pos.getY(i) / h;
+        pos.setX(i, pos.getX(i) * 0.8 - s * t * t * 0.09);
+        pos.setZ(i, pos.getZ(i) * 0.75);
+      }
+      g.computeVertexNormals();
+      const j = mesh(g, jawMat, false);
+      j.position.set(s * 0.05, 0.02, 0);
+      j.rotation.z = s * 0.12;
+      beak.add(j);
+      return { j, s };
+    });
 
     const NT = 8;
     const TS = 9;
@@ -555,6 +582,8 @@ Pets.register({
         });
         followPupils(eyes, pointer, 0.45);
 
+        const chomp = eat ? Math.sin(ph.chew * Math.PI) * 0.5 + smooth(0.4, 0.9, ph.fall) * (1 - ph.bite) * 0.4 : 0;
+        jaws.forEach(({ j, s: sj }) => { j.rotation.z = sj * (0.12 + chomp); });
         if (eat) {
           food.visible = ph.visible;
           food.position.set(0, lerp(3.5, HOVER + y - 0.62, ph.fall * ph.fall), lerp(0.75, 0.08, smooth(0.75, 1, ph.fall)));
