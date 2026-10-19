@@ -124,9 +124,9 @@ Pets.register({
     skull.scale.set(1.08, 0.92, 0.95);
     head.add(skull);
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.82, whiteColor: 0xffffff, pupilColor: 0x1a1206 });
+      const e = eye({ size: 0.58, whiteColor: 0xffffff, pupilColor: 0x1a1206 });
       e.pupil.scale.set(0.95, 1.12, 0.5);
-      e.g.position.set(0.13 * s, 0.05, 0.25);
+      e.g.position.set(0.12 * s, 0.06, 0.26);
       e.g.rotation.y = 0.28 * s;
       head.add(e.g);
       return e;
@@ -215,7 +215,7 @@ Pets.register({
           if (i === 0) sh.moveTo(x, y);
           else sh.lineTo(x, y);
         });
-        const pm = new THREE.MeshStandardMaterial({ color: PANE_COLORS[k], emissive: PANE_COLORS[k], emissiveIntensity: 0.6, transparent: true, opacity: 0.86, roughness: 0.15, side: THREE.DoubleSide, depthWrite: false });
+        const pm = new THREE.MeshBasicMaterial({ color: PANE_COLORS[k], transparent: true, opacity: 0.78, side: THREE.DoubleSide, depthWrite: false });
         paneMats.push(pm);
         const geo = new THREE.ShapeGeometry(sh);
         geo.rotateX(Math.PI / 2);
@@ -239,9 +239,9 @@ Pets.register({
     };
     const wings = [-1, 1].map(s => {
       const mount = new THREE.Group();
-      mount.position.set(0.12 * s, BODY_Y + RY * 0.62, RZ * 0.42);
+      mount.position.set(0.14 * s, BODY_Y + RY * 0.55, RZ * 0.3);
       const w = buildWing();
-      w.scale.set(s, 1, 1);
+      w.scale.set(s * 1.35, 1, 1.1);
       const flapG = new THREE.Group();
       flapG.add(w);
       mount.add(flapG);
@@ -341,21 +341,21 @@ Pets.register({
         bodyG.rotation.z = Math.sin(t * 1.4) * 0.03 * motion + (fly ? Math.sin(t * 2.2) * 0.06 * lift : 0);
 
         elytra.forEach(({ pivot, s: sd }) => {
-          pivot.rotation.x = open * 0.62;
-          pivot.rotation.y = -sd * open * 0.75;
-          pivot.rotation.z = -sd * open * 0.3;
+          pivot.rotation.x = open * 0.38;
+          pivot.rotation.y = -sd * open * 1.05;
+          pivot.rotation.z = sd * open * 0.25;
         });
         wings.forEach(({ mount, flapG, s: sd }) => {
           const unfold = smooth(0.1, 0.6, open);
           const sc = 0.2 + unfold * 1.15;
           mount.scale.setScalar(Math.max(0.01, sc));
-          mount.rotation.y = sd * lerp(-1.25, -0.1, unfold);
+          mount.rotation.y = sd * lerp(-1.3, 0.05, unfold);
           mount.visible = unfold > 0.02;
-          flapG.rotation.z = sd * (0.45 * unfold + Math.sin(t * 38) * 0.45 * flapAmp);
+          flapG.rotation.z = sd * (0.12 * unfold + Math.sin(t * 38) * 0.4 * flapAmp);
           flapG.rotation.x = Math.sin(t * 38 + 1) * 0.08 * flapAmp;
         });
         paneMats.forEach((m, k) => {
-          m.emissiveIntensity = (0.55 + flapAmp * 0.4 + Math.sin(t * 4 + k) * 0.1) * light;
+          m.opacity = (0.62 + flapAmp * 0.15 + Math.sin(t * 4 + k) * 0.06) * (0.6 + light * 0.4);
         });
 
         head.rotation.x = eat ? -0.25 * (1 - ph.fall) + Math.sin(ph.chew * Math.PI) * 0.08 : burst * -0.2;
