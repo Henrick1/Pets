@@ -112,7 +112,7 @@ Pets.register({
     const SEAM = 0.3;
     const bend = (x, y, z) => {
       const k = Math.max(0, y - 0.2) / 1.1;
-      return [x, y - k * k * 0.08, z - k * k * 0.32];
+      return [x, y - k * k * 0.02, z - k * k * 0.04];
     };
     const latheFrom = (fromY, toY) => {
       const pts = [];
@@ -161,8 +161,35 @@ Pets.register({
       brain.position.set(x, y, z);
       brain.scale.setScalar(1.45);
     }
-    brain.rotation.x = -0.12;
+    brain.rotation.x = -0.05;
     bodyG.add(brain);
+    {
+      const [bx, by, bz] = bend(0, SEAM - 0.02, 0);
+      const [tx, ty, tz] = bend(0, 0.7, 0);
+      const stemCurve = new THREE.CatmullRomCurve3([new THREE.Vector3(bx, by, bz), new THREE.Vector3(bx, by + 0.15, bz + 0.02), new THREE.Vector3(tx, ty, tz)]);
+      const stemGeo = new THREE.TubeGeometry(stemCurve, 20, 0.085, 16, false);
+      const sp = stemGeo.attributes.position;
+      for (let i = 0; i < sp.count; i++) {
+        const y = sp.getY(i);
+        const f = 1 + 0.6 * Math.max(0, 1 - (y - by) / 0.12);
+        sp.setX(i, bx + (sp.getX(i) - bx) * f);
+        sp.setZ(i, bz + (sp.getZ(i) - bz) * f);
+      }
+      stemGeo.computeVertexNormals();
+      bodyG.add(mesh(stemGeo, brainMat, false));
+      const nerveMat = new THREE.MeshStandardMaterial({ color: 0xe0b0ff, roughness: 0.4, emissive: 0xb060ff, emissiveIntensity: 0.9 });
+      for (let k = 0; k < 6; k++) {
+        const a = k / 6 * Math.PI * 2 + 0.5;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const pts = [
+          new THREE.Vector3(bx + ca * 0.46, by + 0.01, bz + sa * 0.46),
+          new THREE.Vector3(bx + ca * 0.34, by + 0.12, bz + sa * 0.34),
+          new THREE.Vector3(bx + ca * 0.2, by + 0.3, bz + sa * 0.2),
+          new THREE.Vector3(tx + ca * 0.12, ty + 0.02, tz + sa * 0.12)
+        ];
+        bodyG.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.016, 6, false), nerveMat, false));
+      }
+    }
     [-1, 1].forEach(s => {
       const lobeGeo = new THREE.SphereGeometry(0.26, 32, 24);
       const pos = lobeGeo.attributes.position;
