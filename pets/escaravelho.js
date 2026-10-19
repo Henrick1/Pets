@@ -10,14 +10,16 @@ Pets.register({
     eat: { duration: 2.4 },
     fly: { duration: 3.4 },
     shine: { duration: 2.6 },
-    roll: { duration: 2.6 }
+    roll: { duration: 2.6 },
+    spread: { duration: 3.2 }
   },
   idle: [
     { action: "roll", min: 20, max: 40 },
+    { action: "spread", min: 15, max: 35 },
     { action: "shine", min: 30, max: 60 },
     { action: "fly", min: 50, max: 90 }
   ],
-  clickAction: n => ["shine", "fly", "roll", "jump"][(n - 1) % 4],
+  clickAction: n => ["spread", "shine", "fly", "roll", "jump"][(n - 1) % 5],
 
   create({ THREE, kit }) {
     const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
@@ -439,9 +441,31 @@ Pets.register({
         const rollA = action && action.name === "roll" ? action : null;
         let push = 0;
         let spinOrb = t * 0.4;
+        let flapSpeed = 38;
+        let display = 0;
         if (rollA) {
           push = Math.sin(rollA.p * Math.PI * 2) * smooth(0, 0.1, rollA.p) * (1 - smooth(0.9, 1, rollA.p));
           spinOrb += rollA.p * Math.PI * 6;
+          const k = smooth(0, 0.15, rollA.p) * (1 - smooth(0.85, 1, rollA.p));
+          open = Math.max(open, k * 0.8);
+          flapAmp = Math.max(flapAmp, k * 0.35);
+          flapSpeed = 14;
+          display = Math.max(display, k * 0.7);
+        }
+        if (shine) {
+          const k = smooth(0, 0.18, shine.p) * (1 - smooth(0.88, 1, shine.p));
+          open = Math.max(open, k);
+          flapAmp = Math.max(flapAmp, k * (0.3 + burst * 0.5));
+          flapSpeed = 8 + burst * 20;
+          display = Math.max(display, k * 0.9);
+        }
+        const spreadA = action && action.name === "spread" ? action : null;
+        if (spreadA) {
+          const p = spreadA.p;
+          display = smooth(0, 0.18, p) * (1 - smooth(0.82, 1, p));
+          open = Math.max(open, display);
+          flapAmp = Math.max(flapAmp, display * 0.55);
+          flapSpeed = 5;
         }
 
         let y = lift * (0.75 + Math.sin(t * 3) * 0.06);
@@ -481,8 +505,8 @@ Pets.register({
           mount.scale.setScalar(Math.max(0.01, sc));
           mount.rotation.y = sd * lerp(-1.3, 0.05, unfold);
           mount.visible = unfold > 0.02;
-          flapG.rotation.z = sd * (0.12 * unfold + Math.sin(t * 38) * 0.4 * flapAmp);
-          flapG.rotation.x = Math.sin(t * 38 + 1) * 0.08 * flapAmp;
+          flapG.rotation.z = sd * (0.12 * unfold + display * 0.45 + Math.sin(t * flapSpeed) * 0.4 * flapAmp);
+          flapG.rotation.x = Math.sin(t * flapSpeed + 1) * 0.08 * flapAmp;
         });
         paneMats.forEach((m, k) => {
           m.opacity = (0.62 + flapAmp * 0.15 + Math.sin(t * 4 + k) * 0.06) * (0.6 + light * 0.4);
