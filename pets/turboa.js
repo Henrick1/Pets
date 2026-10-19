@@ -259,10 +259,31 @@ Pets.register({
     const bump = t => Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, t)))), 0.34);
     const hw = t => 0.38 * bump(t) * (1 - 0.36 * t * t) * (1 + 0.06 * Math.exp(-Math.pow((t - 0.55) / 0.08, 2)));
     const ht = t => 0.5 * bump(t) * (1 - 0.5 * smooth(0.3, 1, t)) + 0.035 * Math.exp(-Math.pow((t - 0.55) / 0.07, 2));
-    const hd = t => 0.25 * bump(t) * (1 - 0.45 * smooth(0.4, 1, t));
+    const hd = t => 0.19 * bump(t) * (1 - 0.35 * smooth(0.45, 1, t)) + 0.022 * Math.exp(-Math.pow((t - 0.8) / 0.09, 2)) * bump(t);
+    const LIP_A = 0.45;
+    const LIP_D = 0.034;
+    const LIP_IN = 0.13;
+    const JAW_W = 0.95;
     const spow = (v, e) => Math.sign(v) * Math.pow(Math.abs(v), e);
     const upperAt = (t, th, out) => out.set(hw(t) * spow(Math.cos(th), 0.85), MOUTH_Y + ht(t) * Math.pow(Math.max(0, Math.sin(th)), 0.9), hz(t));
-    const lowerAt = (t, th, out) => out.set(hw(t) * spow(Math.cos(th), 0.85), MOUTH_Y - hd(t) * Math.pow(Math.max(0, Math.sin(th)), 0.9), hz(t));
+    const lowerAt = (t, th, out) => out.set(hw(t) * JAW_W * spow(Math.cos(th), 0.85), MOUTH_Y - hd(t) * Math.pow(Math.abs(Math.sin(th)), 0.9), hz(t));
+    const rollK = t => smooth(0, 0.08, t) * smooth(1, 0.94, t);
+    const upperFull = (t, th, out) => {
+      if (th >= 0 && th <= Math.PI) return upperAt(t, th, out);
+      const side = th < 0 ? 1 : -1;
+      const q = (th < 0 ? -th : th - Math.PI) / LIP_A;
+      const k = rollK(t);
+      const a = q * Math.PI / 2;
+      return out.set(side * hw(t) * (1 - LIP_IN * (1 - Math.cos(a)) * k), MOUTH_Y - LIP_D * Math.sin(a) * k, hz(t));
+    };
+    const lowerFull = (t, th, out) => {
+      if (th >= Math.PI && th <= Math.PI * 2) return lowerAt(t, th, out);
+      const side = th < Math.PI ? -1 : 1;
+      const q = (th < Math.PI ? Math.PI - th : th - Math.PI * 2) / LIP_A;
+      const k = rollK(t);
+      const a = q * Math.PI / 2;
+      return out.set(side * hw(t) * JAW_W * (1 - LIP_IN * (1 - Math.cos(a)) * k), MOUTH_Y - LIP_D * 0.4 * (1 - Math.cos(a)) * k, hz(t));
+    };
 
     const surface = (fn, nu, nv, colorFn, flip) => {
       const g = new THREE.BufferGeometry();
@@ -307,13 +328,9 @@ Pets.register({
     const H_JAW2 = hexParts(0xaee8ff);
 
     const skinHead = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, side: THREE.DoubleSide });
-    const gumMat = mat(0x8a2648, 0.55);
-    gumMat.side = THREE.DoubleSide;
-    const throatMat = mat(0x4a1028, 0.7);
-    throatMat.side = THREE.DoubleSide;
     const toothMat = mat(0xffffff, 0.25);
 
-    const upperGeo = surface((u, v, out) => upperAt(u, v * Math.PI, out), 64, 40, (u, v, p) => {
+    const upperGeo = surface((u, v, out) => upperFull(u, -LIP_A + v * (Math.PI + 2 * LIP_A), out), 64, 48, (u, v, p) => {
       const h = (p.y - MOUTH_Y) / Math.max(0.001, ht(u));
       const c = mixC(H_LIP, H_SIDE, smooth(0.05, 0.4, h));
       return mixC(c, H_TOP, smooth(0.55, 0.95, h) * (1 - 0.6 * smooth(0.8, 1, u)));
@@ -321,22 +338,15 @@ Pets.register({
     const upper = mesh(upperGeo, skinHead);
     head.add(upper);
 
-    const outline = [];
-    for (let k = 0; k <= 48; k++) {
-      const t = k / 48;
-      outline.push([hw(t), hz(t)]);
-    }
-    const capShape = sign => {
-      const sh = new THREE.Shape();
-      sh.moveTo(0, sign * HZ0);
-      outline.forEach(([x, z]) => sh.lineTo(x, sign * z));
-      for (let k = outline.length - 1; k >= 0; k--) sh.lineTo(-outline[k][0], sign * outline[k][1]);
-      return new THREE.ShapeGeometry(sh, 2);
-    };
-    const roof = mesh(capShape(1), gumMat, false);
-    roof.rotation.x = Math.PI / 2;
-    roof.scale.set(0.985, 1, 1);
-    roof.position.y = MOUTH_Y + 0.002;
+    const G_EDGE = hexParts(0xe0587e);
+    const G_DEEP = hexParts(0x4a1028);
+    const innerMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide });
+    const roofGeo = surface((u, v, out) => {
+      const th = v * Math.PI;
+      const k = rollK(u);
+      return out.set(hw(u) * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9), MOUTH_Y - LIP_D * k + ht(u) * 0.55 * Math.pow(Math.sin(th), 0.8), hz(u));
+    }, 48, 24, (u, v) => mixC(G_EDGE, G_DEEP, smooth(0.15, 0.9, Math.sin(v * Math.PI)) * 0.7 + (1 - smooth(0.2, 0.6, u)) * 0.3), true);
+    const roof = mesh(roofGeo, innerMat, false);
     head.add(roof);
 
     const lipPts = [];
@@ -345,8 +355,8 @@ Pets.register({
       const f = k / 40;
       const side = f < 0.5 ? 1 : -1;
       const t = f < 0.5 ? lerp(LIP_T, 1, f * 2) : lerp(1, LIP_T, (f - 0.5) * 2);
-      const lift = 0.07 * Math.pow(1 - smooth(LIP_T, LIP_T + 0.2, t), 1.5);
-      lipPts.push(V3(side * hw(t) * 1.02, MOUTH_Y + 0.006 + lift, hz(t) + (t > 0.98 ? 0.01 : 0)));
+      const lift = 0.11 * Math.pow(1 - smooth(LIP_T, 0.9, t), 1.6);
+      lipPts.push(V3(side * hw(t) * 0.99, MOUTH_Y - 0.018 + lift, hz(t) + (t > 0.98 ? 0.012 : 0)));
     }
     const lip = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts), 80, 0.011, 6, false), navyMat, false);
     head.add(lip);
@@ -360,24 +370,27 @@ Pets.register({
       head.add(nostril);
       const fang = mesh(new THREE.ConeGeometry(0.02, 0.075, 10), toothMat, false);
       fang.rotation.x = Math.PI;
-      fang.position.set(hw(0.86) * 0.7 * s, MOUTH_Y - 0.03, hz(0.86));
+      fang.position.set(hw(0.86) * (1 - LIP_IN) * 0.9 * s, MOUTH_Y - LIP_D - 0.025, hz(0.86));
       head.add(fang);
     });
 
     const jaw = new THREE.Group();
     jaw.position.set(0, MOUTH_Y, HINGE_Z);
     head.add(jaw);
-    const jawGeo = surface((u, v, out) => lowerAt(u, Math.PI + v * Math.PI, out), 64, 30, (u, v, p) => {
+    const jawGeo = surface((u, v, out) => lowerFull(u, Math.PI - LIP_A + v * (Math.PI + 2 * LIP_A), out), 64, 40, (u, v, p) => {
       const h = (MOUTH_Y - p.y) / Math.max(0.001, hd(u));
       return mixC(H_LIP, mixC(H_JAW2, H_JAW, smooth(0.5, 1, h)), smooth(0.02, 0.25, h));
     }, false);
     jawGeo.translate(0, -MOUTH_Y, -HINGE_Z);
     const jawMesh = mesh(jawGeo, skinHead, false);
     jaw.add(jawMesh);
-    const floor = mesh(capShape(-1), throatMat, false);
-    floor.rotation.x = -Math.PI / 2;
-    floor.scale.set(0.97, 1, 1);
-    floor.position.set(0, 0.002, -HINGE_Z);
+    const floorGeo = surface((u, v, out) => {
+      const th = Math.PI + v * Math.PI;
+      const k = rollK(u);
+      return out.set(hw(u) * JAW_W * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9), MOUTH_Y - LIP_D * 0.4 * k - hd(u) * 0.6 * Math.pow(Math.abs(Math.sin(th)), 0.8), hz(u));
+    }, 48, 24, (u, v) => mixC(G_EDGE, G_DEEP, smooth(0.15, 0.9, Math.abs(Math.sin(v * Math.PI))) * 0.7 + (1 - smooth(0.2, 0.6, u)) * 0.3), false);
+    floorGeo.translate(0, -MOUTH_Y, -HINGE_Z);
+    const floor = mesh(floorGeo, innerMat, false);
     jaw.add(floor);
     const lowerTeeth = [];
     for (let k = 0; k < 9; k++) {
@@ -386,12 +399,12 @@ Pets.register({
       const t = f < 0.5 ? lerp(0.55, 0.97, f * 2) : lerp(0.97, 0.55, (f - 0.5) * 2);
       if (k === 4) continue;
       const tooth = mesh(new THREE.ConeGeometry(0.013, 0.035, 8), toothMat, false);
-      tooth.position.set(side * hw(t) * 0.82, 0.012, hz(t) - HINGE_Z - 0.01);
+      tooth.position.set(side * hw(t) * JAW_W * (1 - LIP_IN) * 0.98, -LIP_D * 0.4 + 0.012, hz(t) - HINGE_Z - 0.01);
       jaw.add(tooth);
       lowerTeeth.push(tooth);
     }
     const tongue = new THREE.Group();
-    tongue.position.set(0, 0.012, 0.1);
+    tongue.position.set(0, -0.06, 0.06);
     jaw.add(tongue);
     const tongueMat = mat(0xff5f86, 0.45);
     const stem = mesh(new THREE.CylinderGeometry(0.016, 0.024, 0.34, 10), tongueMat, false);
