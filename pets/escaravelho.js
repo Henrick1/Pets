@@ -1,6 +1,6 @@
 Pets.register({
   id: "escaravelho",
-  dex: 15,
+  dex: 16,
   name: "Escaravelho",
   color: "#2f5fc0",
   types: ["bug", "light"],

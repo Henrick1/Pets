@@ -113,7 +113,8 @@ function snapshot() {
     types: (petMeta[id] && petMeta[id].types) || []
   }));
   const em = petMeta[Game.speciesOf(state)];
-  const evolveTo = em && em.evolvesTo && Game.canEvolve(state, state.pet, em.evolvesTo, em.evolveLevel || Infinity) ? (petMeta[em.evolvesTo] ? petMeta[em.evolvesTo].name : em.evolvesTo) : null;
+  const et = state.pet ? Game.evolveTarget(em, state) : null;
+  const evolveTo = et && Game.canEvolve(state, state.pet, et, em.evolveLevel || Infinity) ? (petMeta[et] ? petMeta[et].name : et) : null;
   return Object.assign(Game.view(state, meta), {
     evolveTo,
     account: {
@@ -305,6 +306,13 @@ ipcMain.on("pets-meta", (_e, list) => {
       color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : "#999999",
       types: PetTypes.clean(p.types),
       evolvesTo: typeof p.evolvesTo === "string" && petIds.includes(p.evolvesTo) ? p.evolvesTo : null,
+      evolveBranches:
+        p.evolveBranches && typeof p.evolveBranches === "object"
+          ? {
+              happy: petIds.includes(p.evolveBranches.happy) ? p.evolveBranches.happy : null,
+              sad: petIds.includes(p.evolveBranches.sad) ? p.evolveBranches.sad : null
+            }
+          : null,
       evolveLevel: Number.isInteger(p.evolveLevel) ? p.evolveLevel : 0
     };
   });
@@ -314,9 +322,10 @@ ipcMain.on("pets-meta", (_e, list) => {
 function tryEvolve() {
   const id = state.pet;
   const m = petMeta[Game.speciesOf(state)];
-  if (!m || !m.evolvesTo || !m.evolveLevel) return null;
-  const r = Game.evolve(state, id, m.evolvesTo, m.evolveLevel);
-  return r.changed ? (petMeta[m.evolvesTo] ? petMeta[m.evolvesTo].name : m.evolvesTo) : null;
+  const target = id ? Game.evolveTarget(m, state, id) : null;
+  if (!target || !m.evolveLevel) return null;
+  const r = Game.evolve(state, id, target, m.evolveLevel);
+  return r.changed ? (petMeta[target] ? petMeta[target].name : target) : null;
 }
 
 ipcMain.on("feed", () => {

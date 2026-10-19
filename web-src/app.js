@@ -216,14 +216,14 @@
     let first = id;
     const seen = new Set([id]);
     for (;;) {
-      const pre = petIds.find(o => meta[o] && meta[o].evolvesTo === first);
+      const pre = petIds.find(o => nextForms(o).includes(first));
       if (!pre || seen.has(pre)) break;
       seen.add(pre);
       first = pre;
     }
     const chain = [first];
-    while (meta[chain[chain.length - 1]] && meta[chain[chain.length - 1]].evolvesTo && chain.length < 6) {
-      const nx = meta[chain[chain.length - 1]].evolvesTo;
+    while (nextForms(chain[chain.length - 1]).length && chain.length < 6) {
+      const nx = nextForms(chain[chain.length - 1])[0];
       if (!meta[nx] || chain.includes(nx)) break;
       chain.push(nx);
     }
@@ -354,7 +354,7 @@
   }
 
   function baseIds() {
-    return petIds.filter(id => !petIds.some(o => meta[o] && meta[o].evolvesTo === id));
+    return petIds.filter(id => !petIds.some(o => nextForms(o).includes(id)));
   }
 
   function route() {
@@ -668,20 +668,28 @@
     }
   }
 
+  function nextForms(id) {
+    const m = meta[id];
+    if (!m) return [];
+    const list = m.evolveBranches ? [m.evolveBranches.happy, m.evolveBranches.sad] : [m.evolvesTo];
+    return list.filter(x => x && meta[x]);
+  }
+
   function evolveTarget() {
     if (!state || !state.pet) return null;
     const m = meta[Game.speciesOf(state)];
-    if (!m || !m.evolvesTo || !meta[m.evolvesTo] || !m.evolveLevel) return null;
-    return Game.canEvolve(state, state.pet, m.evolvesTo, m.evolveLevel) ? m.evolvesTo : null;
+    const target = Game.evolveTarget(m, state);
+    if (!target || !meta[target] || !m.evolveLevel) return null;
+    return Game.canEvolve(state, state.pet, target, m.evolveLevel) ? target : null;
   }
 
   function checkEvolution() {
     if (evolvingNow || !state || !stage || !state.pet || $("game-view").hidden) return;
     const id = state.pet;
     const m = meta[Game.speciesOf(state)];
-    if (!evolveTarget()) return;
+    const target = evolveTarget();
+    if (!target) return;
     $("evolve-btn").hidden = true;
-    const target = m.evolvesTo;
     const to = meta[target];
     evolvingNow = true;
     const wrap = $("stage-wrap");
@@ -1342,7 +1350,7 @@
     }
 
     window.Pets.list.forEach(p => {
-      meta[p.id] = { id: p.id, dex: p.dex || 999, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveLevel: p.evolveLevel || 0 };
+      meta[p.id] = { id: p.id, dex: p.dex || 999, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveBranches: p.evolveBranches || null, evolveLevel: p.evolveLevel || 0 };
     });
     petIds = window.Pets.list.map(p => p.id).sort();
 

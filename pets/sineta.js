@@ -1,6 +1,6 @@
 Pets.register({
   id: "sineta",
-  dex: 12,
+  dex: 13,
   name: "Sineta",
   color: "#d9a441",
   types: ["ghost"],

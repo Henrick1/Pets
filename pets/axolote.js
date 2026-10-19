@@ -4,6 +4,8 @@ Pets.register({
   name: "Axolote",
   color: "#b36ad6",
   types: ["poison"],
+  evolveBranches: { happy: "axolirio", sad: null },
+  evolveLevel: 15,
   description: "Anfíbio coberto de lodo roxo venenoso. Suas brânquias ramificadas soltam toxinas quando ele se sente ameaçado.",
   actions: {
     jump: { duration: 0.95 },
