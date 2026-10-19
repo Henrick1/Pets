@@ -4,6 +4,8 @@ Pets.register({
   name: "Bolota",
   color: "#7fd6a8",
   types: ["grass"],
+  evolvesTo: "raizote",
+  evolveLevel: 5,
   description: "Uma bolinha de planta que brotou de uma semente teimosa. Quando está feliz, o broto da cabeça balança sem parar.",
   actions: {
     jump: { duration: 0.95 },

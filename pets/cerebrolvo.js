@@ -1,6 +1,6 @@
 Pets.register({
   id: "cerebrolvo",
-  dex: 16,
+  dex: 18,
   name: "Cerebrolvo",
   color: "#9ad8ff",
   types: ["psychic"],

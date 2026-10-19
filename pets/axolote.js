@@ -1,6 +1,6 @@
 Pets.register({
   id: "axolote",
-  dex: 3,
+  dex: 5,
   name: "Axolote",
   color: "#b36ad6",
   types: ["poison"],
