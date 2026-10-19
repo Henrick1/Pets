@@ -345,8 +345,8 @@ Pets.register({
 
     const eyes = [-1, 1].map(s => {
       const g = new THREE.Group();
-      g.position.set(0.34 * s, 0.15, 0.42);
-      g.add(mesh(new THREE.SphereGeometry(0.065, 16, 12), darkMat, false));
+      g.position.set(0.38 * s, 0.15, 0.5);
+      g.add(mesh(new THREE.SphereGeometry(0.075, 16, 12), darkMat, false));
       const shine = new THREE.Mesh(
         new THREE.SphereGeometry(0.022, 8, 8),
         new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -359,19 +359,19 @@ Pets.register({
 
     [-1, 1].forEach(s => {
       const n = mesh(new THREE.SphereGeometry(0.018, 8, 8), mouthMat, false);
-      n.position.set(0.07 * s, 0.02, 0.6);
+      n.position.set(0.07 * s, 0.02, 0.635);
       head.add(n);
     });
 
     const smile = mesh(new THREE.TorusGeometry(0.28, 0.028, 6, 28, Math.PI), mouthMat, false);
     smile.rotation.z = Math.PI;
     smile.scale.set(1, 0.35, 1);
-    smile.position.set(0, -0.04, 0.585);
+    smile.position.set(0, -0.04, 0.625);
     head.add(smile);
 
     const openMouth = mesh(new THREE.SphereGeometry(0.13, 20, 14), mouthMat, false);
     openMouth.scale.set(1.5, 1, 0.4);
-    openMouth.position.set(0, -0.1, 0.57);
+    openMouth.position.set(0, -0.1, 0.61);
     openMouth.visible = false;
     head.add(openMouth);
 
