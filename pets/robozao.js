@@ -126,9 +126,9 @@ Pets.register({
 
     const vShape = new THREE.Shape();
     vShape.moveTo(-0.48, 0.92);
-    vShape.lineTo(-0.32, 0.92);
+    vShape.lineTo(-0.331, 0.92);
     vShape.lineTo(0, 0.63);
-    vShape.lineTo(0.32, 0.92);
+    vShape.lineTo(0.331, 0.92);
     vShape.lineTo(0.48, 0.92);
     vShape.lineTo(0, 0.5);
     vShape.lineTo(-0.48, 0.92);
@@ -137,13 +137,13 @@ Pets.register({
     vMesh.position.z = FRONT - 0.01;
     chest.add(vMesh);
     const ledShape = new THREE.Shape();
-    ledShape.moveTo(-0.43, 0.89);
-    ledShape.lineTo(-0.35, 0.89);
-    ledShape.lineTo(0, 0.6);
-    ledShape.lineTo(0.35, 0.89);
-    ledShape.lineTo(0.43, 0.89);
-    ledShape.lineTo(0, 0.54);
-    ledShape.lineTo(-0.43, 0.89);
+    ledShape.moveTo(-0.408, 0.89);
+    ledShape.lineTo(-0.335, 0.89);
+    ledShape.lineTo(0, 0.597);
+    ledShape.lineTo(0.335, 0.89);
+    ledShape.lineTo(0.408, 0.89);
+    ledShape.lineTo(0, 0.533);
+    ledShape.lineTo(-0.408, 0.89);
     const ledGeo = new THREE.ExtrudeGeometry(ledShape, { depth: 0.004, bevelEnabled: false });
     ledGeo.translate(0, -0.72, 0);
     const vLed = new THREE.Mesh(ledGeo, led);
