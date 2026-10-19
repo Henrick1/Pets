@@ -238,13 +238,13 @@ Pets.register({
     swim.add(head);
     const MOUTH_Y = -0.15;
     const HZ0 = -0.3;
-    const HZ1 = 0.92;
+    const HZ1 = 0.66;
     const HINGE_Z = 0.08;
     const hz = t => lerp(HZ0, HZ1, t);
     const bump = t => Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, t)))), 0.34);
-    const hw = t => 0.38 * bump(t) * (1 - 0.36 * t * t) * (1 + 0.06 * Math.exp(-Math.pow((t - 0.55) / 0.08, 2)));
-    const ht = t => 0.5 * bump(t) * (1 - 0.5 * smooth(0.3, 1, t)) + 0.035 * Math.exp(-Math.pow((t - 0.55) / 0.07, 2));
-    const hd = t => 0.19 * bump(t) * (1 - 0.35 * smooth(0.45, 1, t)) + 0.022 * Math.exp(-Math.pow((t - 0.8) / 0.09, 2)) * bump(t);
+    const hw = t => 0.4 * bump(t) * (1 - 0.18 * t * t) * (1 + 0.06 * Math.exp(-Math.pow((t - 0.55) / 0.08, 2)));
+    const ht = t => 0.56 * bump(t) * (1 - 0.32 * smooth(0.3, 1, t)) + 0.035 * Math.exp(-Math.pow((t - 0.55) / 0.07, 2));
+    const hd = t => 0.15 * bump(t) * (1 - 0.35 * smooth(0.45, 1, t)) + 0.022 * Math.exp(-Math.pow((t - 0.8) / 0.09, 2)) * bump(t);
     const LIP_A = 0.45;
     const LIP_D = 0.034;
     const LIP_IN = 0.13;
@@ -344,12 +344,12 @@ Pets.register({
     head.add(throatUp);
 
     const lipPts = [];
-    const LIP_T = 0.42;
+    const LIP_T = 0.58;
     for (let k = 0; k <= 40; k++) {
       const f = k / 40;
       const side = f < 0.5 ? 1 : -1;
       const t = f < 0.5 ? lerp(LIP_T, 1, f * 2) : lerp(1, LIP_T, (f - 0.5) * 2);
-      const lift = 0.11 * Math.pow(1 - smooth(LIP_T, 0.9, t), 1.6);
+      const lift = 0.2 * Math.pow(Math.max(0, (1 - t) / (1 - LIP_T)), 1.6);
       lipPts.push(V3(side * hw(t) * 0.99, MOUTH_Y - 0.018 + lift, hz(t) + (t > 0.98 ? 0.012 : 0)));
     }
     const lip = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts), 80, 0.011, 6, false), navyMat, false);
@@ -408,14 +408,17 @@ Pets.register({
     });
 
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.82, whiteColor: 0xffffff, pupilColor: 0x0b1a3a });
-      e.pupil.scale.set(0.78, 1.15, 0.5);
-      upperAt(0.55, s > 0 ? 0.66 : Math.PI - 0.66, tmpS);
+      const e = eye({ size: 0.95, whiteColor: 0xffffff, pupilColor: 0x0b1a3a });
+      e.pupil.scale.set(0.95, 1.12, 0.5);
+      const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      shine2.position.set(-0.03, -0.035, 0.05);
+      e.pupil.add(shine2);
+      upperAt(0.5, s > 0 ? 0.7 : Math.PI - 0.7, tmpS);
       e.g.position.set(tmpS.x * 0.9, tmpS.y, tmpS.z);
       e.g.rotation.set(-0.1, 0.5 * s, 0);
       head.add(e.g);
-      const cheek = new THREE.Mesh(new THREE.CircleGeometry(0.05, 20), new THREE.MeshBasicMaterial({ color: 0x8fdcff, transparent: true, opacity: 0.7 }));
-      upperAt(0.72, s > 0 ? 0.32 : Math.PI - 0.32, cheek.position);
+      const cheek = new THREE.Mesh(new THREE.CircleGeometry(0.06, 24), new THREE.MeshBasicMaterial({ color: 0xff8fbd, transparent: true, opacity: 0.8, depthWrite: false }));
+      upperAt(0.6, s > 0 ? 0.42 : Math.PI - 0.42, cheek.position);
       cheek.position.x *= 1.01;
       cheek.rotation.y = 0.9 * s;
       cheek.scale.set(1, 0.65, 1);
@@ -461,17 +464,7 @@ Pets.register({
       return { g, s };
     });
 
-    const barbels = [-1, 1].map(s => {
-      const g = new THREE.Group();
-      g.position.set(0.17 * s, -0.06, 0.62);
-      const c = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0.08 * s, -0.04, -0.04), V3(0.16 * s, -0.03, -0.12), V3(0.2 * s, 0.02, -0.2)]);
-      g.add(mesh(new THREE.TubeGeometry(c, 12, 0.014, 6, false), mat(0x2a74c4, 0.4), false));
-      const tip = mesh(new THREE.SphereGeometry(0.03, 12, 10), finMat, false);
-      tip.position.set(0.2 * s, 0.02, -0.2);
-      g.add(tip);
-      head.add(g);
-      return { g, tip, s };
-    });
+    const barbels = [];
 
     const bubbleMat = new THREE.MeshStandardMaterial({ color: 0xcff6ff, roughness: 0.1, transparent: true, opacity: 0.55, depthWrite: false });
     const bubbleGeo = new THREE.SphereGeometry(0.05, 12, 10);
