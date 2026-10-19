@@ -126,74 +126,22 @@ Pets.register({
     torsoMesh.position.copy(TC);
     torso.add(torsoMesh);
     {
-      const tdef = (x, y, z, k) => {
+      const tdef = (x, y, z) => {
         const w = 1 + 0.12 * smooth(0.3, -0.7, y) - 0.12 * smooth(0.2, 0.9, y);
-        return V3(x * 0.38 * w * k, y * 0.48 * k, (z * 0.31 * w + 0.03 * smooth(0, -0.8, y) * Math.max(0, z)) * k);
+        return V3(x * 0.38 * w, y * 0.48, z * 0.31 * w + 0.03 * smooth(0, -0.8, y) * Math.max(0, z));
       };
-      const onT = (u, y, k) => {
-        const c = Math.sqrt(Math.max(0, 1 - y * y));
-        return tdef(c * Math.sin(u), y, c * Math.cos(u), k);
-      };
-      const NU = 24;
-      const NV = 12;
-      const pos = [];
-      const idx = [];
-      const uLim = y => lerp(0.42, 0.78, smooth(-0.05, -0.6, y));
-      for (let iv = 0; iv <= NV; iv++) {
-        const y = lerp(-0.62, -0.08, iv / NV);
-        for (let iu = 0; iu <= NU; iu++) {
-          const u = lerp(-uLim(y), uLim(y), iu / NU);
-          const p = onT(u, y, 1.045);
-          pos.push(p.x, p.y, p.z);
-        }
-      }
-      for (let iv = 0; iv < NV; iv++) {
-        for (let iu = 0; iu < NU; iu++) {
-          const q = iv * (NU + 1) + iu;
-          const w2 = q + NU + 1;
-          idx.push(q, q + 1, w2, q + 1, w2 + 1, w2);
-        }
-      }
-      const g = new THREE.BufferGeometry();
-      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-      g.setIndex(idx);
-      g.computeVertexNormals();
-      const pocket = mesh(g, slimeMat, false);
-      torsoMesh.add(pocket);
-      const top = [];
-      for (let i = 0; i <= 10; i++) top.push(onT(lerp(-uLim(-0.08), uLim(-0.08), i / 10), -0.08, 1.05));
-      torsoMesh.add(mesh(tube(top, 0.018, 0.018, 30, 8), slimeMat, false));
-      const bot = [];
-      for (let i = 0; i <= 10; i++) bot.push(onT(lerp(-uLim(-0.62), uLim(-0.62), i / 10), -0.62, 1.05));
-      torsoMesh.add(mesh(tube(bot, 0.016, 0.016, 30, 8), slimeMat, false));
-      [-1, 1].forEach(sd => {
-        const side = [];
-        for (let i = 0; i <= 8; i++) {
-          const y = lerp(-0.1, -0.55, i / 8);
-          side.push(onT(sd * (uLim(y) - 0.02), y, 1.06));
-        }
-        torsoMesh.add(mesh(tube(side, 0.026, 0.026, 24, 8), slimeMat, false));
-      });
-      [[-0.18, -0.3], [0.22, -0.42], [0.05, -0.5]].forEach(([u, y]) => {
-        const d = mesh(new THREE.SphereGeometry(0.022, 10, 8), glowMat, false);
-        d.position.copy(onT(u, y, 1.07));
-        d.scale.set(1, 1, 0.5);
+      const spotMat = std(0x7234b0, 0.35, { emissive: 0x2a1055, emissiveIntensity: 0.35 });
+      [[-0.35, 0.3, 0.06], [0.42, -0.05, 0.07], [-0.12, -0.38, 0.05], [0.95, 0.35, 0.05], [-1.05, -0.2, 0.06], [1.35, -0.4, 0.045], [-1.4, 0.45, 0.045]].forEach(([u, y, rr]) => {
+        const c = Math.sqrt(1 - y * y);
+        const p = tdef(c * Math.sin(u), y, c * Math.cos(u));
+        const n = V3(c * Math.sin(u) / 0.38, y / 0.48, c * Math.cos(u) / 0.31).normalize();
+        const d = mesh(new THREE.SphereGeometry(1, 16, 10), spotMat, false);
+        d.position.copy(p).add(n.clone().multiplyScalar(0.002));
+        d.lookAt(d.position.clone().add(n));
+        d.scale.set(rr, rr * 0.85, rr * 0.22);
         torsoMesh.add(d);
       });
-      [-0.25, 0.15].forEach(y => {
-        const crease = [];
-        for (let i = 0; i <= 8; i++) crease.push(onT(lerp(-0.35, 0.35, i / 8), y + Math.sin(i * 0.8) * 0.01, 1.008));
-        torsoMesh.add(mesh(tube(crease, 0.006, 0.006, 20, 6), std(0xc8b8d8, 0.6), false));
-      });
     }
-    [[0.28, 1.25, -0.2, 0.05], [-0.3, 1.05, -0.18, 0.045], [0.33, 0.98, 0.05, 0.035], [-0.25, 1.35, 0.1, 0.04]].forEach(([x, y, z, r]) => {
-      const d = mesh(new THREE.SphereGeometry(1, 12, 8), dotMat, false);
-      const n = V3(x / 0.38, (y - TC.y) / 0.48, z / 0.31).normalize();
-      d.position.set(n.x * 0.385, TC.y + n.y * 0.48, n.z * 0.315);
-      d.lookAt(d.position.clone().add(n));
-      d.scale.set(r, r * 0.8, r * 0.3);
-      torso.add(d);
-    });
 
     const arms = [-1, 1].map(s => {
       const sh = new THREE.Group();
@@ -241,13 +189,9 @@ Pets.register({
       g.position.set(0.17 * s, 0.03, HR * 0.9);
       g.rotation.y = 0.3 * s;
       head.add(g);
-      const ring = mesh(new THREE.SphereGeometry(0.085, 18, 12), shadowMat, false);
-      ring.scale.set(1.15, 0.95, 0.3);
-      ring.position.z = -0.01;
-      g.add(ring);
-      const ball = mesh(new THREE.SphereGeometry(0.06, 16, 12), darkMat, false);
-      ball.scale.set(1, 1, 0.6);
-      ball.position.z = 0.012;
+      g.add(new THREE.Object3D());
+      const ball = mesh(new THREE.SphereGeometry(0.062, 18, 14), darkMat, false);
+      ball.scale.set(1, 1.05, 0.55);
       g.add(ball);
       const shine = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), new THREE.MeshBasicMaterial({ color: 0xc8b8e0 }));
       shine.position.set(0.02, -0.015, 0.05);
@@ -255,10 +199,10 @@ Pets.register({
       const lid = new THREE.Group();
       lid.position.z = 0.0;
       g.add(lid);
-      const lidMesh = mesh(new THREE.SphereGeometry(0.068, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), skinDark, false);
-      lidMesh.scale.set(1.05, 1, 0.75);
+      const lidMesh = mesh(new THREE.SphereGeometry(0.07, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), skin, false);
+      lidMesh.scale.set(1.12, 0.9, 0.8);
       lid.add(lidMesh);
-      lid.rotation.set(0.35, 0, s * 0.42);
+      lid.rotation.set(-0.05, 0, s * 0.42);
       return { g, lid, s };
     });
     [-1, 1].forEach(s => {
@@ -303,13 +247,18 @@ Pets.register({
     };
     {
       const NA = 30;
-      const NB = 72;
+      const NB = 96;
       const B0 = Math.PI - 0.6;
       const pos = [];
       const idx = [];
+      const startA = be => {
+        const ab = Math.abs(be);
+        if (ab <= B0) return openA(be);
+        return lerp(openA(B0), 2.3, smooth(0, 1, (ab - B0) / (Math.PI - B0)));
+      };
       for (let ib = 0; ib <= NB; ib++) {
-        const be = -B0 + (ib / NB) * B0 * 2;
-        const a0 = openA(be);
+        const be = -Math.PI + (ib / NB) * Math.PI * 2;
+        const a0 = startA(be);
         for (let ia = 0; ia <= NA; ia++) {
           const al = lerp(a0, Math.PI * 0.999, ia / NA);
           const p = hoodPoint(al, be, 1);
@@ -329,22 +278,12 @@ Pets.register({
       g.computeVertexNormals();
       hood.add(mesh(g, slimeMat, false));
       const rimPts = [];
-      for (let i = 0; i <= 40; i++) {
-        const be = -B0 + (i / 40) * B0 * 2;
-        rimPts.push(hoodPoint(openA(be) + 0.02, be, 1.0));
+      for (let i = 0; i <= 80; i++) {
+        const be = -Math.PI + (i / 80) * Math.PI * 2;
+        rimPts.push(hoodPoint(startA(be) + 0.02, be, 1.0));
       }
-      hood.add(mesh(tube(rimPts, 0.04, 0.04, 80, 10), slimeMat, false));
-      const cap0 = mesh(new THREE.SphereGeometry(0.04, 10, 8), slimeMat, false);
-      cap0.position.copy(rimPts[0]);
-      const cap1 = cap0.clone();
-      cap1.position.copy(rimPts[rimPts.length - 1]);
-      hood.add(cap0, cap1);
-      [-1, 1].forEach(sd => {
-        const be = sd * (B0 - 0.05);
-        const pts = [];
-        for (let i = 0; i <= 8; i++) pts.push(hoodPoint(lerp(openA(be) + 0.05, Math.PI * 0.95, i / 8), be, 1.0));
-        hood.add(mesh(tube(pts, 0.03, 0.03, 30, 8), slimeMat, false));
-      });
+      const rim = new THREE.CatmullRomCurve3(rimPts, true);
+      hood.add(mesh(new THREE.TubeGeometry(rim, 160, 0.04, 10, true), slimeMat, false));
     }
     {
       const lockGeo = new THREE.SphereGeometry(1, 28, 20);
@@ -447,8 +386,8 @@ Pets.register({
           const rxH = hoodR * 1.12 * hr + 0.01;
           const rzH = hoodR * hr + 0.01;
           const m = smooth(0.1, 0.45, v);
-          const rx = lerp(Math.max(rxH, rxB * 0.6), rxB, m);
-          const rz = lerp(Math.max(rzH, rzB * 0.6), rzB, m);
+          const rx = lerp(Math.max(rxH, 0.5), Math.max(rxB, 0.42), m);
+          const rz = lerp(Math.max(rzH, 0.44), Math.max(rzB, 0.36), m);
           const cz = lerp(HEAD.z - 0.02, 0, m);
           const wave = v * 0.03 * Math.sin(u * 22);
           pos.push(Math.sin(a) * (rx + wave), y, cz - Math.cos(a) * (rz + wave));
@@ -592,7 +531,7 @@ Pets.register({
         const breath = Math.sin(t * 1.2) * motion;
         let slump = 0.12 + breath * 0.01;
         let headDown = 0.22;
-        let lidDown = 0.35;
+        let lidDown = -0.05;
         let shoulder = 0;
         let mouthOpen = false;
         let hoodGlowK = 0.3;
