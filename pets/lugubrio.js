@@ -219,17 +219,49 @@ Pets.register({
       const lidMesh = mesh(new THREE.SphereGeometry(0.07, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), skin, false);
       lidMesh.scale.set(1.35, 1.2, 0.9);
       lid.add(lidMesh);
-      lid.rotation.set(-0.05, 0, s * 0.42);
+      lid.rotation.set(-0.05, 0, s * 0.22);
+      const bag = mesh(new THREE.SphereGeometry(0.07, 18, 10, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), std(0xb8a6cc, 0.7), false);
+      bag.scale.set(1.25, 0.85, 0.55);
+      bag.position.set(0, -0.012, -0.012);
+      g.add(bag);
       return { g, lid, s };
     });
     [-1, 1].forEach(s => {
       head.add(mesh(tube([V3(0.05 * s, 0.1, HR * 0.92), V3(0.16 * s, 0.135, HR * 0.89), V3(0.27 * s, 0.18, HR * 0.76)], 0.026, 0.018, 12, 8), std(0x4a2a5a, 0.6), false));
     });
-    const frown = mesh(new THREE.TorusGeometry(0.085, 0.016, 8, 20, Math.PI), mouthMat, false);
-    frown.scale.set(1.1, 0.4, 1);
-    frown.position.set(0.02, -0.17, HR * 0.97);
-    frown.rotation.z = 0.06;
+    const frown = new THREE.Group();
+    frown.position.set(0.05, -0.17, HR * 0.955);
+    frown.rotation.set(0.32, 0.12, -0.12);
     head.add(frown);
+    {
+      const rr = (w, h, rad) => {
+        const sh = new THREE.Shape();
+        sh.moveTo(-w / 2 + rad, -h / 2);
+        sh.lineTo(w / 2 - rad, -h / 2);
+        sh.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + rad);
+        sh.lineTo(w / 2, h / 2 - rad);
+        sh.quadraticCurveTo(w / 2, h / 2, w / 2 - rad, h / 2);
+        sh.lineTo(-w / 2 + rad, h / 2);
+        sh.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - rad);
+        sh.lineTo(-w / 2, -h / 2 + rad);
+        sh.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + rad, -h / 2);
+        return new THREE.ShapeGeometry(sh, 6);
+      };
+      const lips = new THREE.Mesh(rr(0.13, 0.055, 0.022), new THREE.MeshBasicMaterial({ color: 0x3a1430 }));
+      frown.add(lips);
+      const teeth = new THREE.Mesh(rr(0.112, 0.038, 0.014), new THREE.MeshBasicMaterial({ color: 0xf4f0f8 }));
+      teeth.position.z = 0.002;
+      frown.add(teeth);
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0x8a7a96 });
+      const mid = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.004), lineMat);
+      mid.position.z = 0.004;
+      frown.add(mid);
+      [-0.036, -0.012, 0.012, 0.036].forEach(x => {
+        const v = new THREE.Mesh(new THREE.PlaneGeometry(0.004, 0.036), lineMat);
+        v.position.set(x, 0, 0.004);
+        frown.add(v);
+      });
+    }
     const openMouth = mesh(new THREE.SphereGeometry(0.06, 14, 10), mouthMat, false);
     openMouth.scale.set(1.2, 0.8, 0.4);
     openMouth.position.set(0, -0.16, HR * 0.96);
@@ -484,6 +516,45 @@ Pets.register({
       capeGeo.computeVertexNormals();
     };
     torso.add(mesh(capeGeo, slimeMat, false));
+    const tailRibbons = [[0.16, 1.62, 1.0, 0.95, 0.13], [0.05, 1.5, 0.7, 0.75, 0.1]].map(([x0, y0, sideK, len, wid], k) => {
+      const NS = 20;
+      const pos = new Float32Array((NS + 1) * 2 * 3);
+      const idx = [];
+      for (let i = 0; i < NS; i++) {
+        const a = i * 2;
+        idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      g.setIndex(idx);
+      const m = mesh(g, slimeMat, false);
+      m.frustumCulled = false;
+      torso.add(m);
+      return { g, pos, NS, x0, y0, sideK, len, wid, k };
+    });
+    const updateRibbons = (t, motion, gust) => {
+      tailRibbons.forEach(({ g, pos, NS, x0, y0, sideK, len, wid, k }) => {
+        for (let i = 0; i <= NS; i++) {
+          const f = i / NS;
+          const wave = Math.sin(t * 2.4 - f * 5 + k * 1.3) * 0.07 * f * (1 + gust) * (0.4 + motion * 0.6);
+          const cx = x0 + f * len * sideK * (0.85 + gust * 0.15);
+          const cy = y0 - f * 0.25 - f * f * 0.25 * (1 - gust * 0.6) + wave;
+          const cz = -0.36 - f * 0.45 + Math.sin(t * 1.7 - f * 4 + k) * 0.04 * f;
+          let w = wid * (1 - f * 0.55);
+          if (f > 0.8) w *= 0.6 + 0.4 * Math.abs(Math.sin(f * 40 + k));
+          const tw = f * 0.6 + wave * 2;
+          const o = i * 6;
+          pos[o] = cx;
+          pos[o + 1] = cy + w * Math.cos(tw);
+          pos[o + 2] = cz + w * Math.sin(tw) * 0.5;
+          pos[o + 3] = cx;
+          pos[o + 4] = cy - w * Math.cos(tw);
+          pos[o + 5] = cz - w * Math.sin(tw) * 0.5;
+        }
+        g.attributes.position.needsUpdate = true;
+        g.computeVertexNormals();
+      });
+    };
     const capeDrips = [];
     for (let k = 0; k < 9; k++) {
       const u = 0.1 + (k / 8) * 0.8;
@@ -655,10 +726,11 @@ Pets.register({
         root.rotation.y = lookYaw * 0.6;
         root.rotation.x = lookPitch * 0.5;
         torsoPivot.rotation.x = slump;
+        torsoPivot.position.y = 0.8 - 0.1;
         torsoPivot.rotation.z = Math.sin(t * 0.6) * 0.02 * motion;
         headPivot.rotation.x = lerp(headPivot.rotation.x, headDown - pointer.y * 0.1, 0.1);
         headPivot.rotation.y = lerp(headPivot.rotation.y, pointer.x * 0.25, 0.08);
-        headPivot.rotation.z = 0.08 + Math.sin(t * 0.8) * 0.02 * motion;
+        headPivot.rotation.z = 0.16 + Math.sin(t * 0.8) * 0.02 * motion;
 
         arms.forEach(({ sh, el, s: sd }) => {
           sh.position.y = 1.44 + shoulder;
@@ -667,7 +739,8 @@ Pets.register({
           el.rotation.x = -0.35 - armFwd * 1.5 - Math.abs(shake) * 2;
         });
 
-        legs.forEach(({ hip, knee, s: sd }) => {
+        legs.forEach(({ hip, knee, foot, s: sd }) => {
+          foot.rotation.z = -sd * 0.08;
           let hx = 0;
           let kx = 0;
           if (kickK >= 0 && sd > 0) {
@@ -678,6 +751,8 @@ Pets.register({
           }
           hip.rotation.x = hx;
           knee.rotation.x = kx;
+          hip.rotation.z = sd * 0.42;
+          knee.rotation.z = -sd * 0.34;
         });
         if (kickK >= 0 && !reduceMotion) {
           const q = (kickK - 0.4) / 0.6;
@@ -713,6 +788,7 @@ Pets.register({
         });
 
         updateTail(t, 0.08 * motion);
+        updateRibbons(t, motion, a === "shadow" || a === "fume" ? Math.sin(Math.min(1, p * 2) * Math.PI) : 0);
 
         updateCape();
         root.updateMatrixWorld(true);
