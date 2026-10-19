@@ -322,173 +322,6 @@ Pets.register({
       head.add(n);
     });
 
-    const hood = new THREE.Group();
-    head.add(hood);
-    const hoodR = HR * 1.1;
-    const openA = b => 0.62 + 0.26 * Math.pow(Math.abs(Math.sin(b * 0.5)), 1.2);
-    const hoodPoint = (al, be, lift) => {
-      const d = V3(Math.sin(al) * Math.sin(be), Math.sin(al) * Math.cos(be), Math.cos(al));
-      const back = smooth(0.25, 1, (al - openA(be)) / (Math.PI - openA(be))) * (1 - smooth(1.8, 2.3, al));
-      let rr = HR * 1.2 * lift;
-      rr *= 1 + 0.035 * Math.sin(be * 7 + al * 2) * back + 0.02 * Math.sin(al * 9) * back;
-      rr += HR * 0.08 * Math.exp(-(be * be) / 0.25 - Math.pow(al - 2.35, 2) / 0.12);
-      const p = d.multiplyScalar(rr);
-      p.x *= 1.1;
-      p.z = p.z * 1.02 - 0.03;
-      p.y += 0.02;
-      if (d.y < 0) {
-        p.y += d.y * HR * 0.45;
-        p.x *= 1 + -d.y * 0.25;
-        p.z -= -d.y * HR * 0.1;
-      }
-      return p;
-    };
-    const B0 = Math.PI - 0.6;
-    const startA = be => {
-      const ab = Math.abs(be);
-      if (ab <= B0) return openA(be);
-      return lerp(openA(B0), 2.3, smooth(0, 1, (ab - B0) / (Math.PI - B0)));
-    };
-    const cutE = ha => -0.3 - 0.35 * Math.pow(Math.abs(ha) / 1.75, 2);
-    const onHood = (ha, e, lift) => {
-      const c = Math.cos(e);
-      const d = V3(Math.sin(ha) * c, Math.sin(e), -Math.cos(ha) * c);
-      const al = Math.acos(Math.max(-1, Math.min(1, d.z)));
-      const be = Math.atan2(d.x, d.y);
-      return hoodPoint(Math.max(al, startA(be)), be, lift);
-    };
-    {
-      const pos = [];
-      const idx = [];
-      const sg = new THREE.SphereGeometry(1, 120, 80);
-      const sp = sg.attributes.position;
-      const inside = [];
-      for (let i = 0; i < sp.count; i++) {
-        const d = V3(sp.getX(i), sp.getY(i), sp.getZ(i)).normalize();
-        const ha = Math.atan2(d.x, -d.z);
-        let cut = false;
-        if (Math.abs(ha) < 1.75) {
-          const e = cutE(ha);
-          if (Math.asin(Math.max(-1, Math.min(1, d.y))) < e) {
-            const c = Math.cos(e);
-            d.set(Math.sin(ha) * c, Math.sin(e), -Math.cos(ha) * c);
-            cut = true;
-          }
-        }
-        const al = Math.acos(Math.max(-1, Math.min(1, d.z)));
-        const be = Math.atan2(d.x, d.y);
-        const a0 = startA(be);
-        inside.push(al < a0 || cut);
-        const p = hoodPoint(Math.max(al, a0), be, 1);
-        pos.push(p.x, p.y, p.z);
-      }
-      const src = sg.index.array;
-      for (let k = 0; k < src.length; k += 3) {
-        const i0 = src[k];
-        const i1 = src[k + 1];
-        const i2 = src[k + 2];
-        if (inside[i0] && inside[i1] && inside[i2]) continue;
-        if ((inside[i0] ? 1 : 0) + (inside[i1] ? 1 : 0) + (inside[i2] ? 1 : 0) >= 2) continue;
-        idx.push(i0, i1, i2);
-      }
-      const g = new THREE.BufferGeometry();
-      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-      g.setIndex(idx);
-      g.computeVertexNormals();
-      hood.add(mesh(g, slimeMat, false));
-      const rimPts = [];
-      for (let i = 0; i <= 60; i++) {
-        const be = -B0 + (i / 60) * B0 * 2;
-        rimPts.push(hoodPoint(startA(be) + 0.02, be, 1.0));
-      }
-      const rim = new THREE.CatmullRomCurve3(rimPts);
-      hood.add(mesh(new THREE.TubeGeometry(rim, 120, 0.04, 10, false), slimeMat, false));
-      [rimPts[0], rimPts[rimPts.length - 1]].forEach(pp => {
-        const c = mesh(new THREE.SphereGeometry(0.04, 10, 8), slimeMat, false);
-        c.position.copy(pp);
-        hood.add(c);
-      });
-    }
-    {
-      const lockGeo = new THREE.SphereGeometry(1, 28, 20);
-      const lp = lockGeo.attributes.position;
-      for (let i = 0; i < lp.count; i++) {
-        const y = lp.getY(i);
-        const taper = y < 0 ? 1 - Math.pow(-y, 1.6) * 0.75 : 1;
-        lp.setX(i, lp.getX(i) * taper);
-        lp.setZ(i, lp.getZ(i) * taper);
-      }
-      lockGeo.computeVertexNormals();
-      const lock = mesh(lockGeo, slimeMat, false);
-      lock.scale.set(0.14, 0.24, 0.05);
-      lock.position.set(0.12, 0.12, HR * 0.96);
-      lock.rotation.set(-0.25, 0.28, 0.42);
-      hood.add(lock);
-      const lock2 = mesh(lockGeo, slimeMat, false);
-      lock2.scale.set(0.1, 0.17, 0.045);
-      lock2.position.set(-0.04, 0.2, HR * 0.95);
-      lock2.rotation.set(-0.35, 0.05, 0.5);
-      hood.add(lock2);
-      const drop = mesh(new THREE.SphereGeometry(0.03, 12, 10), slimeMat, false);
-      drop.position.set(0.215, -0.08, HR * 0.97);
-      drop.scale.y = 1.3;
-      hood.add(drop);
-    }
-
-    const filUnit = new THREE.CylinderGeometry(0.45, 1, 1, 6, 1);
-    filUnit.translate(0, 0.5, 0);
-    const tipUnit = new THREE.SphereGeometry(1, 8, 6);
-    const buildGill = len => {
-      const g = new THREE.Group();
-      const curve = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0, len * 0.4, -0.02), V3(0.0, len * 0.75, -0.08), V3(0, len, -0.18)]);
-      g.add(mesh(new THREE.TubeGeometry(curve, 20, 0.034, 8, false), plumeStalkMat, false));
-      const N = 18;
-      const fil = new THREE.InstancedMesh(filUnit, plumeFilMat, N * 6);
-      const tips = new THREE.InstancedMesh(tipUnit, plumeTipMat, N * 6);
-      const dummy = new THREE.Object3D();
-      const col = new THREE.Color();
-      let n = 0;
-      for (let i = 0; i < N; i++) {
-        const f = 0.15 + (i / (N - 1)) * 0.8;
-        const p = curve.getPointAt(f);
-        const tan = curve.getTangentAt(f);
-        [-1, 1].forEach(sd => [-0.4, 0, 0.4].forEach(zo => {
-          const jit = Math.sin(i * 12.9898 + sd * 78.233 + zo * 37.7) * 0.5 + 0.5;
-          const l = 0.24 * (1 - f * 0.5) * (0.75 + jit * 0.5) * (zo ? 0.85 : 1);
-          const dir = V3(zo * 0.6, -0.05 + jit * 0.08, sd * 0.42).add(tan.clone().multiplyScalar(1.0)).normalize();
-          dummy.position.copy(p);
-          dummy.quaternion.setFromUnitVectors(V3(0, 1, 0), dir);
-          dummy.scale.set(0.0075, l, 0.0075);
-          dummy.updateMatrix();
-          fil.setMatrixAt(n, dummy.matrix);
-          col.setHSL(0.76 + f * 0.04, 0.45, 0.32 + f * 0.25);
-          fil.setColorAt(n, col);
-          dummy.position.copy(p).add(dir.multiplyScalar(l));
-          dummy.quaternion.identity();
-          dummy.scale.setScalar(zo ? 0.009 : 0.012 + (1 - f) * 0.004);
-          dummy.updateMatrix();
-          tips.setMatrixAt(n, dummy.matrix);
-          n++;
-        }));
-      }
-      fil.instanceMatrix.needsUpdate = true;
-      if (fil.instanceColor) fil.instanceColor.needsUpdate = true;
-      tips.instanceMatrix.needsUpdate = true;
-      g.add(fil, tips);
-      return g;
-    };
-    const gills = [];
-    [-1, 1].forEach(s => {
-      [[0.02, 0.62, 0.1], [-0.09, 0.56, 0.0], [-0.19, 0.48, -0.1]].forEach(([y, len, z], k) => {
-        const pv = new THREE.Group();
-        pv.position.set(0.44 * s, y, z);
-        const g = buildGill(len);
-        pv.add(g);
-        head.add(pv);
-        gills.push({ pv, s, k, len, base: -s * (2.9 - k * 0.1) });
-      });
-    });
-
     const slimeTex = (() => {
       const N = 256;
       const cv = document.createElement("canvas");
@@ -569,6 +402,208 @@ Pets.register({
       opacity: 0.86,
       depthWrite: false
     });
+    const hoodMat = capeMat.clone();
+    hoodMat.depthWrite = true;
+    hoodMat.opacity = 0.9;
+    const dripMat = std(0x9a4ae8, 0.08, { emissive: 0x4a1a90, emissiveIntensity: 0.5, transparent: true, opacity: 0.88 });
+    const hood = new THREE.Group();
+    head.add(hood);
+    const hoodGoo = { geo: null, base: null, nrm: null, w: null };
+    const updateHood = (t, motion) => {
+      if (!hoodGoo.geo || !motion) return;
+      const arr = hoodGoo.geo.attributes.position.array;
+      const b = hoodGoo.base;
+      const n = hoodGoo.nrm;
+      const f = t * 0.55;
+      for (let i = 0, o = 0; i < hoodGoo.w.length; i++, o += 3) {
+        const w = hoodGoo.w[i];
+        if (!w) continue;
+        const x = b[o];
+        const y = b[o + 1];
+        const z = b[o + 2];
+        const d = (Math.sin(x * 11 + y * 7 - f * 2.4) * Math.sin(z * 9 - y * 5 + f * 1.7) * 0.016 + Math.sin(y * 19 + f * 2.6 + x * 4) * 0.006) * w * motion;
+        arr[o] = x + n[o] * d;
+        arr[o + 1] = y + n[o + 1] * d;
+        arr[o + 2] = z + n[o + 2] * d;
+      }
+      hoodGoo.geo.attributes.position.needsUpdate = true;
+    };
+    const hoodR = HR * 1.1;
+    const openA = b => 0.62 + 0.26 * Math.pow(Math.abs(Math.sin(b * 0.5)), 1.2);
+    const hoodPoint = (al, be, lift) => {
+      const d = V3(Math.sin(al) * Math.sin(be), Math.sin(al) * Math.cos(be), Math.cos(al));
+      const back = smooth(0.25, 1, (al - openA(be)) / (Math.PI - openA(be))) * (1 - smooth(1.8, 2.3, al));
+      let rr = HR * 1.2 * lift;
+      rr *= 1 + 0.035 * Math.sin(be * 7 + al * 2) * back + 0.02 * Math.sin(al * 9) * back;
+      rr += HR * 0.08 * Math.exp(-(be * be) / 0.25 - Math.pow(al - 2.35, 2) / 0.12);
+      const p = d.multiplyScalar(rr);
+      p.x *= 1.1;
+      p.z = p.z * 1.02 - 0.03;
+      p.y += 0.02;
+      if (d.y < 0) {
+        p.y += d.y * HR * 0.45;
+        p.x *= 1 + -d.y * 0.25;
+        p.z -= -d.y * HR * 0.1;
+      }
+      return p;
+    };
+    const B0 = Math.PI - 0.6;
+    const startA = be => {
+      const ab = Math.abs(be);
+      if (ab <= B0) return openA(be);
+      return lerp(openA(B0), 2.3, smooth(0, 1, (ab - B0) / (Math.PI - B0)));
+    };
+    const cutE = ha => -0.3 - 0.35 * Math.pow(Math.abs(ha) / 1.75, 2);
+    const onHood = (ha, e, lift) => {
+      const c = Math.cos(e);
+      const d = V3(Math.sin(ha) * c, Math.sin(e), -Math.cos(ha) * c);
+      const al = Math.acos(Math.max(-1, Math.min(1, d.z)));
+      const be = Math.atan2(d.x, d.y);
+      return hoodPoint(Math.max(al, startA(be)), be, lift);
+    };
+    {
+      const pos = [];
+      const idx = [];
+      const sg = new THREE.SphereGeometry(1, 120, 80);
+      const sp = sg.attributes.position;
+      const inside = [];
+      const uvs = [];
+      const wob = [];
+      for (let i = 0; i < sp.count; i++) {
+        const d = V3(sp.getX(i), sp.getY(i), sp.getZ(i)).normalize();
+        const ha = Math.atan2(d.x, -d.z);
+        let cut = false;
+        if (Math.abs(ha) < 1.75) {
+          const e = cutE(ha);
+          if (Math.asin(Math.max(-1, Math.min(1, d.y))) < e) {
+            const c = Math.cos(e);
+            d.set(Math.sin(ha) * c, Math.sin(e), -Math.cos(ha) * c);
+            cut = true;
+          }
+        }
+        const al = Math.acos(Math.max(-1, Math.min(1, d.z)));
+        const be = Math.atan2(d.x, d.y);
+        const a0 = startA(be);
+        inside.push(al < a0 || cut);
+        const p = hoodPoint(Math.max(al, a0), be, 1);
+        pos.push(p.x, p.y, p.z);
+        uvs.push((Math.atan2(p.x, -p.z) / Math.PI) * 0.5 + 0.5, p.y * 0.9);
+        const el = Math.asin(Math.max(-1, Math.min(1, d.y)));
+        const fromCut = Math.abs(ha) < 1.75 ? el - cutE(ha) : 1;
+        wob.push(cut ? 0 : smooth(0.08, 0.45, fromCut) * smooth(0.05, 0.4, al - a0));
+      }
+      const src = sg.index.array;
+      for (let k = 0; k < src.length; k += 3) {
+        const i0 = src[k];
+        const i1 = src[k + 1];
+        const i2 = src[k + 2];
+        if (inside[i0] && inside[i1] && inside[i2]) continue;
+        if ((inside[i0] ? 1 : 0) + (inside[i1] ? 1 : 0) + (inside[i2] ? 1 : 0) >= 2) continue;
+        idx.push(i0, i1, i2);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      hood.add(mesh(g, hoodMat, false));
+      hoodGoo.geo = g;
+      hoodGoo.base = pos.slice();
+      hoodGoo.nrm = Array.from(g.attributes.normal.array);
+      hoodGoo.w = wob;
+      const rimPts = [];
+      for (let i = 0; i <= 60; i++) {
+        const be = -B0 + (i / 60) * B0 * 2;
+        rimPts.push(hoodPoint(startA(be) + 0.02, be, 1.0));
+      }
+      const rim = new THREE.CatmullRomCurve3(rimPts);
+      hood.add(mesh(new THREE.TubeGeometry(rim, 120, 0.04, 10, false), slimeMat, false));
+      [rimPts[0], rimPts[rimPts.length - 1]].forEach(pp => {
+        const c = mesh(new THREE.SphereGeometry(0.04, 10, 8), slimeMat, false);
+        c.position.copy(pp);
+        hood.add(c);
+      });
+    }
+    {
+      const lockGeo = new THREE.SphereGeometry(1, 28, 20);
+      const lp = lockGeo.attributes.position;
+      for (let i = 0; i < lp.count; i++) {
+        const y = lp.getY(i);
+        const taper = y < 0 ? 1 - Math.pow(-y, 1.6) * 0.75 : 1;
+        lp.setX(i, lp.getX(i) * taper);
+        lp.setZ(i, lp.getZ(i) * taper);
+      }
+      lockGeo.computeVertexNormals();
+      const lock = mesh(lockGeo, hoodMat, false);
+      lock.scale.set(0.14, 0.24, 0.05);
+      lock.position.set(0.12, 0.12, HR * 0.96);
+      lock.rotation.set(-0.25, 0.28, 0.42);
+      hood.add(lock);
+      const lock2 = mesh(lockGeo, hoodMat, false);
+      lock2.scale.set(0.1, 0.17, 0.045);
+      lock2.position.set(-0.04, 0.2, HR * 0.95);
+      lock2.rotation.set(-0.35, 0.05, 0.5);
+      hood.add(lock2);
+      const drop = mesh(new THREE.SphereGeometry(0.03, 12, 10), slimeMat, false);
+      drop.position.set(0.215, -0.08, HR * 0.97);
+      drop.scale.y = 1.3;
+      hood.add(drop);
+    }
+
+    const filUnit = new THREE.CylinderGeometry(0.45, 1, 1, 6, 1);
+    filUnit.translate(0, 0.5, 0);
+    const tipUnit = new THREE.SphereGeometry(1, 8, 6);
+    const buildGill = len => {
+      const g = new THREE.Group();
+      const curve = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0, len * 0.4, -0.02), V3(0.0, len * 0.75, -0.08), V3(0, len, -0.18)]);
+      g.add(mesh(new THREE.TubeGeometry(curve, 20, 0.034, 8, false), plumeStalkMat, false));
+      const N = 18;
+      const fil = new THREE.InstancedMesh(filUnit, plumeFilMat, N * 6);
+      const tips = new THREE.InstancedMesh(tipUnit, plumeTipMat, N * 6);
+      const dummy = new THREE.Object3D();
+      const col = new THREE.Color();
+      let n = 0;
+      for (let i = 0; i < N; i++) {
+        const f = 0.15 + (i / (N - 1)) * 0.8;
+        const p = curve.getPointAt(f);
+        const tan = curve.getTangentAt(f);
+        [-1, 1].forEach(sd => [-0.4, 0, 0.4].forEach(zo => {
+          const jit = Math.sin(i * 12.9898 + sd * 78.233 + zo * 37.7) * 0.5 + 0.5;
+          const l = 0.24 * (1 - f * 0.5) * (0.75 + jit * 0.5) * (zo ? 0.85 : 1);
+          const dir = V3(zo * 0.6, -0.05 + jit * 0.08, sd * 0.42).add(tan.clone().multiplyScalar(1.0)).normalize();
+          dummy.position.copy(p);
+          dummy.quaternion.setFromUnitVectors(V3(0, 1, 0), dir);
+          dummy.scale.set(0.0075, l, 0.0075);
+          dummy.updateMatrix();
+          fil.setMatrixAt(n, dummy.matrix);
+          col.setHSL(0.76 + f * 0.04, 0.45, 0.32 + f * 0.25);
+          fil.setColorAt(n, col);
+          dummy.position.copy(p).add(dir.multiplyScalar(l));
+          dummy.quaternion.identity();
+          dummy.scale.setScalar(zo ? 0.009 : 0.012 + (1 - f) * 0.004);
+          dummy.updateMatrix();
+          tips.setMatrixAt(n, dummy.matrix);
+          n++;
+        }));
+      }
+      fil.instanceMatrix.needsUpdate = true;
+      if (fil.instanceColor) fil.instanceColor.needsUpdate = true;
+      tips.instanceMatrix.needsUpdate = true;
+      g.add(fil, tips);
+      return g;
+    };
+    const gills = [];
+    [-1, 1].forEach(s => {
+      [[0.02, 0.62, 0.1], [-0.09, 0.56, 0.0], [-0.19, 0.48, -0.1]].forEach(([y, len, z], k) => {
+        const pv = new THREE.Group();
+        pv.position.set(0.44 * s, y, z);
+        const g = buildGill(len);
+        pv.add(g);
+        head.add(pv);
+        gills.push({ pv, s, k, len, base: -s * (2.9 - k * 0.1) });
+      });
+    });
+
     const capeGeo = new THREE.BufferGeometry();
     let capeBase = null;
     let capeNU = 0;
@@ -747,25 +782,78 @@ Pets.register({
         g.computeVertexNormals();
       });
     };
+    const DRIP_N = 28;
+    const DRIP_R = 14;
+    const makeDripGeo = () => {
+      const pts = [];
+      for (let i = 0; i <= DRIP_N; i++) pts.push(new THREE.Vector2(0.01, -i / DRIP_N));
+      const g = new THREE.LatheGeometry(pts, DRIP_R);
+      g.attributes.position.setUsage(THREE.DynamicDrawUsage);
+      return g;
+    };
+    const shapeDrip = (g, l, br, pinch) => {
+      const L = l + br * 2;
+      const rn = 0.013 * (1 - pinch * 0.55);
+      const yc = -(L - br);
+      const arr = g.attributes.position.array;
+      for (let j = 0; j <= DRIP_R; j++) {
+        const a = (j / DRIP_R) * Math.PI * 2;
+        const ca = Math.sin(a);
+        const sa = Math.cos(a);
+        for (let i = 0; i <= DRIP_N; i++) {
+          const f = i / DRIP_N;
+          const y = -f * L;
+          const d = (y - yc) / br;
+          const sph = br * Math.sqrt(Math.max(0, 1 - d * d));
+          const neck = y > yc ? rn + 0.016 * Math.exp(y / 0.02) + (rn * 0.5) * Math.exp(-(y - yc - br) * (y - yc - br) / 0.0008) : 0;
+          const r = Math.max(0.0004, (sph + neck + Math.sqrt((sph - neck) * (sph - neck) + 0.00002)) / 2 - 0.0022);
+          const o = (j * (DRIP_N + 1) + i) * 3;
+          arr[o] = r * ca;
+          arr[o + 1] = y;
+          arr[o + 2] = r * sa;
+        }
+      }
+      g.attributes.position.needsUpdate = true;
+      g.computeVertexNormals();
+    };
+    const tearGeo = (() => {
+      const pts = [];
+      for (let i = 0; i <= 24; i++) {
+        const f = i / 24;
+        const r = f < 0.62 ? 0.03 * Math.pow(f / 0.62, 1.4) : 0.03 * Math.sqrt(Math.max(0, 1 - Math.pow((f - 0.62) / 0.38, 2)));
+        pts.push(new THREE.Vector2(Math.max(0.0004, r), 0.05 - f * 0.1));
+      }
+      return new THREE.LatheGeometry(pts, 16);
+    })();
     const capeDrips = [];
+    const fallDrops = [];
     for (let k = 0; k < 9; k++) {
-      const u = 0.1 + (k / 8) * 0.8;
-      const a = (u * 2 - 1) * 1.75;
-      const y0 = 0.86 - Math.pow(Math.abs(u * 2 - 1), 2) * 0.25;
-      const ty = (y0 - TC.y) / 0.5;
-      const tr = Math.sqrt(Math.max(0.05, 1 - ty * ty));
-      const rx = 0.38 * tr * 1.1 + 0.07;
-      const rz = 0.31 * tr + 0.07;
       const g = new THREE.Group();
-      g.position.set(Math.sin(a) * rx, y0, -Math.cos(a) * rz);
-      const len = 0.08 + ((k * 5) % 4) * 0.04;
-      const stem = mesh(new THREE.CylinderGeometry(0.012, 0.024, 1, 8), slimeMat, false);
-      stem.position.y = -0.5;
-      const bulb = mesh(new THREE.SphereGeometry(0.03, 10, 8), slimeMat, false);
+      const len = 0.05 + ((k * 5) % 4) * 0.025;
+      const dg = makeDripGeo();
+      const stem = mesh(dg, dripMat, false);
+      stem.frustumCulled = false;
+      const bulb = new THREE.Group();
+      const shine = mesh(new THREE.SphereGeometry(0.006, 8, 6), glowMat, false);
+      bulb.add(shine);
+      shine.position.set(-0.012, 0.01, 0.018);
       g.add(stem, bulb);
       torso.add(g);
-      capeDrips.push({ stem, bulb, len, ph: k * 1.3 });
+      capeDrips.push({ stem, bulb, dg, len, ph: k * 1.7, period: 4.2 + ((k * 7) % 5) * 0.9 });
+      shapeDrip(dg, len, 0.026, 0);
+      const dm = dripMat.clone();
+      const drop = mesh(tearGeo, dm, false);
+      drop.scale.setScalar(1.43);
+      drop.visible = false;
+      root.add(drop);
+      const pm = dripMat.clone();
+      const puddle = mesh(new THREE.CircleGeometry(0.05, 18), pm, false);
+      puddle.rotation.x = -Math.PI / 2;
+      puddle.visible = false;
+      root.add(puddle);
+      fallDrops.push({ drop, dm, puddle, pm });
     }
+    const dripW = V3(0, 0, 0);
     const hoodGlow = [];
     [[0.3, 1.62, -0.38], [-0.22, 1.35, -0.42], [0.12, 1.12, -0.44], [-0.3, 1.02, -0.38], [0.0, 1.8, -0.43]].forEach(([x, y, z]) => {
       const d = mesh(new THREE.SphereGeometry(0.03, 10, 8), glowMat, false);
@@ -1068,13 +1156,56 @@ Pets.register({
           d.scale.setScalar(1 + Math.sin(t * 2 + i) * 0.15 * motion + (hoodGlowK - 0.3) * 0.3);
         });
         updateCape(t, reduceMotion ? 0 : motion);
-        capeDrips.forEach(({ stem, bulb, len, ph: dp }, k) => {
+        updateHood(t, reduceMotion ? 0 : motion);
+        hoodMat.emissiveIntensity = slimeMat.emissiveIntensity;
+        dripMat.emissiveIntensity = slimeMat.emissiveIntensity + 0.05;
+        capeDrips.forEach(({ stem, bulb, dg, len, ph: dp, period }, k) => {
           const u = 0.1 + (k / (capeDrips.length - 1)) * 0.8;
           capePoint(u, 0.999, stem.parent.position);
-          const l = len * (1 + 0.25 * Math.sin(t * 1.1 + dp) * motion);
-          stem.scale.y = l;
-          stem.position.y = -l / 2;
-          bulb.position.y = -l;
+          stem.parent.position.y += 0.02;
+          const fd = fallDrops[k];
+          if (reduceMotion || !motion) {
+            fd.drop.visible = false;
+            fd.puddle.visible = false;
+            return;
+          }
+          const c = (((t + dp) / period) % 1 + 1) % 1;
+          const grow = smooth(0, 0.75, c);
+          const pull = smooth(0.55, 0.92, c);
+          const l = len * (0.5 + grow * 0.5 + pull * 0.9) * (1 + Math.sin(t * 3 + dp) * 0.04);
+          const br = c < 0.92 ? 0.012 + grow * 0.016 : 0.01;
+          shapeDrip(dg, c < 0.92 ? l : len * 0.4, br, c < 0.92 ? pull : 0);
+          stem.rotation.z = Math.sin(t * 2.3 + dp) * 0.05;
+          stem.scale.set(1, 1, 1);
+          bulb.position.set(0, -(l + br), 0);
+          bulb.visible = c < 0.92;
+          const tau = (((c - 0.92) % 1) + 1) % 1 * period;
+          bulb.visible = c < 0.92;
+          stem.parent.updateMatrixWorld(true);
+          bulb.getWorldPosition(dripW);
+          root.worldToLocal(dripW);
+          const h0 = Math.max(0.05, dripW.y - 0.05);
+          const gAcc = 7;
+          const tFall = Math.sqrt((2 * h0) / gAcc);
+          if (tau < tFall) {
+            fd.drop.visible = true;
+            fd.drop.position.set(dripW.x, dripW.y - 0.5 * gAcc * tau * tau, dripW.z);
+            fd.drop.scale.set(1.43 * (1 - Math.min(0.2, tau * 0.4)), 1.43 * (1.1 + tau * 0.7), 1.43 * (1 - Math.min(0.2, tau * 0.4)));
+            fd.dm.opacity = 0.88;
+            fd.puddle.visible = false;
+          } else if (tau < tFall + 1.4) {
+            const q = (tau - tFall) / 1.4;
+            fd.drop.visible = q < 0.08;
+            fd.drop.position.y = 0.02;
+            fd.drop.scale.set(1.43 * (1 + q * 8), 1.43 * Math.max(0.1, 0.6 - q * 6), 1.43 * (1 + q * 8));
+            fd.puddle.visible = true;
+            fd.puddle.position.set(dripW.x, 0.006, dripW.z);
+            fd.puddle.scale.setScalar(0.4 + smooth(0, 0.25, q) * 0.8 + q * 0.2);
+            fd.pm.opacity = 0.75 * (1 - smooth(0.4, 1, q));
+          } else {
+            fd.drop.visible = false;
+            fd.puddle.visible = false;
+          }
         });
 
         updateTail(t, 0.08 * motion);
