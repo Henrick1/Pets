@@ -143,14 +143,7 @@ Pets.register({
     smile.rotation.z = Math.PI;
     smile.position.set(0, -0.1, 0.285);
     head.add(smile);
-    const mandibles = [-1, 1].map(s => {
-      const g = new THREE.Group();
-      g.position.set(0.07 * s, -0.17, 0.2);
-      const c = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0.03 * s, -0.02, 0.06), V3(0.0, -0.03, 0.11)]);
-      g.add(mesh(new THREE.TubeGeometry(c, 8, 0.016, 6, false), darkMat, false));
-      head.add(g);
-      return { g, s };
-    });
+    const mandibles = [];
 
     const antennae = [-1, 1].map(s => {
       const g = new THREE.Group();
