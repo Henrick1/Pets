@@ -615,7 +615,7 @@ Pets.register({
         const end = pts[N];
         headDir.copy(tans[N]).multiplyScalar(0.35 + 0.65 * stream).addScaledVector(FWD, 0.65 * (1 - stream)).normalize();
         q.setFromUnitVectors(FWD, headDir);
-        head.position.copy(end).addScaledVector(tans[N], -0.05);
+        head.position.copy(end).addScaledVector(headDir, 0.34);
         head.quaternion.copy(q);
         let nod = Math.sin(t * 1.4) * 0.05 * motion;
         if (eat) nod += -0.35 * (1 - ph.fall) * (eat.p < 0.3 ? 1 : 0) + Math.sin(ph.chew * Math.PI) * 0.06;
