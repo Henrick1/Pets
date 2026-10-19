@@ -241,12 +241,10 @@ Pets.register({
       e.g.position.set(0.03 * s, 0.02, 0.15);
       e.g.rotation.y = 0.45 * s;
       tg.add(e.g);
-      const lid = mesh(new THREE.SphereGeometry(0.15, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.45), skin, false);
-      lid.geometry = paint(new THREE.SphereGeometry(0.15, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.45), () => TOP);
-      lid.position.copy(e.g.position);
-      lid.rotation.set(0.25, 0.45 * s, 0.25 * s);
-      lid.scale.set(1.05, 1, 0.75);
-      tg.add(lid);
+      const lidGeo = paint(new THREE.SphereGeometry(0.176, 32, 12, 0, Math.PI * 2, 0, Math.PI * 0.4), () => TOP);
+      const lid = mesh(lidGeo, skin, false);
+      lid.scale.set(1.1, 1.2, 0.72);
+      e.g.add(lid);
       eyes.push(e);
       return { tg, lid, s };
     });
@@ -432,7 +430,7 @@ Pets.register({
         head.rotation.x = eat ? -0.2 * (1 - ph.fall) + Math.sin(ph.chew * Math.PI) * 0.06 : 0;
         turrets.forEach(({ tg, lid, s: sd }) => {
           tg.rotation.z = sd * Math.sin(t * 0.9 + sd) * 0.05 * motion;
-          lid.rotation.x = 0.25 + (charge > 0.3 ? 0.5 : 0) - (fire > 0.3 ? 0.35 : 0) + (focus > 0.4 ? 0.25 : 0);
+          lid.rotation.x = 0.05 + (charge > 0.3 ? 0.5 : 0) - (fire > 0.3 ? 0.35 : 0) + (focus > 0.4 ? 0.25 : 0);
         });
 
         const webPts = [];
