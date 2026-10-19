@@ -31,6 +31,27 @@ Pets.register({
     const darkMat = std(0x120a1a, 0.2);
     const shadowMat = std(0x3a2050, 0.6);
     const mouthMat = new THREE.MeshBasicMaterial({ color: 0x4a2a40 });
+    const leatherMat = std(0x1a1420, 0.35, { metalness: 0.2 });
+    const denimMat = std(0x24202c, 0.8);
+    const steelMat = std(0xd8d8e4, 0.2, { metalness: 0.95 });
+    const linerMat = new THREE.MeshBasicMaterial({ color: 0x140a18 });
+    const spikeGeo = new THREE.ConeGeometry(0.022, 0.07, 10);
+    spikeGeo.translate(0, 0.035, 0);
+    const studBand = (parent, center, axis, radius, tubeR, n, spikeScale = 1) => {
+      const band = mesh(new THREE.TorusGeometry(radius, tubeR, 10, 36), leatherMat, false);
+      band.position.copy(center);
+      band.quaternion.setFromUnitVectors(V3(0, 0, 1), axis.clone().normalize());
+      parent.add(band);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const sp = mesh(spikeGeo, steelMat, false);
+        sp.position.set(Math.cos(a) * (radius + tubeR * 0.8), Math.sin(a) * (radius + tubeR * 0.8), 0);
+        sp.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(Math.cos(a), Math.sin(a), 0));
+        sp.scale.setScalar(spikeScale);
+        band.add(sp);
+      }
+      return band;
+    };
     const plumeStalkMat = std(0x7a4a9a, 0.5);
     const plumeFilMat = std(0xffffff, 0.5);
     const plumeTipMat = std(0x9a6ac8, 0.4, { emissive: 0x4a1a80, emissiveIntensity: 0.4 });
@@ -74,6 +95,11 @@ Pets.register({
       hip.position.set(0.2 * s, 0.78, -0.02);
       body.add(hip);
       hip.add(mesh(tube([V3(0, 0.06, 0), V3(0.03 * s, -0.2, 0.04), V3(0.04 * s, -0.36, 0.05)], 0.14, 0.1, 12, 14), skin));
+      hip.add(mesh(tube([V3(0, 0.1, 0), V3(0.025 * s, -0.08, 0.03), V3(0.035 * s, -0.2, 0.04)], 0.165, 0.135, 10, 16), denimMat));
+      const hem = mesh(new THREE.TorusGeometry(0.133, 0.014, 8, 20), denimMat, false);
+      hem.position.set(0.035 * s, -0.2, 0.04);
+      hem.rotation.x = Math.PI / 2 - 0.1;
+      hip.add(hem);
       const knee = new THREE.Group();
       knee.position.set(0.04 * s, -0.36, 0.05);
       hip.add(knee);
@@ -124,7 +150,47 @@ Pets.register({
     }
     const torsoMesh = mesh(torsoGeo, std(0xe6dcef, 0.5, { vertexColors: true }));
     torsoMesh.position.copy(TC);
+    torsoMesh.scale.set(0.86, 1, 0.9);
     torso.add(torsoMesh);
+    {
+      const pg = new THREE.SphereGeometry(1, 40, 20, 0, Math.PI * 2, Math.PI * 0.68, Math.PI * 0.32);
+      const pants = mesh(pg, denimMat);
+      pants.scale.set(0.38 * 0.86 * 1.06, 0.48 * 1.02, 0.31 * 0.9 * 1.1);
+      pants.position.copy(TC);
+      torso.add(pants);
+      const by = TC.y - 0.48 * Math.cos(Math.PI * 0.32) * 1.02;
+      const belt = mesh(new THREE.TorusGeometry(1, 0.06, 10, 48), leatherMat, false);
+      const br = Math.sin(Math.PI * 0.32);
+      belt.scale.set(0.38 * 0.86 * 1.08 * br, 0.31 * 0.9 * 1.12 * br, 0.35);
+      belt.rotation.x = Math.PI / 2;
+      belt.position.set(0, by + 0.01, 0);
+      torso.add(belt);
+      const buckle = mesh(new THREE.BoxGeometry(0.08, 0.06, 0.02), steelMat, false);
+      buckle.position.set(0, by + 0.01, 0.31 * 0.9 * 1.12 * br + 0.02);
+      torso.add(buckle);
+      for (let i = 0; i < 8; i++) {
+        const a = -1.3 + (i / 7) * 2.6;
+        const st = mesh(new THREE.SphereGeometry(0.014, 8, 6), steelMat, false);
+        if (Math.abs(a) < 0.25) continue;
+        st.position.set(Math.sin(a) * 0.38 * 0.86 * 1.12 * br, by + 0.01, Math.cos(a) * 0.31 * 0.9 * 1.16 * br);
+        torso.add(st);
+      }
+    }
+    {
+      const chain = [];
+      for (let i = 0; i <= 9; i++) {
+        const f = i / 9;
+        chain.push(V3(0.3 + Math.sin(f * Math.PI) * 0.03, 0.84 - Math.sin(f * Math.PI) * 0.14, 0.12 - f * 0.34));
+      }
+      for (let i = 0; i < chain.length - 1; i++) {
+        const link = mesh(new THREE.TorusGeometry(0.022, 0.006, 6, 12), steelMat, false);
+        link.position.copy(chain[i]).lerp(chain[i + 1], 0.5);
+        link.lookAt(chain[i + 1].clone().add(torso.position));
+        link.rotateZ(i % 2 ? Math.PI / 2 : 0);
+        link.scale.set(1, 1.6, 1);
+        torso.add(link);
+      }
+    }
     {
       const tdef = (x, y, z) => {
         const w = 1 + 0.12 * smooth(0.3, -0.7, y) - 0.12 * smooth(0.2, 0.9, y);
@@ -145,7 +211,7 @@ Pets.register({
 
     const arms = [-1, 1].map(s => {
       const sh = new THREE.Group();
-      sh.position.set(0.34 * s, 1.44, 0.02);
+      sh.position.set(0.31 * s, 1.44, 0.02);
       torso.add(sh);
       sh.add(mesh(new THREE.SphereGeometry(0.1, 16, 12), skin));
       sh.add(mesh(tube([V3(0, 0, 0), V3(0.05 * s, -0.18, 0.02), V3(0.07 * s, -0.36, 0.04)], 0.09, 0.07, 10, 12), skin));
@@ -168,6 +234,7 @@ Pets.register({
       });
       const thumb = mesh(tube([V3(-0.05 * s, -0.02, 0.02), V3(-0.06 * s, -0.07, 0.06), V3(-0.03 * s, -0.09, 0.075)], 0.022, 0.016, 8, 8), skin, false);
       hand.add(thumb);
+      studBand(el, V3(-0.015 * s, -0.24, 0.05), V3(0, 1, 0.15), 0.07, 0.032, 7, 1.0);
       return { sh, el, s };
     });
 
@@ -203,6 +270,8 @@ Pets.register({
       lidMesh.scale.set(1.35, 1.2, 0.9);
       lid.add(lidMesh);
       lid.rotation.set(-0.05, 0, s * 0.42);
+      const liner = mesh(tube([V3(-0.075 * s, -0.005, 0.02), V3(-0.02 * s, -0.045, 0.035), V3(0.04 * s, -0.04, 0.03), V3(0.09 * s, 0.0, 0.015), V3(0.125 * s, 0.03, 0.0)], 0.011, 0.004, 20, 6), linerMat, false);
+      g.add(liner);
       return { g, lid, s };
     });
     [-1, 1].forEach(s => {
@@ -211,6 +280,17 @@ Pets.register({
     const frown = mesh(new THREE.TorusGeometry(0.085, 0.016, 8, 20, Math.PI), mouthMat, false);
     frown.scale.set(1.1, 0.4, 1);
     frown.position.set(0.02, -0.17, HR * 0.97);
+    {
+      const ring = mesh(new THREE.TorusGeometry(0.022, 0.006, 8, 18), steelMat, false);
+      ring.position.set(0.085, -0.2, HR * 0.95);
+      ring.rotation.set(0.2, 0.3, 0.3);
+      head.add(ring);
+      [0, 1].forEach(k => {
+        const st = mesh(new THREE.SphereGeometry(0.012, 8, 6), steelMat, false);
+        st.position.set(-0.27 + k * 0.035, 0.2 + k * 0.025, HR * 0.78);
+        head.add(st);
+      });
+    }
     frown.rotation.z = 0.06;
     head.add(frown);
     const openMouth = mesh(new THREE.SphereGeometry(0.06, 14, 10), mouthMat, false);
@@ -310,6 +390,18 @@ Pets.register({
         c.position.copy(pp);
         hood.add(c);
       });
+    }
+    for (let i = 0; i < 7; i++) {
+      const f = i / 6;
+      const al = lerp(1.45, 2.65, f);
+      const p0 = hoodPoint(al, 0, 0.97);
+      const n = hoodPoint(al, 0, 1.2).sub(p0).normalize();
+      const h = 0.22 - Math.abs(f - 0.25) * 0.14;
+      const sp = mesh(new THREE.ConeGeometry(0.065 - f * 0.015, h, 14), slimeMat, false);
+      sp.geometry.translate(0, h / 2, 0);
+      sp.position.copy(p0);
+      sp.quaternion.setFromUnitVectors(V3(0, 1, 0), n.add(V3(0, 0, -0.5)).normalize());
+      hood.add(sp);
     }
     {
       const lockGeo = new THREE.SphereGeometry(1, 28, 20);
@@ -645,6 +737,7 @@ Pets.register({
 
         arms.forEach(({ sh, el, s: sd }) => {
           sh.position.y = 1.44 + shoulder;
+          sh.position.x = 0.31 * sd;
           sh.rotation.x = lerp(sh.rotation.x, -armFwd + Math.sin(t * 1.2 + sd) * 0.02 * motion, 0.15);
           sh.rotation.z = sd * (0.14 + breath * 0.01) + shake;
           el.rotation.x = -0.35 - armFwd * 1.5 - Math.abs(shake) * 2;
