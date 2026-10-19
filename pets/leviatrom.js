@@ -59,7 +59,7 @@ Pets.register({
 
     const N = 96;
     const M = 20;
-    const radiusAt = u => 0.045 + 0.28 * smooth(0, 0.45, u) - 0.07 * smooth(0.74, 1, u);
+    const radiusAt = u => 0.045 + 0.28 * smooth(0, 0.45, u) - 0.07 * smooth(0.74, 1, u) - 0.05 * smooth(0.93, 1, u);
 
     const bodyGeo = new THREE.BufferGeometry();
     const bodyPos = new Float32Array((N + 1) * M * 3);
@@ -120,12 +120,17 @@ Pets.register({
     const tmp2 = V3(0, 0, 0);
     const dir = V3(0, 0, 0);
 
+    const NECK_END = 0.97;
+    const headEnd = V3(0, 0, 0);
+    const headTan = V3(0, 0, 1);
     function buildBody() {
+      curve.getPointAt(1, headEnd);
+      curve.getTangentAt(1, headTan).normalize();
       curve.updateArcLengths();
       for (let i = 0; i <= N; i++) {
         const u = i / N;
-        curve.getPointAt(u, pts[i]);
-        curve.getTangentAt(u, tans[i]).normalize();
+        curve.getPointAt(u * NECK_END, pts[i]);
+        curve.getTangentAt(u * NECK_END, tans[i]).normalize();
       }
       const t0 = tans[0];
       tmp.copy(Math.abs(t0.y) > 0.9 ? FWD : UP);
@@ -349,7 +354,7 @@ Pets.register({
     const G_EDGE = hexParts(0xe0587e);
     const G_DEEP = hexParts(0x4a1028);
     const innerMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide });
-    const CAV_T = 0.38;
+    const CAV_T = 0.46;
     const cavT = u => lerp(CAV_T, 1, u);
     const roofAt = (t, th, sc, out) => {
       const k = rollK(t);
@@ -515,7 +520,7 @@ Pets.register({
     const hoodMat = new THREE.MeshStandardMaterial({ color: 0x2f7fe0, emissive: 0x1450b0, emissiveIntensity: 0.45, roughness: 0.65, transparent: true, opacity: 0.86, side: THREE.DoubleSide });
     const RIB_Y = 0.12;
     const hood = new THREE.Group();
-    hood.position.set(0, -0.42, -0.42);
+    hood.position.set(0, -0.2, 0);
     hood.rotation.x = -0.34;
     hood.add(mesh(hoodGeo, hoodMat, false));
     tips.forEach(([x, y]) => {
@@ -531,8 +536,12 @@ Pets.register({
       tipBall.position.set(x * 0.96, RIB_Y + (y - RIB_Y) * 0.96, bend(x * 0.96, RIB_Y + (y - RIB_Y) * 0.96) + 0.014);
       hood.add(tipBall);
     });
-    hood.scale.set(1.5, 1.3, 1.3);
-    head.add(hood);
+    hood.scale.set(1.95, 1.69, 1.69);
+    const hoodMount = new THREE.Group();
+    hoodMount.add(hood);
+    swim.add(hoodMount);
+    const hoodX = V3(0, 0, 0);
+    const hoodZ = V3(0, 0, 0);
 
 
     const crestShape = new THREE.Shape();
@@ -742,10 +751,10 @@ Pets.register({
         swim.position.set(0, 0, 0);
         swim.rotation.set(0.22 * stream + Math.sin(orbit) * 0.1 * stream, orbit, Math.cos(orbit) * 0.08 * stream);
 
-        const end = pts[N];
-        headDir.copy(tans[N]).multiplyScalar(0.35 + 0.65 * stream).addScaledVector(FWD, 0.65 * (1 - stream)).normalize();
+        const end = headEnd;
+        headDir.copy(headTan).multiplyScalar(0.35 + 0.65 * stream).addScaledVector(FWD, 0.65 * (1 - stream)).normalize();
         q.setFromUnitVectors(FWD, headDir);
-        head.position.copy(end).addScaledVector(tans[N], -0.05);
+        head.position.copy(end).addScaledVector(headTan, -0.05);
         head.quaternion.copy(q);
         let nod = Math.sin(t * 1.4) * 0.05 * motion;
         if (eat) nod += -0.35 * (1 - ph.fall) * (eat.p < 0.3 ? 1 : 0) + Math.sin(ph.chew * Math.PI) * 0.06;
@@ -753,7 +762,13 @@ Pets.register({
         head.rotateX(nod);
         head.rotateZ(Math.sin(t * 0.9) * 0.06 * motion);
         head.rotateY(survey);
-        hood.scale.set(1.5 * (1 + rise * 0.18 + roar * 0.12), 1.3 * (1 + rise * 0.22 + roar * 0.14), 1.3);
+        hood.scale.set(1.95 * (1 + rise * 0.18 + roar * 0.12), 1.69 * (1 + rise * 0.22 + roar * 0.14), 1.69);
+        const hi = N - 9;
+        hoodX.crossVectors(tans[hi], bellies[hi]).normalize();
+        hoodZ.crossVectors(hoodX, tans[hi]);
+        basis.makeBasis(hoodX, tans[hi], hoodZ);
+        hoodMount.quaternion.setFromRotationMatrix(basis);
+        hoodMount.position.copy(pts[hi]);
 
         let mouth = 0;
         if (eat) mouth = eat.p < 0.3 ? smooth(0.08, 0.28, eat.p) * 0.55 : eat.p < 0.85 ? 0.08 + ph.chew * 0.3 : 0;
