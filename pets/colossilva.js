@@ -620,7 +620,7 @@ Pets.register({
         const x = Math.sin(d) * 0.3;
         fist.add(mesh(taperTube([V3(x, 0.05, 0.12), V3(x * 1.1, 0.0, 0.3), V3(x * 1.15, -0.16, 0.32), V3(x * 1.1, -0.2, 0.18)], 0.1, 0.07, 14, 10), limbMat));
       });
-      fist.add(mesh(taperTube([V3(0.18 * s, 0.0, 0.0), V3(0.32 * s, -0.05, 0.12), V3(0.3 * s, -0.17, 0.25)], 0.09, 0.05, 10, 8), limbMat));
+      fist.add(mesh(taperTube([V3(-0.18 * s, 0.0, 0.0), V3(-0.32 * s, -0.05, 0.12), V3(-0.3 * s, -0.17, 0.25)], 0.09, 0.05, 10, 8), limbMat));
       const cuff = mesh(mossBlob(0.24, 5 + s, 0.6), mossMat);
       cuff.position.set(0.34 * s, -1.42, 0.5);
       pivot.add(cuff);

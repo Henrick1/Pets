@@ -642,7 +642,7 @@ Pets.register({
         fist.add(f);
         return f;
       });
-      fist.add(mesh(taperTube([V3(0.1 * s, 0.0, 0.0), V3(0.18 * s, -0.03, 0.07), V3(0.17 * s, -0.1, 0.14)], 0.05, 0.03, 10, 8), limbMat));
+      fist.add(mesh(taperTube([V3(-0.1 * s, 0.0, 0.0), V3(-0.18 * s, -0.03, 0.07), V3(-0.17 * s, -0.1, 0.14)], 0.05, 0.03, 10, 8), limbMat));
       const cuff = mesh(mossBlob(0.14, 5 + s, 0.6), mossMat);
       cuff.position.set(0.16 * s, -0.56, 0.15);
       pivot.add(cuff);
