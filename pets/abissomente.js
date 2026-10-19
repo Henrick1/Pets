@@ -259,11 +259,6 @@ Pets.register({
     gem.scale.set(0.75, 1.15, 0.55);
     third.add(gem);
 
-    const siphon = mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.18, 14, 1, true), skin, false);
-    siphon.geometry = paint(new THREE.CylinderGeometry(0.05, 0.08, 0.18, 14, 1, true), () => MID);
-    siphon.rotation.set(Math.PI / 2 - 0.6, 0, 0);
-    siphon.position.set(0.0, -0.3, 0.5);
-    head.add(siphon);
     const beak = mesh(new THREE.ConeGeometry(0.05, 0.1, 10), new THREE.MeshStandardMaterial({ color: 0x1a1428, roughness: 0.3 }), false);
     beak.rotation.x = Math.PI;
     beak.position.set(0, -0.58, 0.05);
@@ -562,7 +557,7 @@ Pets.register({
 
         if (eat) {
           food.visible = ph.visible;
-          food.position.set(0, lerp(3.5, HOVER + y - 0.45, ph.fall * ph.fall), 0.45);
+          food.position.set(0, lerp(3.5, HOVER + y - 0.62, ph.fall * ph.fall), lerp(0.75, 0.08, smooth(0.75, 1, ph.fall)));
           food.scale.setScalar((1 - 0.85 * ph.bite) * 0.8);
         } else food.visible = false;
       }
