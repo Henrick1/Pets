@@ -300,20 +300,64 @@ Pets.register({
     torsoMesh.rotation.x = 0.08;
     torso.add(torsoMesh);
     {
-      const bg = new THREE.SphereGeometry(0.46, 48, 32);
-      const pos = bg.attributes.position;
-      const col = new Float32Array(pos.count * 3);
-      const A = hexParts(0x8acc96);
-      const B = hexParts(0x5a9c6c);
-      for (let i = 0; i < pos.count; i++) {
-        const y = pos.getY(i) / 0.46;
-        for (let j = 0; j < 3; j++) col[i * 3 + j] = lerp(B[j], A[j], smooth(-0.8, 0.4, y));
-      }
-      bg.setAttribute("color", new THREE.BufferAttribute(col, 3));
-      const belly = mesh(bg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
-      belly.position.set(0, 0.9, 0.24);
-      belly.scale.set(0.72, 0.82, 0.72);
-      torso.add(belly);
+      const bellyTex = canvasTex(256, 256, (g, rnd) => {
+        const gr = g.createRadialGradient(128, 110, 10, 128, 128, 150);
+        gr.addColorStop(0, "#b8f0c0");
+        gr.addColorStop(1, "#5a9c6c");
+        g.fillStyle = gr;
+        g.fillRect(0, 0, 256, 256);
+        const branch = (x, y, a, w, depth) => {
+          if (depth <= 0 || w < 0.6) return;
+          const len = 22 + rnd() * 26;
+          const nx = x + Math.cos(a) * len;
+          const ny = y + Math.sin(a) * len;
+          g.strokeStyle = "#5a3a1e";
+          g.lineWidth = w;
+          g.lineCap = "round";
+          g.beginPath();
+          g.moveTo(x, y);
+          g.quadraticCurveTo((x + nx) / 2 + (rnd() - 0.5) * 10, (y + ny) / 2 + (rnd() - 0.5) * 10, nx, ny);
+          g.stroke();
+          g.strokeStyle = "rgba(150,110,70,0.6)";
+          g.lineWidth = w * 0.35;
+          g.beginPath();
+          g.moveTo(x - 1, y - 1);
+          g.lineTo(nx - 1, ny - 1);
+          g.stroke();
+          branch(nx, ny, a + (rnd() - 0.5) * 0.9, w * 0.8, depth - 1);
+          if (rnd() < 0.45) branch(nx, ny, a + (rnd() < 0.5 ? -1 : 1) * (0.5 + rnd() * 0.5), w * 0.55, depth - 1);
+        };
+        branch(14, 50, 0.45, 16, 4);
+        branch(242, 60, Math.PI - 0.45, 16, 4);
+        branch(128, 256, -Math.PI / 2 + 0.15, 14, 4);
+      }, 1, 1);
+      const bellyMask = canvasTex(256, 256, (g, rnd) => {
+        g.fillStyle = "#000";
+        g.fillRect(0, 0, 256, 256);
+        g.fillStyle = "#fff";
+        g.beginPath();
+        for (let i = 0; i <= 48; i++) {
+          const t = (i / 48) * Math.PI * 2;
+          const rr = 0.42 + 0.03 * Math.sin(t * 7) + (rnd() - 0.5) * 0.03;
+          const x = 128 + Math.cos(t) * rr * 256;
+          const y = 128 + Math.sin(t) * rr * 256 * 1.05;
+          if (i) g.lineTo(x, y);
+          else g.moveTo(x, y);
+        }
+        g.fill();
+      }, 1, 1);
+      [bellyTex, bellyMask].forEach(t => {
+        if (t) {
+          t.wrapS = THREE.ClampToEdgeWrapping;
+          t.wrapT = THREE.ClampToEdgeWrapping;
+        }
+      });
+      const bellyGeo = new THREE.SphereGeometry(1, 64, 40, Math.PI / 2 - 0.75, 1.5, Math.PI * 0.32, Math.PI * 0.5);
+      const pos = bellyGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) pos.setXYZ(i, pos.getX(i) * TR.x * 1.025, pos.getY(i) * TR.y * 1.025, pos.getZ(i) * TR.z * 1.025);
+      bellyGeo.computeVertexNormals();
+      const belly = mesh(bellyGeo, new THREE.MeshStandardMaterial({ map: bellyTex, alphaMap: bellyMask, alphaTest: 0.5, roughness: 0.6, bumpMap: bellyTex, bumpScale: 0.01 }), false);
+      torsoMesh.add(belly);
     }
     [[-1.0, 0.25, -1.3, -0.25], [-2.1, 0.3, -1.9, -0.2]].forEach(([t0, p0, t1, p1], k) => {
       const pts = [];
@@ -417,11 +461,11 @@ Pets.register({
     }
 
     const capG = new THREE.Group();
-    capG.position.set(0, 0.06, -0.26);
-    capG.rotation.x = -1.0;
+    capG.position.set(0, 0.13, -0.05);
+    capG.rotation.x = -0.18;
     headPivot.add(capG);
     const CAP_T = Math.PI * 0.42;
-    const capR = 0.62;
+    const capR = 0.67;
     const capGeo = new THREE.SphereGeometry(capR, 72, 24, 0, Math.PI * 2, 0, CAP_T);
     {
       const pos = capGeo.attributes.position;
