@@ -341,13 +341,22 @@ Pets.register({
     const G_EDGE = hexParts(0xe0587e);
     const G_DEEP = hexParts(0x4a1028);
     const innerMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide });
-    const roofGeo = surface((u, v, out) => {
-      const th = v * Math.PI;
-      const k = rollK(u);
-      return out.set(hw(u) * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9), MOUTH_Y - LIP_D * k + ht(u) * 0.55 * Math.pow(Math.sin(th), 0.8), hz(u));
-    }, 48, 24, (u, v) => mixC(G_EDGE, G_DEEP, smooth(0.15, 0.9, Math.sin(v * Math.PI)) * 0.7 + (1 - smooth(0.2, 0.6, u)) * 0.3), true);
+    const CAV_T = 0.38;
+    const cavT = u => lerp(CAV_T, 1, u);
+    const roofAt = (t, th, sc, out) => {
+      const k = rollK(t);
+      return out.set(hw(t) * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9) * sc, MOUTH_Y - LIP_D * k + ht(t) * 0.55 * Math.pow(Math.sin(th), 0.8) * sc, hz(t));
+    };
+    const floorAt = (t, th, sc, out) => {
+      const k = rollK(t);
+      return out.set(hw(t) * JAW_W * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9) * sc, MOUTH_Y - LIP_D * 0.4 * k - hd(t) * 0.6 * Math.pow(Math.abs(Math.sin(th)), 0.8) * sc, hz(t));
+    };
+    const cavColor = (u, v) => mixC(G_EDGE, G_DEEP, smooth(0.15, 0.9, Math.abs(Math.sin(v * Math.PI))) * 0.7 + (1 - smooth(0, 0.4, u)) * 0.3);
+    const roofGeo = surface((u, v, out) => roofAt(cavT(u), v * Math.PI, 1, out), 40, 24, cavColor, true);
     const roof = mesh(roofGeo, innerMat, false);
     head.add(roof);
+    const throatUp = mesh(surface((u, v, out) => roofAt(CAV_T, v * Math.PI, u, out), 6, 24, () => G_DEEP, false), innerMat, false);
+    head.add(throatUp);
 
     const lipPts = [];
     const LIP_T = 0.42;
@@ -384,14 +393,13 @@ Pets.register({
     jawGeo.translate(0, -MOUTH_Y, -HINGE_Z);
     const jawMesh = mesh(jawGeo, skinHead, false);
     jaw.add(jawMesh);
-    const floorGeo = surface((u, v, out) => {
-      const th = Math.PI + v * Math.PI;
-      const k = rollK(u);
-      return out.set(hw(u) * JAW_W * (1 - LIP_IN * k) * spow(Math.cos(th), 0.9), MOUTH_Y - LIP_D * 0.4 * k - hd(u) * 0.6 * Math.pow(Math.abs(Math.sin(th)), 0.8), hz(u));
-    }, 48, 24, (u, v) => mixC(G_EDGE, G_DEEP, smooth(0.15, 0.9, Math.abs(Math.sin(v * Math.PI))) * 0.7 + (1 - smooth(0.2, 0.6, u)) * 0.3), false);
+    const floorGeo = surface((u, v, out) => floorAt(cavT(u), Math.PI + v * Math.PI, 1, out), 40, 24, cavColor, false);
     floorGeo.translate(0, -MOUTH_Y, -HINGE_Z);
     const floor = mesh(floorGeo, innerMat, false);
     jaw.add(floor);
+    const throatDownGeo = surface((u, v, out) => floorAt(CAV_T, Math.PI + v * Math.PI, u, out), 6, 24, () => G_DEEP, false);
+    throatDownGeo.translate(0, -MOUTH_Y, -HINGE_Z);
+    jaw.add(mesh(throatDownGeo, innerMat, false));
     const lowerTeeth = [];
     for (let k = 0; k < 9; k++) {
       const f = k / 8;
@@ -404,7 +412,7 @@ Pets.register({
       lowerTeeth.push(tooth);
     }
     const tongue = new THREE.Group();
-    tongue.position.set(0, -0.06, 0.06);
+    tongue.position.set(0, -0.06, 0.1);
     jaw.add(tongue);
     const tongueMat = mat(0xff5f86, 0.45);
     const stem = mesh(new THREE.CylinderGeometry(0.016, 0.024, 0.34, 10), tongueMat, false);
@@ -615,7 +623,7 @@ Pets.register({
         const end = pts[N];
         headDir.copy(tans[N]).multiplyScalar(0.35 + 0.65 * stream).addScaledVector(FWD, 0.65 * (1 - stream)).normalize();
         q.setFromUnitVectors(FWD, headDir);
-        head.position.copy(end).addScaledVector(headDir, 0.34);
+        head.position.copy(end).addScaledVector(tans[N], -0.05);
         head.quaternion.copy(q);
         let nod = Math.sin(t * 1.4) * 0.05 * motion;
         if (eat) nod += -0.35 * (1 - ph.fall) * (eat.p < 0.3 ? 1 : 0) + Math.sin(ph.chew * Math.PI) * 0.06;
@@ -632,7 +640,7 @@ Pets.register({
         if (flick) mouth = Math.max(mouth, 0.16 * flick);
         jaw.rotation.x = lerp(jaw.rotation.x, mouth, 0.35);
         const out = flick + (hop > 0.3 ? 0.5 : 0);
-        tongue.position.z = 0.18 + out * 0.32;
+        tongue.position.z = 0.1 + out * 0.32;
         tongue.rotation.x = -0.15 * out + Math.sin(t * 40) * 0.08 * out;
         tongue.visible = jaw.rotation.x > 0.05;
         lowerTeeth.forEach(tt => {
