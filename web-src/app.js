@@ -66,6 +66,10 @@
   let expTicker = 0;
   let dailyShown = "";
   let expPick = null;
+  let shownCoins = null;
+  let coinAnim = 0;
+  let bagNew = 0;
+  const bought = {};
   const expDraft = { curta: [], media: [], longa: [] };
 
   const ITEM_ICONS = {
@@ -803,15 +807,130 @@
     return parts.join(", ");
   }
 
+  function buzz(ms) {
+    try {
+      if (navigator.vibrate) navigator.vibrate(ms);
+    } catch (err) {}
+  }
+
+  function setBagCoins(value, animate) {
+    const el = $("bag-coins");
+    if (!el.firstChild || el.firstChild.nodeType !== 3) el.prepend(document.createTextNode(""));
+    const txt = el.firstChild;
+    cancelAnimationFrame(coinAnim);
+    if (!animate || shownCoins === null || shownCoins === value) {
+      shownCoins = value;
+      txt.nodeValue = value + " moedas";
+      return;
+    }
+    const from = shownCoins;
+    const t0 = performance.now();
+    const step = now => {
+      const k = Math.max(0, Math.min(1, (now - t0) / 650));
+      const e = 1 - Math.pow(1 - k, 3);
+      shownCoins = Math.round(from + (value - from) * e);
+      txt.nodeValue = shownCoins + " moedas";
+      if (k < 1) coinAnim = requestAnimationFrame(step);
+      else coinAnim = 0;
+    };
+    coinAnim = requestAnimationFrame(step);
+    el.classList.remove("spend");
+    void el.offsetWidth;
+    el.classList.add("spend");
+    const d = document.createElement("span");
+    d.className = "coin-delta";
+    d.textContent = (value < from ? "-" : "+") + Math.abs(value - from);
+    el.append(d);
+    setTimeout(() => d.remove(), 1000);
+  }
+
+  function relRect(host, el) {
+    const r = el.getBoundingClientRect();
+    const h = host.getBoundingClientRect();
+    return { x: r.left - h.left - host.clientLeft + host.scrollLeft, y: r.top - h.top - host.clientTop + host.scrollTop, w: r.width, h: r.height };
+  }
+
+  function flyTo(node, fromEl, toEl, onDone) {
+    const host = fromEl.closest("dialog") || document.body;
+    const a = relRect(host, fromEl);
+    const b = relRect(host, toEl);
+    node.classList.add("fly");
+    host.append(node);
+    const nw = node.offsetWidth || 30;
+    const nh = node.offsetHeight || 30;
+    const x0 = a.x + a.w / 2 - nw / 2;
+    const y0 = a.y + a.h / 2 - nh / 2;
+    const x1 = b.x + b.w / 2 - nw / 2;
+    const y1 = b.y + b.h / 2 - nh / 2;
+    const lift = Math.min(y0, y1) - 70;
+    node.style.left = "0px";
+    node.style.top = "0px";
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !node.animate) {
+      node.remove();
+      if (onDone) onDone();
+      return;
+    }
+    const pts = [];
+    for (let i = 0; i <= 12; i++) {
+      const k = i / 12;
+      const x = x0 + (x1 - x0) * k;
+      const y = (1 - k) * (1 - k) * y0 + 2 * (1 - k) * k * lift + k * k * y1;
+      const sc = i === 0 ? 0.6 : 1.25 - k * 0.7;
+      pts.push({ transform: "translate(" + x + "px," + y + "px) scale(" + sc + ")", opacity: k > 0.9 ? 0.3 : 1 });
+    }
+    const an = node.animate(pts, { duration: 700, easing: "cubic-bezier(0.4, 0, 0.6, 1)", fill: "forwards" });
+    let finished = false;
+    const fin = () => {
+      if (finished) return;
+      finished = true;
+      node.remove();
+      toEl.classList.remove("got");
+      void toEl.offsetWidth;
+      toEl.classList.add("got");
+      if (onDone) onDone();
+    };
+    an.onfinish = fin;
+    setTimeout(fin, 800);
+  }
+
+  function sparkle(host, el, color) {
+    const r = relRect(host, el);
+    for (let i = 0; i < 12; i++) {
+      const p = document.createElement("span");
+      p.className = "spark";
+      p.style.left = r.x + r.w / 2 + "px";
+      p.style.top = r.y + r.h / 2 + "px";
+      p.style.background = color || "var(--warn)";
+      const a = (i / 12) * Math.PI * 2;
+      const d = 40 + (i % 3) * 18;
+      p.style.setProperty("--dx", Math.cos(a) * d + "px");
+      p.style.setProperty("--dy", Math.sin(a) * d + "px");
+      host.append(p);
+      setTimeout(() => p.remove(), 800);
+    }
+  }
+
+  function showBagNew() {
+    const el = $("bag-new");
+    el.textContent = "+" + bagNew;
+    el.hidden = bagNew <= 0;
+    el.classList.remove("got");
+    void el.offsetWidth;
+    el.classList.add("got");
+  }
+
   function openBag(t) {
     bagTab = t || "bag";
+    shownCoins = null;
     renderBag();
     $("bag-sheet").showModal();
   }
 
   function renderBag() {
     Game.catchUp(state);
-    $("bag-coins").textContent = state.coins + " moedas";
+    if (!coinAnim || shownCoins === state.coins) setBagCoins(state.coins, false);
+    if (bagTab === "bag") bagNew = 0;
+    $("bag-new").hidden = bagNew <= 0;
     $("tab-bag").setAttribute("aria-selected", String(bagTab === "bag"));
     $("tab-store").setAttribute("aria-selected", String(bagTab === "store"));
     $("tab-eggstore").setAttribute("aria-selected", String(bagTab === "eggs"));
@@ -819,8 +938,12 @@
     $("store-list").hidden = bagTab !== "store";
     $("egg-store").hidden = bagTab !== "eggs";
     const pool = Game.eggPool(state, baseIds());
-    $("buy-egg").disabled = state.coins < Game.C.EGG_PRICE || !pool.length;
-    $("buy-egg").textContent = "Comprar por " + Game.C.EGG_PRICE + " moedas";
+    const eggDone = bought.egg && bought.egg > Date.now();
+    $("buy-egg").disabled = !eggDone && (state.coins < Game.C.EGG_PRICE || !pool.length);
+    $("buy-egg").textContent = eggDone ? "Comprado!" : "Comprar por " + Game.C.EGG_PRICE + " moedas";
+    $("buy-egg").classList.toggle("bought", !!eggDone);
+    const waiting = state.eggs.filter(e => e.slot === null).length;
+    $("egg-owned").textContent = waiting ? (waiting === 1 ? "1 ovo esperando no inventário" : waiting + " ovos esperando no inventário") : "";
     const petName = state.pet ? (meta[Game.speciesOf(state)] || {}).name || "" : "";
     const bag = $("bag-list");
     const store = $("store-list");
@@ -881,15 +1004,26 @@
         const buy = document.createElement("button");
         buy.type = "button";
         buy.className = "btn primary small";
-        buy.textContent = it.price + " moedas";
+        const done = bought[k] && bought[k] > Date.now();
+        buy.textContent = done ? "Comprado!" : it.price + " moedas";
+        buy.classList.toggle("bought", !!done);
         buy.setAttribute("aria-label", "Comprar " + it.name + " por " + it.price + " moedas");
         buy.disabled = state.coins < it.price;
         buy.addEventListener("click", () => {
+          const before = state.coins;
           const r = Game.buyItem(state, k);
           if (!r.changed) return;
           saveState();
           scheduleSync();
-          showToast(it.name + " foi para a mochila");
+          buzz(18);
+          shownCoins = before;
+          setBagCoins(state.coins, true);
+          bought[k] = Date.now() + 900;
+          setTimeout(() => $("bag-sheet").open && renderBag(), 950);
+          flyTo(itemIcon(k), el.querySelector(".item-ico"), $("tab-bag"), () => {
+            bagNew += 1;
+            showBagNew();
+          });
           renderBag();
           render();
         });
@@ -1523,11 +1657,24 @@
       renderBag();
     });
     $("buy-egg").addEventListener("click", () => {
+      if (bought.egg && bought.egg > Date.now()) return;
+      const before = state.coins;
       const r = Game.buyEgg(state, baseIds());
       if (!r.changed) return;
       saveState();
       scheduleSync();
-      showToast("Ovo adicionado ao inventário");
+      buzz([15, 40, 25]);
+      shownCoins = before;
+      setBagCoins(state.coins, true);
+      bought.egg = Date.now() + 1100;
+      setTimeout(() => $("bag-sheet").open && renderBag(), 1150);
+      const egg = $("shop-egg");
+      egg.classList.remove("hatch-hop");
+      void egg.offsetWidth;
+      egg.classList.add("hatch-hop");
+      sparkle($("bag-sheet"), egg, "#c9a8ff");
+      const mini = miniEgg("#b9a7d6");
+      setTimeout(() => flyTo(mini, egg, $("egg-owned")), 260);
       renderBag();
       render();
     });

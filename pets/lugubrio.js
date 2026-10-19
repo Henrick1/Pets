@@ -34,13 +34,13 @@ Pets.register({
     const spikeGeo = new THREE.ConeGeometry(0.024, 0.08, 10);
     spikeGeo.translate(0, 0.04, 0);
     const studBand = (parent, center, axis, radius, tubeR, n) => {
-      const band = mesh(new THREE.TorusGeometry(radius, tubeR, 10, 36), slimeMat, false);
+      const band = mesh(new THREE.TorusGeometry(radius, tubeR, 10, 36), hoodMat, false);
       band.position.copy(center);
       band.quaternion.setFromUnitVectors(V3(0, 0, 1), axis.clone().normalize());
       parent.add(band);
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
-        const sp = mesh(spikeGeo, slimeMat, false);
+        const sp = mesh(spikeGeo, hoodMat, false);
         sp.position.set(Math.cos(a) * (radius + tubeR * 0.8), Math.sin(a) * (radius + tubeR * 0.8), 0);
         sp.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(Math.cos(a), Math.sin(a), 0));
         band.add(sp);
@@ -53,6 +53,92 @@ Pets.register({
     const limbSkin = std(0xd2c4e2, 0.5);
     const venomMat = std(0x9a50e0, 0.3, { emissive: 0x7a28d0, emissiveIntensity: 0.7 });
 
+    const slimeTex = (() => {
+      const N = 256;
+      const cv = document.createElement("canvas");
+      cv.width = N;
+      cv.height = N;
+      const c = cv.getContext("2d");
+      let seed = 7;
+      const rnd = () => {
+        seed = (seed * 16807) % 2147483647;
+        return seed / 2147483647;
+      };
+      const wrap = fn => {
+        for (let dx = -N; dx <= N; dx += N) for (let dy = -N; dy <= N; dy += N) fn(dx, dy);
+      };
+      c.fillStyle = "#a6a6a6";
+      c.fillRect(0, 0, N, N);
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * N;
+        const y = rnd() * N;
+        const r = 10 + rnd() * 34;
+        const light = rnd() < 0.55;
+        wrap((dx, dy) => {
+          const g = c.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+          g.addColorStop(0, light ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.3)");
+          g.addColorStop(1, "rgba(128,128,128,0)");
+          c.fillStyle = g;
+          c.beginPath();
+          c.ellipse(x + dx, y + dy, r * 0.8, r * 1.3, 0, 0, Math.PI * 2);
+          c.fill();
+        });
+      }
+      for (let i = 0; i < 22; i++) {
+        const x = rnd() * N;
+        const y = rnd() * N;
+        const len = 30 + rnd() * 80;
+        const w = 2 + rnd() * 4;
+        wrap((dx, dy) => {
+          const g = c.createLinearGradient(0, y + dy, 0, y + dy + len);
+          g.addColorStop(0, "rgba(255,255,255,0)");
+          g.addColorStop(0.5, "rgba(255,255,255,0.22)");
+          g.addColorStop(1, "rgba(255,255,255,0)");
+          c.fillStyle = g;
+          c.beginPath();
+          c.ellipse(x + dx, y + dy + len / 2, w, len / 2, 0, 0, Math.PI * 2);
+          c.fill();
+        });
+      }
+      for (let i = 0; i < 24; i++) {
+        const x = rnd() * N;
+        const y = rnd() * N;
+        const r = 3 + rnd() * 7;
+        wrap((dx, dy) => {
+          c.strokeStyle = "rgba(255,255,255,0.55)";
+          c.lineWidth = 1.2;
+          c.beginPath();
+          c.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+          c.stroke();
+          c.fillStyle = "rgba(255,255,255,0.7)";
+          c.beginPath();
+          c.arc(x + dx - r * 0.35, y + dy - r * 0.35, r * 0.3, 0, Math.PI * 2);
+          c.fill();
+        });
+      }
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2.5, 1.6);
+      return tex;
+    })();
+    const capeMat = std(0xb070f0, 0.12, {
+      map: slimeTex,
+      bumpMap: slimeTex,
+      bumpScale: 0.025,
+      emissive: 0x3a1470,
+      emissiveIntensity: 0.45,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.86,
+      depthWrite: false
+    });
+    const hoodMat = capeMat.clone();
+    hoodMat.depthWrite = true;
+    hoodMat.opacity = 0.9;
+    const dripMat = capeMat.clone();
+    dripMat.depthWrite = true;
+    dripMat.opacity = 0.9;
     const tube = (pts, r0, r1, seg = 16, rad = 12) => {
       const curve = new THREE.CatmullRomCurve3(pts);
       const frames = curve.computeFrenetFrames(seg, false);
@@ -322,90 +408,6 @@ Pets.register({
       head.add(n);
     });
 
-    const slimeTex = (() => {
-      const N = 256;
-      const cv = document.createElement("canvas");
-      cv.width = N;
-      cv.height = N;
-      const c = cv.getContext("2d");
-      let seed = 7;
-      const rnd = () => {
-        seed = (seed * 16807) % 2147483647;
-        return seed / 2147483647;
-      };
-      const wrap = fn => {
-        for (let dx = -N; dx <= N; dx += N) for (let dy = -N; dy <= N; dy += N) fn(dx, dy);
-      };
-      c.fillStyle = "#a6a6a6";
-      c.fillRect(0, 0, N, N);
-      for (let i = 0; i < 70; i++) {
-        const x = rnd() * N;
-        const y = rnd() * N;
-        const r = 10 + rnd() * 34;
-        const light = rnd() < 0.55;
-        wrap((dx, dy) => {
-          const g = c.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
-          g.addColorStop(0, light ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.3)");
-          g.addColorStop(1, "rgba(128,128,128,0)");
-          c.fillStyle = g;
-          c.beginPath();
-          c.ellipse(x + dx, y + dy, r * 0.8, r * 1.3, 0, 0, Math.PI * 2);
-          c.fill();
-        });
-      }
-      for (let i = 0; i < 22; i++) {
-        const x = rnd() * N;
-        const y = rnd() * N;
-        const len = 30 + rnd() * 80;
-        const w = 2 + rnd() * 4;
-        wrap((dx, dy) => {
-          const g = c.createLinearGradient(0, y + dy, 0, y + dy + len);
-          g.addColorStop(0, "rgba(255,255,255,0)");
-          g.addColorStop(0.5, "rgba(255,255,255,0.22)");
-          g.addColorStop(1, "rgba(255,255,255,0)");
-          c.fillStyle = g;
-          c.beginPath();
-          c.ellipse(x + dx, y + dy + len / 2, w, len / 2, 0, 0, Math.PI * 2);
-          c.fill();
-        });
-      }
-      for (let i = 0; i < 24; i++) {
-        const x = rnd() * N;
-        const y = rnd() * N;
-        const r = 3 + rnd() * 7;
-        wrap((dx, dy) => {
-          c.strokeStyle = "rgba(255,255,255,0.55)";
-          c.lineWidth = 1.2;
-          c.beginPath();
-          c.arc(x + dx, y + dy, r, 0, Math.PI * 2);
-          c.stroke();
-          c.fillStyle = "rgba(255,255,255,0.7)";
-          c.beginPath();
-          c.arc(x + dx - r * 0.35, y + dy - r * 0.35, r * 0.3, 0, Math.PI * 2);
-          c.fill();
-        });
-      }
-      const tex = new THREE.CanvasTexture(cv);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(2.5, 1.6);
-      return tex;
-    })();
-    const capeMat = std(0xb070f0, 0.12, {
-      map: slimeTex,
-      bumpMap: slimeTex,
-      bumpScale: 0.025,
-      emissive: 0x3a1470,
-      emissiveIntensity: 0.45,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.86,
-      depthWrite: false
-    });
-    const hoodMat = capeMat.clone();
-    hoodMat.depthWrite = true;
-    hoodMat.opacity = 0.9;
-    const dripMat = std(0x9a4ae8, 0.08, { emissive: 0x4a1a90, emissiveIntensity: 0.5, transparent: true, opacity: 0.88 });
     const hood = new THREE.Group();
     head.add(hood);
     const hoodGoo = { geo: null, base: null, nrm: null, w: null };
@@ -517,9 +519,9 @@ Pets.register({
         rimPts.push(hoodPoint(startA(be) + 0.02, be, 1.0));
       }
       const rim = new THREE.CatmullRomCurve3(rimPts);
-      hood.add(mesh(new THREE.TubeGeometry(rim, 120, 0.04, 10, false), slimeMat, false));
+      hood.add(mesh(new THREE.TubeGeometry(rim, 120, 0.04, 10, false), hoodMat, false));
       [rimPts[0], rimPts[rimPts.length - 1]].forEach(pp => {
-        const c = mesh(new THREE.SphereGeometry(0.04, 10, 8), slimeMat, false);
+        const c = mesh(new THREE.SphereGeometry(0.04, 10, 8), hoodMat, false);
         c.position.copy(pp);
         hood.add(c);
       });
@@ -544,7 +546,7 @@ Pets.register({
       lock2.position.set(-0.04, 0.2, HR * 0.95);
       lock2.rotation.set(-0.35, 0.05, 0.5);
       hood.add(lock2);
-      const drop = mesh(new THREE.SphereGeometry(0.03, 12, 10), slimeMat, false);
+      const drop = mesh(new THREE.SphereGeometry(0.03, 12, 10), hoodMat, false);
       drop.position.set(0.215, -0.08, HR * 0.97);
       drop.scale.y = 1.3;
       hood.add(drop);
@@ -1158,7 +1160,7 @@ Pets.register({
         updateCape(t, reduceMotion ? 0 : motion);
         updateHood(t, reduceMotion ? 0 : motion);
         hoodMat.emissiveIntensity = slimeMat.emissiveIntensity;
-        dripMat.emissiveIntensity = slimeMat.emissiveIntensity + 0.05;
+        dripMat.emissiveIntensity = slimeMat.emissiveIntensity;
         capeDrips.forEach(({ stem, bulb, dg, len, ph: dp, period }, k) => {
           const u = 0.1 + (k / (capeDrips.length - 1)) * 0.8;
           capePoint(u, 0.999, stem.parent.position);

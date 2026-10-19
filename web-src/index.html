@@ -221,7 +221,7 @@
     <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
   </div>
   <div class="tabs tabs-3" role="tablist">
-    <button id="tab-bag" class="tab" role="tab" type="button" aria-selected="true" aria-controls="bag-list">Itens</button>
+    <button id="tab-bag" class="tab" role="tab" type="button" aria-selected="true" aria-controls="bag-list">Itens<span id="bag-new" class="tab-count" hidden></span></button>
     <button id="tab-store" class="tab" role="tab" type="button" aria-selected="false" aria-controls="store-list">Loja</button>
     <button id="tab-eggstore" class="tab" role="tab" type="button" aria-selected="false" aria-controls="egg-store">Ovos</button>
   </div>
@@ -230,13 +230,14 @@
   <div id="store-list" class="list" role="tabpanel" aria-labelledby="tab-store" hidden></div>
   <section id="egg-store" class="egg-pane" role="tabpanel" aria-labelledby="tab-eggstore" hidden>
     <div class="shop-card">
-      <span class="mini-egg big"></span>
+      <span id="shop-egg" class="mini-egg big"></span>
       <div>
         <h3>Ovo misterioso</h3>
         <p class="hint">Dele nasce uma criatura aleatória do primeiro estágio. Pode repetir.</p>
       </div>
     </div>
     <button id="buy-egg" class="btn primary" type="button"></button>
+    <p id="egg-owned" class="egg-owned"></p>
     <p id="shop-hint" class="hint"></p>
   </section>
 </dialog>
