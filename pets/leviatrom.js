@@ -211,7 +211,7 @@ Pets.register({
     const boltGeo = new THREE.ExtrudeGeometry(boltShape, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 });
     boltGeo.translate(-0.15, -0.02, -0.0175);
     boltGeo.rotateY(Math.PI / 2);
-    const bolts = [0.3, 0.42, 0.54, 0.65, 0.73, 0.8, 0.86, 0.92].map((u, k) => {
+    const bolts = [0.3, 0.42, 0.54, 0.65, 0.73, 0.8].map((u, k) => {
       const m = mesh(boltGeo, elecMat, false);
       const sc = 0.75 + u * 0.75;
       m.scale.setScalar(sc);
@@ -511,7 +511,6 @@ Pets.register({
     }
     const hoodMat = new THREE.MeshStandardMaterial({ color: 0x2f7fe0, emissive: 0x1450b0, emissiveIntensity: 0.45, roughness: 0.3, transparent: true, opacity: 0.86, side: THREE.DoubleSide });
     const RIB_Y = 0.12;
-    const RIB_Z = -0.12;
     const hood = new THREE.Group();
     hood.position.set(0, -0.42, -0.42);
     hood.rotation.x = -0.12;
@@ -522,11 +521,11 @@ Pets.register({
         const f = k / 8;
         const px = x * f * 0.96;
         const py = RIB_Y + (y - RIB_Y) * f * 0.96;
-        rib.push(V3(px, py, lerp(RIB_Z, bend(px, py) + 0.012, smooth(0, 0.45, f))));
+        rib.push(V3(px, py, bend(px, py) + 0.014));
       }
       hood.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rib), 12, 0.014, 6, false), elecMat, false));
       const tipBall = mesh(new THREE.SphereGeometry(0.03, 10, 8), elecMat, false);
-      tipBall.position.set(x * 0.96, -0.18 + (y + 0.18) * 0.96, bend(x * 0.96, y) + 0.01);
+      tipBall.position.set(x * 0.96, RIB_Y + (y - RIB_Y) * 0.96, bend(x * 0.96, RIB_Y + (y - RIB_Y) * 0.96) + 0.014);
       hood.add(tipBall);
     });
     hood.scale.set(1.5, 1.3, 1.3);
