@@ -673,13 +673,17 @@ Pets.register({
         root.add(pf);
         return { pf, pm };
       });
-      wisps.push({ g, pos, m, w, puffs, sp: 0.28 + (i % 5) * 0.05, off: (i * 0.37) % 1, ph: i * 2.1, curl: 2.2 + (i % 4) * 0.7, last: 1, origin: V3(0, 0, 0), em: i, back: 0 });
+      wisps.push({ dir: V3(0, 0, -1), g, pos, m, w, puffs, sp: 0.28 + (i % 5) * 0.05, off: (i * 0.37) % 1, ph: i * 2.1, curl: 2.2 + (i % 4) * 0.7, last: 1, origin: V3(0, 0, 0), em: i, back: 0 });
     }
     const wispOrigin = (em, out) => {
       const nEm = capeDrips.length + tailRibbons.length * 2;
       const k = em % nEm;
       if (k < capeDrips.length) {
-        capeDrips[k].bulb.getWorldPosition(out);
+        const iu = Math.round(((k + 0.5) / capeDrips.length) * capeNU);
+        const o = (capeNV * (capeNU + 1) + iu) * 3;
+        const arr = capeGeo.attributes.position.array;
+        out.set(arr[o], arr[o + 1] + 0.04, arr[o + 2]);
+        torso.localToWorld(out);
       } else {
         const rb = tailRibbons[(k - capeDrips.length) % tailRibbons.length];
         const o = rb.NS * 6;
@@ -696,6 +700,9 @@ Pets.register({
         if (age < W.last) {
           wispOrigin(W.em, W.origin);
           W.back = W.em % (capeDrips.length + tailRibbons.length * 2) < capeDrips.length ? 1 : 0;
+          const c = torso.localToWorld(V3(0, 1.1, 0));
+          root.worldToLocal(c);
+          W.dir = V3(W.origin.x - c.x, 0, W.origin.z - c.z).normalize();
         }
         W.last = age;
         W.w.visible = !reduceMotion;
@@ -704,8 +711,8 @@ Pets.register({
         for (let i = 0; i <= WSEG; i++) {
           const f = i / WSEG;
           const sw = f * (0.6 + age);
-          const cx = W.origin.x + Math.sin(f * W.curl + W.ph + t * 1.3) * 0.09 * sw + f * age * 0.25;
-          const cz = W.origin.z + Math.cos(f * W.curl * 0.8 + W.ph + t) * 0.07 * sw - f * age * (0.08 + W.back * 0.5);
+          const cx = W.origin.x + Math.sin(f * W.curl + W.ph + t * 1.3) * 0.09 * sw + f * age * (0.25 * (1 - W.back) + W.dir.x * 0.45 * W.back);
+          const cz = W.origin.z + Math.cos(f * W.curl * 0.8 + W.ph + t) * 0.07 * sw + f * age * (-0.08 * (1 - W.back) + W.dir.z * 0.45 * W.back);
           const cy = W.origin.y + (L * f + age * 0.15) * (1 - W.back * 0.35) - Math.sin(f * Math.PI) * 0.02;
           const rr = (0.006 + 0.03 * Math.pow(Math.sin(Math.PI * Math.pow(f, 0.65)), 1.2)) * (0.5 + age * 1.1) * (1 + 0.35 * Math.sin(f * 11 + W.ph + t * 2));
           for (let j = 0; j <= WRAD; j++) {
@@ -723,10 +730,10 @@ Pets.register({
           const f = 0.55 + k * 0.4;
           const sw = f * (0.6 + age);
           pf.visible = !reduceMotion;
-          pf.position.set(W.origin.x + Math.sin(f * W.curl + W.ph + t * 1.3) * 0.09 * sw + f * age * 0.25, W.origin.y + L * f + age * 0.15, W.origin.z + Math.cos(f * W.curl * 0.8 + W.ph + t) * 0.07 * sw - f * age * (0.08 + W.back * 0.5));
+          pf.position.set(W.origin.x + Math.sin(f * W.curl + W.ph + t * 1.3) * 0.09 * sw + f * age * (0.25 * (1 - W.back) + W.dir.x * 0.45 * W.back), W.origin.y + (L * f + age * 0.15) * (1 - W.back * 0.35), W.origin.z + Math.cos(f * W.curl * 0.8 + W.ph + t) * 0.07 * sw + f * age * (-0.08 * (1 - W.back) + W.dir.z * 0.45 * W.back));
           pf.scale.set(0.035 + age * 0.05, 0.025 + age * 0.03, 0.03 + age * 0.04);
           pf.rotation.set(t + k, t * 0.7 + W.ph, 0);
-          pm.opacity = life * 0.35 * smooth(0.2, 0.7, age);
+          pm.opacity = life * 0.16 * smooth(0.3, 0.8, age);
         });
       });
     };
