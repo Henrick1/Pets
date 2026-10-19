@@ -184,19 +184,21 @@ Pets.register({
     const clypeus = mesh(shovelGeo, new THREE.MeshStandardMaterial({ color: 0xffc843, roughness: 0.25, metalness: 0.55 }), false);
     clypeus.position.set(0, 0.17, 0.02);
     clypeus.rotation.x = -0.35;
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, emissive: 0xff9a1a, emissiveIntensity: 0.25, roughness: 0.15, metalness: 0.3, flatShading: true });
-    const eyes = [];
-    const compound = [-1, 1].map(s => {
-      const g = new THREE.Group();
-      g.position.set(0.24 * s, 0.04, 0.14);
-      const e = mesh(new THREE.IcosahedronGeometry(0.11, 2), eyeMat, false);
-      e.scale.set(0.75, 1, 1.15);
-      g.add(e);
-      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      shine.position.set(0.06 * s, 0.05, 0.06);
-      g.add(shine);
-      head.add(g);
-      return g;
+    const lidMat = new THREE.MeshStandardMaterial({ color: 0x1d3f9a, roughness: 0.25, metalness: 0.4 });
+    const lids = [];
+    const eyes = [-1, 1].map(s => {
+      const e = eye({ size: 0.6, whiteColor: 0xfff8e6, pupilColor: 0x1a1206 });
+      e.pupil.scale.set(0.9, 1.1, 0.5);
+      e.g.position.set(0.12 * s, 0.03, 0.245);
+      e.g.rotation.y = 0.3 * s;
+      head.add(e.g);
+      const lid = mesh(new THREE.SphereGeometry(0.142, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.34), lidMat, false);
+      lid.scale.set(1.02, 1.12, 0.6);
+      lid.position.copy(e.g.position);
+      lid.rotation.set(0.05, 0.3 * s, 0.3 * s);
+      head.add(lid);
+      lids.push(lid);
+      return e;
     });
     const smile = new THREE.Group();
     const mandibles = [-1, 1].map(s => {
@@ -603,11 +605,13 @@ Pets.register({
           food.scale.setScalar((1 - 0.85 * ph.bite) * 0.7);
         } else food.visible = false;
 
-        eyeMat.emissiveIntensity = (0.2 + charge * 0.5 + burst * 0.9) * light;
-        compound.forEach((g, i) => {
-          g.rotation.y = pointer.x * 0.1;
-          g.scale.setScalar(1 + burst * 0.15);
+        eyes.forEach(({ g }) => {
+          g.scale.y = eat && eat.p > 0.3 ? 0.5 : charge > 0.3 ? 0.45 : blink;
         });
+        lids.forEach((l, i) => {
+          l.rotation.x = 0.05 - burst * 0.35 + (charge > 0.3 ? 0.25 : 0);
+        });
+        followPupils(eyes, pointer, 0.6);
         orbiters.forEach((o, k) => {
           const a = t * (1.2 + burst * 2) + (k / orbiters.length) * Math.PI * 2;
           const rad = 0.42 + burst * 0.3;
