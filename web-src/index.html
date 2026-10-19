@@ -76,8 +76,12 @@
         <span id="menu-alert" class="alert-dot" hidden></span>
       </button>
       <div id="menu-pop" class="menu-pop" hidden>
-      <button id="bag-btn" class="icon-btn" type="button" aria-label="Loja">
+      <button id="shop-btn" class="icon-btn" type="button" aria-label="Loja">
         <span class="coin-ico" aria-hidden="true"></span>
+      </button>
+      <button id="bag-btn" class="icon-btn" type="button" aria-label="Mochila">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span id="menu-bag-new" class="icon-count" hidden></span>
       </button>
       <button id="egg-btn" class="icon-btn" type="button" aria-label="Ovos">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3c3.6 0 6.5 5.4 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.4 8.4 3 12 3z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -212,22 +216,26 @@
   </section>
 </dialog>
 
-<dialog id="bag-sheet" class="sheet" aria-labelledby="bag-title">
+<dialog id="shop-sheet" class="sheet" aria-labelledby="shop-title">
   <div class="sheet-head">
     <div class="dex-head">
-      <h2 id="bag-title">Mochila</h2>
+      <h2 id="shop-title">Loja</h2>
       <span id="bag-coins" class="badge"></span>
     </div>
-    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+    <div class="head-actions">
+      <button id="shop-bag" class="icon-btn" type="button" aria-label="Abrir a mochila">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span id="bag-new" class="icon-count" hidden></span>
+      </button>
+      <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+    </div>
   </div>
-  <div class="tabs tabs-3" role="tablist">
-    <button id="tab-bag" class="tab" role="tab" type="button" aria-selected="true" aria-controls="bag-list">Itens<span id="bag-new" class="tab-count" hidden></span></button>
-    <button id="tab-store" class="tab" role="tab" type="button" aria-selected="false" aria-controls="store-list">Loja</button>
+  <div class="tabs" role="tablist">
+    <button id="tab-store" class="tab" role="tab" type="button" aria-selected="true" aria-controls="store-list">Itens</button>
     <button id="tab-eggstore" class="tab" role="tab" type="button" aria-selected="false" aria-controls="egg-store">Ovos</button>
   </div>
-  <p id="bag-hint" class="hint"></p>
-  <div id="bag-list" class="list" role="tabpanel" aria-labelledby="tab-bag"></div>
-  <div id="store-list" class="list" role="tabpanel" aria-labelledby="tab-store" hidden></div>
+  <p id="store-hint" class="hint"></p>
+  <div id="store-list" class="list" role="tabpanel" aria-labelledby="tab-store"></div>
   <section id="egg-store" class="egg-pane" role="tabpanel" aria-labelledby="tab-eggstore" hidden>
     <div class="shop-card">
       <span id="shop-egg" class="mini-egg big"></span>
@@ -240,6 +248,16 @@
     <p id="egg-owned" class="egg-owned"></p>
     <p id="shop-hint" class="hint"></p>
   </section>
+</dialog>
+
+<dialog id="bag-sheet" class="sheet" aria-labelledby="bag-title">
+  <div class="sheet-head">
+    <h2 id="bag-title">Mochila</h2>
+    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+  </div>
+  <p id="bag-hint" class="hint"></p>
+  <div id="bag-list" class="list"></div>
+  <button id="bag-to-shop" class="btn soft" type="button" hidden>Ir para a loja</button>
 </dialog>
 
 <dialog id="daily-sheet" class="daily" aria-labelledby="daily-title">

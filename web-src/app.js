@@ -62,7 +62,7 @@
   let tab = "party";
   let swapIn = null;
   let lastPetId = null;
-  let bagTab = "bag";
+  let shopTab = "items";
   let expTicker = 0;
   let dailyShown = "";
   let expPick = null;
@@ -911,32 +911,40 @@
   }
 
   function showBagNew() {
-    const el = $("bag-new");
-    el.textContent = "+" + bagNew;
-    el.hidden = bagNew <= 0;
-    el.classList.remove("got");
-    void el.offsetWidth;
-    el.classList.add("got");
+    ["bag-new", "menu-bag-new"].forEach(id => {
+      const el = $(id);
+      el.textContent = "+" + bagNew;
+      el.hidden = bagNew <= 0;
+      el.classList.remove("got");
+      void el.offsetWidth;
+      el.classList.add("got");
+    });
   }
 
-  function openBag(t) {
-    bagTab = t || "bag";
+  function openShop(t) {
+    shopTab = t || "items";
     shownCoins = null;
+    if ($("bag-sheet").open) $("bag-sheet").close();
+    renderShop();
+    $("shop-sheet").showModal();
+  }
+
+  function openBag() {
+    bagNew = 0;
+    showBagNew();
+    if ($("shop-sheet").open) $("shop-sheet").close();
     renderBag();
     $("bag-sheet").showModal();
   }
 
-  function renderBag() {
+  function renderShop() {
     Game.catchUp(state);
     if (!coinAnim || shownCoins === state.coins) setBagCoins(state.coins, false);
-    if (bagTab === "bag") bagNew = 0;
-    $("bag-new").hidden = bagNew <= 0;
-    $("tab-bag").setAttribute("aria-selected", String(bagTab === "bag"));
-    $("tab-store").setAttribute("aria-selected", String(bagTab === "store"));
-    $("tab-eggstore").setAttribute("aria-selected", String(bagTab === "eggs"));
-    $("bag-list").hidden = bagTab !== "bag";
-    $("store-list").hidden = bagTab !== "store";
-    $("egg-store").hidden = bagTab !== "eggs";
+    $("tab-store").setAttribute("aria-selected", String(shopTab === "items"));
+    $("tab-eggstore").setAttribute("aria-selected", String(shopTab === "eggs"));
+    $("store-list").hidden = shopTab !== "items";
+    $("store-hint").hidden = shopTab !== "items";
+    $("egg-store").hidden = shopTab !== "eggs";
     const pool = Game.eggPool(state, baseIds());
     const eggDone = bought.egg && bought.egg > Date.now();
     $("buy-egg").disabled = !eggDone && (state.coins < Game.C.EGG_PRICE || !pool.length);
@@ -944,93 +952,92 @@
     $("buy-egg").classList.toggle("bought", !!eggDone);
     const waiting = state.eggs.filter(e => e.slot === null).length;
     $("egg-owned").textContent = waiting ? (waiting === 1 ? "1 ovo esperando no inventário" : waiting + " ovos esperando no inventário") : "";
+    $("shop-hint").textContent = !pool.length
+      ? "Nenhuma criatura disponível nos ovos."
+      : state.coins < Game.C.EGG_PRICE
+        ? "Moedas insuficientes. Cuide do grupo, pegue o presente do dia e faça expedições para ganhar mais."
+        : "O ovo vai para o inventário de ovos.";
+    $("store-hint").textContent = "O que você compra vai para a mochila. Seu grupo rende moedas toda hora enquanto está alimentado e feliz.";
+    const store = $("store-list");
+    store.replaceChildren();
+    Object.keys(Game.ITEMS).filter(k => Game.ITEMS[k].price).forEach(k => {
+      const it = Game.ITEMS[k];
+      const el = itemRow(k, it, state.inventory[k] ? "tem " + state.inventory[k] : "");
+      const buy = document.createElement("button");
+      buy.type = "button";
+      buy.className = "btn primary small";
+      const done = bought[k] && bought[k] > Date.now();
+      buy.textContent = done ? "Comprado!" : it.price + " moedas";
+      buy.classList.toggle("bought", !!done);
+      buy.setAttribute("aria-label", "Comprar " + it.name + " por " + it.price + " moedas");
+      buy.disabled = state.coins < it.price;
+      buy.addEventListener("click", () => {
+        const before = state.coins;
+        const r = Game.buyItem(state, k);
+        if (!r.changed) return;
+        saveState();
+        scheduleSync();
+        buzz(18);
+        shownCoins = before;
+        setBagCoins(state.coins, true);
+        bought[k] = Date.now() + 900;
+        setTimeout(() => $("shop-sheet").open && renderShop(), 950);
+        flyTo(itemIcon(k), el.querySelector(".item-ico"), $("shop-bag"), () => {
+          bagNew += 1;
+          showBagNew();
+        });
+        renderShop();
+        render();
+      });
+      el.append(buy);
+      store.append(el);
+    });
+  }
+
+  function renderBag() {
+    Game.catchUp(state);
     const petName = state.pet ? (meta[Game.speciesOf(state)] || {}).name || "" : "";
     const bag = $("bag-list");
-    const store = $("store-list");
     bag.replaceChildren();
-    store.replaceChildren();
-    const ids = Object.keys(Game.ITEMS);
-    if (bagTab === "eggs") {
-      $("bag-hint").textContent = "";
-      $("shop-hint").textContent = !pool.length
-        ? "Nenhuma criatura disponível nos ovos."
-        : state.coins < Game.C.EGG_PRICE
-          ? "Moedas insuficientes. Cuide do grupo, pegue o presente do dia e faça expedições para ganhar mais."
-          : "O ovo vai para o inventário de ovos.";
-    } else if (bagTab === "bag") {
-      const have = ids.filter(k => state.inventory[k] > 0);
-      $("bag-hint").textContent = have.length
-        ? "Os itens são usados em " + petName + ". Para usar em outro, troque de bichinho no Grupo."
-        : "A mochila está vazia. Compre itens na loja ou mande bichinhos em expedições.";
-      have.forEach(k => {
-        const it = Game.ITEMS[k];
-        const el = itemRow(k, it, "x" + state.inventory[k]);
-        const box = document.createElement("span");
-        box.className = "row-btns";
-        if (it.hunger || it.life || it.joy || it.xp || it.revive) {
-          const use = document.createElement("button");
-          use.type = "button";
-          use.className = "btn primary small";
-          use.textContent = "Usar";
-          use.disabled = !Game.canUseItem(state, k, state.pet);
-          use.addEventListener("click", () => useItem(k));
-          box.append(use);
-        }
-        if (it.sell) {
-          const sell = document.createElement("button");
-          sell.type = "button";
-          sell.className = "btn soft small";
-          sell.textContent = "Vender " + it.sell;
-          sell.setAttribute("aria-label", "Vender por " + it.sell + " moedas");
-          sell.addEventListener("click", () => {
-            const r = Game.sellItem(state, k);
-            if (!r.changed) return;
-            saveState();
-            scheduleSync();
-            showToast("+" + r.coins + " moedas");
-            renderBag();
-            render();
-          });
-          box.append(sell);
-        }
-        el.append(box);
-        bag.append(el);
-      });
-    } else {
-      $("bag-hint").textContent = "Seu grupo rende moedas toda hora enquanto está alimentado e feliz.";
-      ids.filter(k => Game.ITEMS[k].price).forEach(k => {
-        const it = Game.ITEMS[k];
-        const el = itemRow(k, it, state.inventory[k] ? "tem " + state.inventory[k] : "");
-        const buy = document.createElement("button");
-        buy.type = "button";
-        buy.className = "btn primary small";
-        const done = bought[k] && bought[k] > Date.now();
-        buy.textContent = done ? "Comprado!" : it.price + " moedas";
-        buy.classList.toggle("bought", !!done);
-        buy.setAttribute("aria-label", "Comprar " + it.name + " por " + it.price + " moedas");
-        buy.disabled = state.coins < it.price;
-        buy.addEventListener("click", () => {
-          const before = state.coins;
-          const r = Game.buyItem(state, k);
+    const have = Object.keys(Game.ITEMS).filter(k => state.inventory[k] > 0);
+    $("bag-to-shop").hidden = have.length > 0;
+    $("bag-hint").textContent = have.length
+      ? "Os itens são usados em " + petName + ". Para usar em outro, troque de bichinho no Grupo."
+      : "A mochila está vazia. Compre itens na loja ou mande bichinhos em expedições.";
+    have.forEach(k => {
+      const it = Game.ITEMS[k];
+      const el = itemRow(k, it, "x" + state.inventory[k]);
+      const box = document.createElement("span");
+      box.className = "row-btns";
+      if (it.hunger || it.life || it.joy || it.xp || it.revive) {
+        const use = document.createElement("button");
+        use.type = "button";
+        use.className = "btn primary small";
+        use.textContent = "Usar";
+        use.disabled = !Game.canUseItem(state, k, state.pet);
+        use.addEventListener("click", () => useItem(k));
+        box.append(use);
+      }
+      if (it.sell) {
+        const sell = document.createElement("button");
+        sell.type = "button";
+        sell.className = "btn soft small";
+        sell.textContent = "Vender " + it.sell;
+        sell.setAttribute("aria-label", "Vender por " + it.sell + " moedas");
+        sell.addEventListener("click", () => {
+          const r = Game.sellItem(state, k);
           if (!r.changed) return;
           saveState();
           scheduleSync();
-          buzz(18);
-          shownCoins = before;
-          setBagCoins(state.coins, true);
-          bought[k] = Date.now() + 900;
-          setTimeout(() => $("bag-sheet").open && renderBag(), 950);
-          flyTo(itemIcon(k), el.querySelector(".item-ico"), $("tab-bag"), () => {
-            bagNew += 1;
-            showBagNew();
-          });
+          showToast("+" + r.coins + " moedas");
           renderBag();
           render();
         });
-        el.append(buy);
-        store.append(el);
-      });
-    }
+        box.append(sell);
+      }
+      el.append(box);
+      bag.append(el);
+    });
   }
 
   function useItem(k) {
@@ -1475,7 +1482,8 @@
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = v.life >= 100;
     $("party-alert").hidden = !(state.expeditions.some(x => x.endsAt <= Date.now()) || v.party.some(p => !p.away && (p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25)));
-    $("bag-btn").setAttribute("aria-label", "Loja · " + v.coins + " moedas");
+    $("shop-btn").setAttribute("aria-label", "Loja · " + v.coins + " moedas");
+    if ($("shop-sheet").open) renderShop();
     if ($("bag-sheet").open) renderBag();
     if (lastPetId !== v.pet + ":" + v.species) {
       lastPetId = v.pet + ":" + v.species;
@@ -1640,21 +1648,20 @@
       render();
     });
     $("party-sheet").addEventListener("close", () => clearInterval(expTicker));
-    $("bag-btn").addEventListener("click", () => {
+    $("shop-btn").addEventListener("click", () => {
       if (Game.dailyStatus(state).available) {
         dailyShown = "";
         maybeDaily();
         if ($("daily-sheet").open) return;
       }
-      openBag("bag");
+      openShop("items");
     });
-    $("tab-bag").addEventListener("click", () => {
-      bagTab = "bag";
-      renderBag();
-    });
+    $("bag-btn").addEventListener("click", openBag);
+    $("shop-bag").addEventListener("click", openBag);
+    $("bag-to-shop").addEventListener("click", () => openShop("items"));
     $("tab-eggstore").addEventListener("click", () => {
-      bagTab = "eggs";
-      renderBag();
+      shopTab = "eggs";
+      renderShop();
     });
     $("buy-egg").addEventListener("click", () => {
       if (bought.egg && bought.egg > Date.now()) return;
@@ -1667,20 +1674,20 @@
       shownCoins = before;
       setBagCoins(state.coins, true);
       bought.egg = Date.now() + 1100;
-      setTimeout(() => $("bag-sheet").open && renderBag(), 1150);
+      setTimeout(() => $("shop-sheet").open && renderShop(), 1150);
       const egg = $("shop-egg");
       egg.classList.remove("hatch-hop");
       void egg.offsetWidth;
       egg.classList.add("hatch-hop");
-      sparkle($("bag-sheet"), egg, "#c9a8ff");
+      sparkle($("shop-sheet"), egg, "#c9a8ff");
       const mini = miniEgg("#b9a7d6");
       setTimeout(() => flyTo(mini, egg, $("egg-owned")), 260);
-      renderBag();
+      renderShop();
       render();
     });
     $("tab-store").addEventListener("click", () => {
-      bagTab = "store";
-      renderBag();
+      shopTab = "items";
+      renderShop();
     });
     $("daily-claim").addEventListener("click", () => {
       const r = Game.claimDaily(state);
@@ -1753,7 +1760,7 @@
     document.addEventListener("pointerdown", e => {
       if (!$("menu-pop").hidden && !e.target.closest(".top-actions")) setMenu(false);
     });
-    ["bag-btn", "egg-btn", "dex-btn", "account-btn"].forEach(id => $(id).addEventListener("click", () => setMenu(false)));
+    ["shop-btn", "bag-btn", "egg-btn", "dex-btn", "account-btn"].forEach(id => $(id).addEventListener("click", () => setMenu(false)));
     $("dex-btn").addEventListener("click", () => {
       closeDexDetail();
       renderDex();
