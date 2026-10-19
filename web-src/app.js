@@ -254,7 +254,6 @@
           lv.className = "evo-lv";
           const pm = meta[from];
           let txt = pm.evolveLevel ? "Nv " + pm.evolveLevel : "";
-          if (pm.evolveBranches) txt += (txt ? "\n" : "") + (pm.evolveBranches.happy === sp ? "Feliz" : "Triste");
           lv.textContent = txt;
           arrow.append(lv);
           step.append(arrow);
