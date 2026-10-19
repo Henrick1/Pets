@@ -39,6 +39,15 @@ const bagScroll = document.getElementById("bag-scroll");
 const bagCoins = document.getElementById("bag-coins");
 const bagToast = document.getElementById("bag-toast");
 const EXP_LABEL = { curta: "30 min", media: "2 h", longa: "8 h" };
+const EXP_NAME = { curta: "Expedição curta", media: "Expedição média", longa: "Expedição longa" };
+const expDraft = {};
+let expPick = null;
+
+function chip(p) {
+  const c = el("span", "chip");
+  c.append(dotFor(p), el("span", "", p.name));
+  return c;
+}
 let bagMode = false;
 let bagToastTimer = 0;
 let lastState = null;
@@ -247,20 +256,72 @@ function renderBag(s) {
     bagScroll.appendChild(row);
   }
   bagScroll.appendChild(el("h2", "", "Expedições"));
-  bagScroll.appendChild(el("p", "", "Quem sai some da tela e não gasta nada. Volta com moedas e itens do seu tipo."));
-  s.party.forEach(p => {
-    const row = el("div", p.away ? "it" : "it wrap");
-    row.append(dotFor(p), petInfo(p));
-    const box = el("span", "it-btns");
-    if (p.away && !p.ready) {
-      const t = el("span", "time", "Volta em " + fmtTime(p.away.endsAt - Date.now()));
-      t.dataset.ends = String(p.away.endsAt);
-      box.appendChild(t);
+  bagScroll.appendChild(el("p", "", "Até " + s.expeditionSize + " criaturas por expedição, do grupo ou da caixa. Quem sai não gasta nada e volta com moedas e itens do seu tipo."));
+  const rows = {};
+  s.party.concat(s.box).forEach(p => (rows[p.id] = p));
+  s.expeditionKinds.forEach(kind => {
+    const run = s.expeditions.find(x => x.kind === kind);
+    const card = el("div", "exp");
+    const head = el("div", "exp-head");
+    head.append(el("span", "exp-name", EXP_NAME[kind]), el("span", "lv", EXP_LABEL[kind]));
+    card.appendChild(head);
+    if (run) {
+      const who = el("div", "exp-who");
+      run.pets.forEach(id => rows[id] && who.appendChild(chip(rows[id])));
+      card.appendChild(who);
+      if (run.endsAt > Date.now()) {
+        const t = el("span", "time", "Volta em " + fmtTime(run.endsAt - Date.now()));
+        t.dataset.ends = String(run.endsAt);
+        card.appendChild(t);
+      } else {
+        card.appendChild(btn("Receber", "solid", () => eco({ op: "collect", kind })));
+      }
+    } else {
+      const draft = (expDraft[kind] = (expDraft[kind] || []).filter(id => rows[id] && rows[id].canExplore));
+      const who = el("div", "exp-who");
+      draft.forEach(id => who.appendChild(chip(rows[id])));
+      if (!draft.length) who.appendChild(el("span", "eff", "Ninguém escolhido"));
+      card.appendChild(who);
+      if (expPick === kind) {
+        const pick = el("div", "exp-pick");
+        s.party.concat(s.box).forEach(p => {
+          const on = draft.includes(p.id);
+          const b = el("button", "pet");
+          b.type = "button";
+          b.setAttribute("aria-pressed", String(on));
+          b.disabled = !on && (!p.canExplore || draft.length >= s.expeditionSize);
+          b.append(dotFor(p), petInfo(p));
+          b.addEventListener("click", () => {
+            const at = draft.indexOf(p.id);
+            if (at >= 0) draft.splice(at, 1);
+            else if (draft.length < s.expeditionSize) draft.push(p.id);
+            renderBag(lastState);
+          });
+          pick.appendChild(b);
+        });
+        card.appendChild(pick);
+      }
+      const row = el("div", "it-btns");
+      row.appendChild(btn(expPick === kind ? "Pronto" : "Escolher", "ghost", () => {
+        expPick = expPick === kind ? null : kind;
+        renderBag(lastState);
+      }));
+      row.appendChild(btn("Partir", "", async () => {
+        const ids = draft.slice();
+        expPick = null;
+        const msg = await window.pet.eco({ op: "explore", kind, ids });
+        if (msg !== "Expedição partiu") {
+          bagSay(msg || "Não deu para partir.");
+          if (lastState) renderBag(lastState);
+          return;
+        }
+        expDraft[kind] = [];
+        bagSay(msg);
+        if (lastState) renderBag(lastState);
+      }, !draft.length));
+      card.appendChild(row);
     }
-    else if (p.away) box.appendChild(btn("Receber", "", () => eco({ op: "collect", id: p.id })));
-    else Object.keys(EXP_LABEL).forEach(k => box.appendChild(btn(EXP_LABEL[k], "ghost", () => eco({ op: "explore", id: p.id, kind: k }), !p.canExplore)));
-    row.appendChild(box);
-    bagScroll.appendChild(row);
+    bagScroll.appendChild(card);
   });
   const cur = s.party.find(p => p.id === s.pet);
   const have = s.items.filter(it => it.count > 0);
@@ -276,6 +337,12 @@ function renderBag(s) {
     bagScroll.appendChild(row);
   });
   bagScroll.appendChild(el("h2", "", "Loja"));
+  const egg = itemLine({ name: "Ovo misterioso" }, "");
+  egg.querySelector(".eff").textContent = "Nasce uma criatura aleatória";
+  const eggBox = el("span", "it-btns");
+  eggBox.appendChild(btn(s.eggPrice + " moedas", "", () => eco({ op: "egg" }), s.coins < s.eggPrice || !s.eggPool));
+  egg.appendChild(eggBox);
+  bagScroll.appendChild(egg);
   s.items.filter(it => it.price).forEach(it => {
     const row = itemLine(it, it.count ? "tem " + it.count : "");
     const box = el("span", "it-btns");
@@ -314,7 +381,7 @@ function render(s) {
     cardEl.classList.toggle("box-mode", boxMode);
     cardEl.classList.toggle("bag-mode", bagMode && !boxMode);
   }
-  openBagBtn.textContent = "Mochila e expedições · " + s.coins + " moedas" + (s.daily && s.daily.available ? " · presente do dia!" : s.party.some(p => p.ready) ? " · expedição voltou!" : "");
+  openBagBtn.textContent = "Mochila e expedições · " + s.coins + " moedas" + (s.daily && s.daily.available ? " · presente do dia!" : s.expeditions.some(x => x.endsAt <= s.now) ? " · expedição voltou!" : "");
   if (bagMode) renderBag(s);
   renderParty(s);
   renderBox(s);
@@ -385,7 +452,7 @@ bagClose.addEventListener("click", () => {
 });
 setInterval(() => {
   if (!bagMode || !lastState) return;
-  if (lastState.party.some(p => p.away && !p.ready && p.away.endsAt <= Date.now())) window.pet.getState().then(render);
+  if (lastState.expeditions.some(x => x.endsAt <= Date.now() && x.endsAt > lastState.now)) window.pet.getState().then(render);
   else bagScroll.querySelectorAll("[data-ends]").forEach(t => (t.textContent = "Volta em " + fmtTime(Number(t.dataset.ends) - Date.now())));
 }, 1000);
 openBoxBtn.addEventListener("click", () => {

@@ -66,6 +66,8 @@
   let expTicker = 0;
   let dailyShown = "";
   let lastCoins = null;
+  let expPick = null;
+  const expDraft = { curta: [], media: [], longa: [] };
 
   const ITEM_ICONS = {
     fruta: '<circle cx="12" cy="14" r="7" fill="#e5484d"/><path d="M12 7c0-2 1-3 3-4" stroke="#6b4423" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M13 6c2-1 4 0 5 1-2 1-4 1-5-1z" fill="#4caf50"/>',
@@ -80,6 +82,7 @@
   };
 
   const EXP_LABEL = { curta: "30 min", media: "2 h", longa: "8 h" };
+  const EXP_NAME = { curta: "Expedição curta", media: "Expedição média", longa: "Expedição longa" };
 
   const barLevel = v => (v > 50 ? "ok" : v > 25 ? "warn" : "low");
 
@@ -537,8 +540,7 @@
 
   function renderEggs() {
     Game.catchUp(state);
-    $("coins").textContent = state.coins + " moedas";
-    [["inc", "egg-incubator"], ["inv", "egg-inventory"], ["shop", "egg-shop"]].forEach(([k, pane]) => {
+    [["inc", "egg-incubator"], ["inv", "egg-inventory"]].forEach(([k, pane]) => {
       $("tab-" + k).setAttribute("aria-selected", String(eggTab === k));
       $(pane).hidden = eggTab !== k;
     });
@@ -579,7 +581,7 @@
       ? full
         ? "A chocadeira está cheia. Espere um ovo chocar para colocar outro."
         : "Toque num ovo para levá-lo à chocadeira."
-      : "Nenhum ovo guardado. Compre ovos na loja.";
+      : "Nenhum ovo guardado. Compre ovos na loja da mochila.";
     const list = $("egg-list");
     list.replaceChildren();
     inv.forEach((e, k) => {
@@ -610,21 +612,6 @@
       });
       list.append(b);
     });
-
-    refreshShop();
-  }
-
-  function refreshShop() {
-    $("coins").textContent = state.coins + " moedas";
-    const pool = Game.eggPool(state, baseIds());
-    const canBuy = state.coins >= Game.C.EGG_PRICE && pool.length > 0;
-    $("buy-egg").disabled = !canBuy;
-    $("buy-egg").textContent = "Comprar por " + Game.C.EGG_PRICE + " moedas";
-    $("shop-hint").textContent = !pool.length
-      ? "Nenhuma criatura disponível nos ovos."
-      : state.coins < Game.C.EGG_PRICE
-        ? "Moedas insuficientes. Cuide do grupo, pegue o presente do dia e faça expedições para ganhar mais."
-        : "O ovo vai para o seu inventário.";
   }
 
   function syncEggStage() {
@@ -877,6 +864,38 @@
       });
     } else {
       $("bag-hint").textContent = "Seu grupo rende moedas toda hora enquanto está alimentado e feliz.";
+      const pool = Game.eggPool(state, baseIds());
+      const eggRow = document.createElement("div");
+      eggRow.className = "item";
+      const eggIco = document.createElement("span");
+      eggIco.className = "item-ico";
+      eggIco.append(miniEgg("#b9a7d6"));
+      const eggInfo = document.createElement("span");
+      eggInfo.className = "info";
+      const eggName = document.createElement("span");
+      eggName.className = "name-line";
+      eggName.textContent = "Ovo misterioso";
+      const eggEff = document.createElement("span");
+      eggEff.className = "lv";
+      eggEff.textContent = "Nasce uma criatura aleatória";
+      eggInfo.append(eggName, eggEff);
+      const eggBuy = document.createElement("button");
+      eggBuy.type = "button";
+      eggBuy.className = "btn primary small";
+      eggBuy.textContent = Game.C.EGG_PRICE + " moedas";
+      eggBuy.setAttribute("aria-label", "Comprar ovo misterioso por " + Game.C.EGG_PRICE + " moedas");
+      eggBuy.disabled = state.coins < Game.C.EGG_PRICE || !pool.length;
+      eggBuy.addEventListener("click", () => {
+        const r = Game.buyEgg(state, baseIds());
+        if (!r.changed) return;
+        saveState();
+        scheduleSync();
+        showToast("Ovo adicionado ao inventário");
+        renderBag();
+        render();
+      });
+      eggRow.append(eggIco, eggInfo, eggBuy);
+      store.append(eggRow);
       ids.filter(k => Game.ITEMS[k].price).forEach(k => {
         const it = Game.ITEMS[k];
         const el = itemRow(k, it, state.inventory[k] ? "tem " + state.inventory[k] : "");
@@ -918,59 +937,156 @@
     render();
   }
 
+  function expTypes(id) {
+    return (meta[Game.speciesOf(state, id)] || {}).types || [];
+  }
+
+  function expChip(p) {
+    const c = document.createElement("span");
+    c.className = "exp-chip";
+    const d = document.createElement("span");
+    d.className = "dot";
+    d.style.background = p.color;
+    const n = document.createElement("span");
+    n.className = "exp-chip-name";
+    n.textContent = p.name;
+    c.append(d, n);
+    return c;
+  }
+
+  function renderExpPicker(v) {
+    const list = $("exp-list");
+    const kind = expPick;
+    const draft = expDraft[kind];
+    const title = document.createElement("p");
+    title.className = "picker-title";
+    title.textContent = EXP_NAME[kind] + " · " + draft.length + "/" + Game.C.EXPEDITION_SIZE;
+    list.append(title);
+    v.party.concat(v.box).forEach(p => {
+      const el = itemNode(p, "button");
+      el.type = "button";
+      const on = draft.includes(p.id);
+      el.setAttribute("aria-pressed", String(on));
+      el.disabled = !on && (!!p.away || p.dying || draft.length >= Game.C.EXPEDITION_SIZE);
+      el.addEventListener("click", () => {
+        const at = draft.indexOf(p.id);
+        if (at >= 0) draft.splice(at, 1);
+        else if (draft.length < Game.C.EXPEDITION_SIZE) draft.push(p.id);
+        render();
+      });
+      list.append(el);
+    });
+    const done = document.createElement("button");
+    done.type = "button";
+    done.className = "btn primary";
+    done.textContent = "Pronto";
+    done.addEventListener("click", () => {
+      expPick = null;
+      render();
+    });
+    list.append(done);
+  }
+
   function renderExp(v) {
     const list = $("exp-list");
     list.replaceChildren();
+    const rows = {};
+    v.party.concat(v.box).forEach(p => (rows[p.id] = p));
+    Object.keys(expDraft).forEach(k => {
+      expDraft[k] = expDraft[k].filter(id => rows[id] && !rows[id].away && !rows[id].dying);
+    });
+    if (expPick) {
+      renderExpPicker(v);
+      return;
+    }
     const now = Date.now();
-    v.party.forEach(p => {
-      const el = itemNode(p, "div");
-      el.classList.add("exp-row");
-      const box = document.createElement("span");
-      box.className = "row-btns exp-btns";
-      if (p.away) {
-        if (p.away.endsAt > now) {
+    Object.keys(Game.C.EXPEDITIONS).forEach(kind => {
+      const run = state.expeditions.find(x => x.kind === kind);
+      const card = document.createElement("div");
+      card.className = "exp-card";
+      const head = document.createElement("div");
+      head.className = "exp-head";
+      const name = document.createElement("span");
+      name.className = "exp-name";
+      name.textContent = EXP_NAME[kind];
+      const dur = document.createElement("span");
+      dur.className = "lv";
+      dur.textContent = EXP_LABEL[kind];
+      head.append(name, dur);
+      card.append(head);
+      const slots = document.createElement("div");
+      slots.className = "exp-slots";
+      if (run) {
+        run.pets.forEach(id => rows[id] && slots.append(expChip(rows[id])));
+        card.append(slots);
+        if (run.endsAt > now) {
           const t = document.createElement("span");
           t.className = "exp-time";
-          t.dataset.ends = String(p.away.endsAt);
-          t.textContent = "Volta em " + fmtTime(p.away.endsAt - now);
-          box.append(t);
+          t.dataset.ends = String(run.endsAt);
+          t.textContent = "Volta em " + fmtTime(run.endsAt - now);
+          card.append(t);
         } else {
           const c = document.createElement("button");
           c.type = "button";
-          c.className = "btn primary small";
+          c.className = "btn primary";
           c.textContent = "Receber";
           c.addEventListener("click", () => {
-            const r = Game.collectExpedition(state, p.id, (meta[p.species] || {}).types || []);
+            const r = Game.collectExpedition(state, kind, expTypes);
             if (!r.changed) return;
             saveState();
             scheduleSync();
-            showToast(p.name + " voltou com " + lootText(r) + (r.levels > 0 ? ". Subiu para o nível " + r.level + "!" : ""));
+            const ups = r.levels.map(l => (rows[l.id] ? rows[l.id].name : "") + " subiu para o nível " + l.level).join(". ");
+            showToast("Voltaram com " + lootText(r) + (ups ? ". " + ups + "!" : ""));
             render();
           });
-          box.append(c);
+          card.append(c);
         }
       } else {
-        const ok = Game.canExplore(state, p.id);
-        Object.keys(Game.C.EXPEDITIONS).forEach(kind => {
+        const draft = expDraft[kind];
+        for (let i = 0; i < Game.C.EXPEDITION_SIZE; i++) {
+          const p = rows[draft[i]];
           const b = document.createElement("button");
           b.type = "button";
-          b.className = "btn soft small";
-          b.textContent = EXP_LABEL[kind];
-          b.setAttribute("aria-label", "Mandar " + p.name + " por " + EXP_LABEL[kind]);
-          b.disabled = !ok;
-          b.addEventListener("click", () => {
-            const r = Game.startExpedition(state, p.id, kind);
-            if (!r.changed) return;
-            saveState();
-            scheduleSync();
-            showToast(p.name + " partiu em expedição");
-            render();
-          });
-          box.append(b);
+          b.className = "exp-slot" + (p ? "" : " empty");
+          if (p) {
+            b.append(expChip(p));
+            b.setAttribute("aria-label", "Tirar " + p.name);
+            b.addEventListener("click", () => {
+              draft.splice(i, 1);
+              render();
+            });
+          } else {
+            b.textContent = "+";
+            b.setAttribute("aria-label", "Escolher criatura");
+            b.addEventListener("click", () => {
+              expPick = kind;
+              animateList = true;
+              render();
+            });
+          }
+          slots.append(b);
+        }
+        card.append(slots);
+        const go = document.createElement("button");
+        go.type = "button";
+        go.className = "btn primary";
+        go.textContent = "Partir";
+        go.disabled = !draft.length;
+        go.addEventListener("click", () => {
+          const r = Game.startExpedition(state, kind, draft.slice());
+          if (!r.changed) {
+            showToast(r.reason === "home" ? "Deixe pelo menos um do grupo em casa." : "Não deu para partir.");
+            return;
+          }
+          expDraft[kind] = [];
+          saveState();
+          scheduleSync();
+          showToast(EXP_NAME[kind] + " partiu");
+          render();
         });
+        card.append(go);
       }
-      el.append(box);
-      list.append(el);
+      list.append(card);
     });
   }
 
@@ -1086,14 +1202,16 @@
     partyList.hidden = tab !== "party";
     boxList.hidden = tab !== "box";
     $("exp-list").hidden = tab !== "exp";
-    $("exp-alert").hidden = !v.party.some(p => p.away && p.away.endsAt <= Date.now());
+    $("exp-alert").hidden = !state.expeditions.some(x => x.endsAt <= Date.now());
     $("tab-box").textContent = "Caixa (" + v.box.length + ")";
     $("tab-party").textContent = "Grupo (" + v.party.length + "/" + Game.C.PARTY_SIZE + ")";
 
     if (tab === "party") {
       $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todos do grupo gastam fome, vida e felicidade, mesmo fora da tela, e rendem moedas enquanto estão alimentados e felizes.";
+    } else if (tab === "exp" && expPick) {
+      $("sheet-hint").textContent = "Escolha até " + Game.C.EXPEDITION_SIZE + " criaturas do grupo ou da caixa.";
     } else if (tab === "exp") {
-      $("sheet-hint").textContent = "Quem sai em expedição some da tela e não gasta nada. Volta com moedas e itens que dependem do seu tipo. Pelo menos um precisa ficar em casa.";
+      $("sheet-hint").textContent = "Até " + Game.C.EXPEDITION_SIZE + " criaturas por expedição, do grupo ou da caixa. Quem sai some da tela, não gasta nada e volta com moedas e itens do seu tipo.";
     } else if (swapIn) {
       $("sheet-hint").textContent = "Escolha quem sai do grupo para dar lugar ao novo bichinho.";
     } else {
@@ -1207,6 +1325,7 @@
   function render() {
     if (!state || !stage || Game.needsStarter(state) || !state.pet) return;
     $("egg-alert").hidden = !state.eggs.some(e => e.slot !== null && (e.left <= 0 || e.care <= 0));
+    $("menu-alert").hidden = $("egg-alert").hidden;
     const v = view();
     const info = meta[v.species] || { name: v.species, color: "#999999" };
     $("pet-name").textContent = info.name;
@@ -1242,7 +1361,7 @@
     });
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = v.life >= 100;
-    $("party-alert").hidden = !v.party.some(p => (p.away ? p.away.endsAt <= Date.now() : p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25));
+    $("party-alert").hidden = !(state.expeditions.some(x => x.endsAt <= Date.now()) || v.party.some(p => !p.away && (p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25)));
     $("coin-count").textContent = String(v.coins);
     if (lastCoins !== null && v.coins > lastCoins) {
       $("bag-btn").classList.remove("bump");
@@ -1257,7 +1376,6 @@
     }
     stage.setStatus({ hunger: v.hunger, life: v.life, dying: v.dying });
     if ($("party-sheet").open) renderSheet(v);
-    if ($("egg-sheet").open) refreshShop();
     const evo = evolvingNow ? null : evolveTarget();
     $("evolve-btn").hidden = !evo;
 
@@ -1392,6 +1510,7 @@
 
     $("party-btn").addEventListener("click", () => {
       tab = "party";
+      expPick = null;
       swapIn = null;
       animateList = true;
       $("party-sheet").showModal();
@@ -1408,6 +1527,7 @@
     });
     $("tab-exp").addEventListener("click", () => {
       tab = "exp";
+      expPick = null;
       swapIn = null;
       animateList = true;
       render();
@@ -1471,7 +1591,7 @@
       if (eggStage) eggStage.stop();
       revealing = false;
     });
-    [["inc", "tab-inc"], ["inv", "tab-inv"], ["shop", "tab-shop"]].forEach(([k, id]) => {
+    [["inc", "tab-inc"], ["inv", "tab-inv"]].forEach(([k, id]) => {
       $(id).addEventListener("click", () => {
         eggTab = k;
         renderEggs();
@@ -1490,19 +1610,16 @@
         render();
       });
     });
-    $("buy-egg").addEventListener("click", () => {
-      const r = Game.buyEgg(state, baseIds());
-      if (!r.changed) {
-        renderEggs();
-        return;
-      }
-      saveState();
-      scheduleSync();
-      showToast("Ovo comprado! Ele está no inventário.");
-      eggTab = "inv";
-      renderEggs();
+    const setMenu = open => {
+      $("menu-pop").hidden = !open;
+      $("menu-btn").setAttribute("aria-expanded", String(open));
+      $("menu-btn").classList.toggle("open", open);
+    };
+    $("menu-btn").addEventListener("click", () => setMenu($("menu-pop").hidden));
+    document.addEventListener("pointerdown", e => {
+      if (!$("menu-pop").hidden && !e.target.closest(".top-actions")) setMenu(false);
     });
-
+    ["egg-btn", "dex-btn", "account-btn"].forEach(id => $(id).addEventListener("click", () => setMenu(false)));
     $("dex-btn").addEventListener("click", () => {
       closeDexDetail();
       renderDex();

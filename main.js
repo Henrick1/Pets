@@ -117,10 +117,14 @@ function snapshot() {
   const evolveTo = et && Game.canEvolve(state, state.pet, et, em.evolveLevel || Infinity) ? (petMeta[et] ? petMeta[et].name : et) : null;
   const view = Game.view(state, meta);
   const now = Date.now();
-  view.party.forEach(p => {
+  view.party.concat(view.box).forEach(p => {
     p.canExplore = Game.canExplore(state, p.id);
     p.ready = !!p.away && p.away.endsAt <= now;
   });
+  view.expeditionSize = Game.C.EXPEDITION_SIZE;
+  view.expeditionKinds = Object.keys(Game.C.EXPEDITIONS);
+  view.eggPrice = Game.C.EGG_PRICE;
+  view.eggPool = eggBaseIds().length;
   const items = Object.keys(Game.ITEMS).map(id =>
     Object.assign({ id, count: state.inventory[id] || 0, canUse: Game.canUseItem(state, id, state.pet) }, Game.ITEMS[id])
   );
@@ -401,6 +405,14 @@ ipcMain.on("swap-party", (_e, p) => {
   scheduleSync();
 });
 
+function eggBaseIds() {
+  const forms = id => {
+    const m = petMeta[id] || {};
+    return [m.evolvesTo].concat(m.evolveBranches ? Object.values(m.evolveBranches) : []).filter(Boolean);
+  };
+  return petIds.filter(id => petMeta[id] && !petIds.some(o => forms(o).includes(id)));
+}
+
 const lootText = r =>
   [r.coins + " moedas"].concat(Object.keys(r.items || {}).map(k => Game.ITEMS[k].name + (r.items[k] > 1 ? " x" + r.items[k] : ""))).join(", ");
 
@@ -425,13 +437,23 @@ ipcMain.handle("eco", (_e, p) => {
     r = Game.useItem(state, p.item, state.pet);
     if (r.changed) msg = r.levels > 0 ? "Subiu para o nível " + r.level + "!" : Game.ITEMS[p.item].name + " usado";
     if (r.changed && Game.ITEMS[p.item].hunger && alive(win)) win.webContents.send("feed");
+  } else if (p.op === "egg") {
+    r = Game.buyEgg(state, eggBaseIds());
+    if (r.changed) msg = "Ovo adicionado ao inventário";
   } else if (p.op === "explore") {
-    r = Game.startExpedition(state, p.id, p.kind);
-    if (r.changed) msg = name(p.id) + " partiu em expedição";
+    r = Game.startExpedition(state, p.kind, Array.isArray(p.ids) ? p.ids : []);
+    if (r.changed) msg = "Expedição partiu";
+    else if (r.reason === "home") return "Deixe pelo menos um do grupo em casa.";
   } else if (p.op === "collect") {
-    const sp = Game.speciesOf(state, p.id);
-    r = Game.collectExpedition(state, p.id, (petMeta[sp] && petMeta[sp].types) || []);
-    if (r.changed) msg = name(p.id) + " voltou com " + lootText(r) + (r.levels > 0 ? ". Subiu para o nível " + r.level + "!" : "");
+    const typesOf = id => {
+      const sp = Game.speciesOf(state, id);
+      return (petMeta[sp] && petMeta[sp].types) || [];
+    };
+    r = Game.collectExpedition(state, p.kind, typesOf);
+    if (r.changed) {
+      const ups = r.levels.map(l => name(l.id) + " subiu para o nível " + l.level).join(". ");
+      msg = "Voltaram com " + lootText(r) + (ups ? ". " + ups + "!" : "");
+    }
   }
   if (!r.changed) return null;
   saveState();
