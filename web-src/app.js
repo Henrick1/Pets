@@ -65,7 +65,6 @@
   let bagTab = "bag";
   let expTicker = 0;
   let dailyShown = "";
-  let lastCoins = null;
   let expPick = null;
   const expDraft = { curta: [], media: [], longa: [] };
 
@@ -815,15 +814,27 @@
     $("bag-coins").textContent = state.coins + " moedas";
     $("tab-bag").setAttribute("aria-selected", String(bagTab === "bag"));
     $("tab-store").setAttribute("aria-selected", String(bagTab === "store"));
+    $("tab-eggstore").setAttribute("aria-selected", String(bagTab === "eggs"));
     $("bag-list").hidden = bagTab !== "bag";
     $("store-list").hidden = bagTab !== "store";
+    $("egg-store").hidden = bagTab !== "eggs";
+    const pool = Game.eggPool(state, baseIds());
+    $("buy-egg").disabled = state.coins < Game.C.EGG_PRICE || !pool.length;
+    $("buy-egg").textContent = "Comprar por " + Game.C.EGG_PRICE + " moedas";
     const petName = state.pet ? (meta[Game.speciesOf(state)] || {}).name || "" : "";
     const bag = $("bag-list");
     const store = $("store-list");
     bag.replaceChildren();
     store.replaceChildren();
     const ids = Object.keys(Game.ITEMS);
-    if (bagTab === "bag") {
+    if (bagTab === "eggs") {
+      $("bag-hint").textContent = "";
+      $("shop-hint").textContent = !pool.length
+        ? "Nenhuma criatura disponível nos ovos."
+        : state.coins < Game.C.EGG_PRICE
+          ? "Moedas insuficientes. Cuide do grupo, pegue o presente do dia e faça expedições para ganhar mais."
+          : "O ovo vai para o inventário de ovos.";
+    } else if (bagTab === "bag") {
       const have = ids.filter(k => state.inventory[k] > 0);
       $("bag-hint").textContent = have.length
         ? "Os itens são usados em " + petName + ". Para usar em outro, troque de bichinho no Grupo."
@@ -864,38 +875,6 @@
       });
     } else {
       $("bag-hint").textContent = "Seu grupo rende moedas toda hora enquanto está alimentado e feliz.";
-      const pool = Game.eggPool(state, baseIds());
-      const eggRow = document.createElement("div");
-      eggRow.className = "item";
-      const eggIco = document.createElement("span");
-      eggIco.className = "item-ico";
-      eggIco.append(miniEgg("#b9a7d6"));
-      const eggInfo = document.createElement("span");
-      eggInfo.className = "info";
-      const eggName = document.createElement("span");
-      eggName.className = "name-line";
-      eggName.textContent = "Ovo misterioso";
-      const eggEff = document.createElement("span");
-      eggEff.className = "lv";
-      eggEff.textContent = "Nasce uma criatura aleatória";
-      eggInfo.append(eggName, eggEff);
-      const eggBuy = document.createElement("button");
-      eggBuy.type = "button";
-      eggBuy.className = "btn primary small";
-      eggBuy.textContent = Game.C.EGG_PRICE + " moedas";
-      eggBuy.setAttribute("aria-label", "Comprar ovo misterioso por " + Game.C.EGG_PRICE + " moedas");
-      eggBuy.disabled = state.coins < Game.C.EGG_PRICE || !pool.length;
-      eggBuy.addEventListener("click", () => {
-        const r = Game.buyEgg(state, baseIds());
-        if (!r.changed) return;
-        saveState();
-        scheduleSync();
-        showToast("Ovo adicionado ao inventário");
-        renderBag();
-        render();
-      });
-      eggRow.append(eggIco, eggInfo, eggBuy);
-      store.append(eggRow);
       ids.filter(k => Game.ITEMS[k].price).forEach(k => {
         const it = Game.ITEMS[k];
         const el = itemRow(k, it, state.inventory[k] ? "tem " + state.inventory[k] : "");
@@ -1362,13 +1341,7 @@
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = v.life >= 100;
     $("party-alert").hidden = !(state.expeditions.some(x => x.endsAt <= Date.now()) || v.party.some(p => !p.away && (p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25)));
-    $("coin-count").textContent = String(v.coins);
-    if (lastCoins !== null && v.coins > lastCoins) {
-      $("bag-btn").classList.remove("bump");
-      void $("bag-btn").offsetWidth;
-      $("bag-btn").classList.add("bump");
-    }
-    lastCoins = v.coins;
+    $("bag-btn").setAttribute("aria-label", "Loja · " + v.coins + " moedas");
     if ($("bag-sheet").open) renderBag();
     if (lastPetId !== v.pet + ":" + v.species) {
       lastPetId = v.pet + ":" + v.species;
@@ -1533,7 +1506,6 @@
       render();
     });
     $("party-sheet").addEventListener("close", () => clearInterval(expTicker));
-    ["pointerdown", "pointerup"].forEach(t => $("bag-btn").addEventListener(t, e => e.stopPropagation()));
     $("bag-btn").addEventListener("click", () => {
       if (Game.dailyStatus(state).available) {
         dailyShown = "";
@@ -1545,6 +1517,19 @@
     $("tab-bag").addEventListener("click", () => {
       bagTab = "bag";
       renderBag();
+    });
+    $("tab-eggstore").addEventListener("click", () => {
+      bagTab = "eggs";
+      renderBag();
+    });
+    $("buy-egg").addEventListener("click", () => {
+      const r = Game.buyEgg(state, baseIds());
+      if (!r.changed) return;
+      saveState();
+      scheduleSync();
+      showToast("Ovo adicionado ao inventário");
+      renderBag();
+      render();
     });
     $("tab-store").addEventListener("click", () => {
       bagTab = "store";
@@ -1614,12 +1599,14 @@
       $("menu-pop").hidden = !open;
       $("menu-btn").setAttribute("aria-expanded", String(open));
       $("menu-btn").classList.toggle("open", open);
+      $("menu-scrim").hidden = !open;
+      document.querySelector(".top").classList.toggle("menu-open", open);
     };
     $("menu-btn").addEventListener("click", () => setMenu($("menu-pop").hidden));
     document.addEventListener("pointerdown", e => {
       if (!$("menu-pop").hidden && !e.target.closest(".top-actions")) setMenu(false);
     });
-    ["egg-btn", "dex-btn", "account-btn"].forEach(id => $(id).addEventListener("click", () => setMenu(false)));
+    ["bag-btn", "egg-btn", "dex-btn", "account-btn"].forEach(id => $(id).addEventListener("click", () => setMenu(false)));
     $("dex-btn").addEventListener("click", () => {
       closeDexDetail();
       renderDex();

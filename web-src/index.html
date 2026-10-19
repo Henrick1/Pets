@@ -63,6 +63,7 @@
 </main>
 
 <main id="game-view" class="game" hidden>
+  <div id="menu-scrim" class="menu-scrim" hidden></div>
   <header class="top">
     <div class="who">
       <h1 id="pet-name"></h1>
@@ -75,6 +76,9 @@
         <span id="menu-alert" class="alert-dot" hidden></span>
       </button>
       <div id="menu-pop" class="menu-pop" hidden>
+      <button id="bag-btn" class="icon-btn" type="button" aria-label="Loja">
+        <span class="coin-ico" aria-hidden="true"></span>
+      </button>
       <button id="egg-btn" class="icon-btn" type="button" aria-label="Ovos">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3c3.6 0 6.5 5.4 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.4 8.4 3 12 3z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
         <span id="egg-alert" class="alert-dot" hidden></span>
@@ -91,10 +95,6 @@
 
   <section id="stage-wrap" class="stage-wrap" aria-label="Seu bichinho. Toque para interagir.">
     <canvas id="stage"></canvas>
-    <button id="bag-btn" class="coin-btn" type="button" aria-label="Mochila e loja">
-      <span class="coin-ico" aria-hidden="true"></span>
-      <span id="coin-count">0</span>
-    </button>
     <p id="toast" class="toast" role="status" hidden></p>
   </section>
 
@@ -220,13 +220,25 @@
     </div>
     <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
   </div>
-  <div class="tabs" role="tablist">
+  <div class="tabs tabs-3" role="tablist">
     <button id="tab-bag" class="tab" role="tab" type="button" aria-selected="true" aria-controls="bag-list">Itens</button>
     <button id="tab-store" class="tab" role="tab" type="button" aria-selected="false" aria-controls="store-list">Loja</button>
+    <button id="tab-eggstore" class="tab" role="tab" type="button" aria-selected="false" aria-controls="egg-store">Ovos</button>
   </div>
   <p id="bag-hint" class="hint"></p>
   <div id="bag-list" class="list" role="tabpanel" aria-labelledby="tab-bag"></div>
   <div id="store-list" class="list" role="tabpanel" aria-labelledby="tab-store" hidden></div>
+  <section id="egg-store" class="egg-pane" role="tabpanel" aria-labelledby="tab-eggstore" hidden>
+    <div class="shop-card">
+      <span class="mini-egg big"></span>
+      <div>
+        <h3>Ovo misterioso</h3>
+        <p class="hint">Dele nasce uma criatura aleatória do primeiro estágio. Pode repetir.</p>
+      </div>
+    </div>
+    <button id="buy-egg" class="btn primary" type="button"></button>
+    <p id="shop-hint" class="hint"></p>
+  </section>
 </dialog>
 
 <dialog id="daily-sheet" class="daily" aria-labelledby="daily-title">
