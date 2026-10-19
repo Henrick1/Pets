@@ -123,6 +123,7 @@
     $("dex-count").textContent = found + " de " + petIds.length + " descobertas";
     const list = $("dex-list");
     list.replaceChildren();
+    const thumbQueue = [];
     const dexOrder = petIds.slice().sort((a, b) => (meta[a] ? meta[a].dex : 999) - (meta[b] ? meta[b].dex : 999) || a.localeCompare(b));
     dexOrder.forEach((id, i) => {
       const m = meta[id] || { name: id, color: "#999999", types: [] };
@@ -143,9 +144,27 @@
       num.className = "dex-card-num";
       num.textContent = dexNum(id);
       card.append(sw, name, num);
-      if (known) card.addEventListener("click", () => openDexDetail(id));
+      if (known) {
+        card.addEventListener("click", () => openDexDetail(id));
+        thumbQueue.push([sw, id]);
+      }
       list.append(card);
     });
+    const step = () => {
+      const job = thumbQueue.shift();
+      if (!job) return;
+      const [dot, sp] = job;
+      const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 192, true) : null;
+      if (url && dot.isConnected) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = "";
+        dot.classList.add("has-img");
+        dot.append(img);
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   function dexNum(id) {
