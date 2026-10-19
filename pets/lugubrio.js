@@ -25,7 +25,7 @@ Pets.register({
 
     const skin = std(0xe6dcef, 0.5);
     const skinDark = std(0xb8a8cc, 0.55);
-    const slimeMat = std(0x7236b0, 0.15, { emissive: 0x3a1470, emissiveIntensity: 0.45, side: THREE.DoubleSide });
+    const slimeMat = std(0x7236b0, 0.15, { emissive: 0x3a1470, emissiveIntensity: 0.45, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
     const glowMat = std(0xb070ff, 0.3, { emissive: 0x8a30e0, emissiveIntensity: 0.8 });
     const dotMat = std(0x5a3a80, 0.4);
     const darkMat = std(0x120a1a, 0.2);
@@ -245,26 +245,42 @@ Pets.register({
       }
       return p;
     };
+    const B0 = Math.PI - 0.6;
+    const startA = be => {
+      const ab = Math.abs(be);
+      if (ab <= B0) return openA(be);
+      return lerp(openA(B0), 2.3, smooth(0, 1, (ab - B0) / (Math.PI - B0)));
+    };
+    const cutE = ha => -0.3 - 0.35 * Math.pow(Math.abs(ha) / 1.75, 2);
+    const onHood = (ha, e, lift) => {
+      const c = Math.cos(e);
+      const d = V3(Math.sin(ha) * c, Math.sin(e), -Math.cos(ha) * c);
+      const al = Math.acos(Math.max(-1, Math.min(1, d.z)));
+      const be = Math.atan2(d.x, d.y);
+      return hoodPoint(Math.max(al, startA(be)), be, lift);
+    };
     {
-      const NA = 30;
-      const NB = 96;
-      const B0 = Math.PI - 0.6;
       const pos = [];
       const idx = [];
-      const startA = be => {
-        const ab = Math.abs(be);
-        if (ab <= B0) return openA(be);
-        return lerp(openA(B0), 2.3, smooth(0, 1, (ab - B0) / (Math.PI - B0)));
-      };
       const sg = new THREE.SphereGeometry(1, 120, 80);
       const sp = sg.attributes.position;
       const inside = [];
       for (let i = 0; i < sp.count; i++) {
         const d = V3(sp.getX(i), sp.getY(i), sp.getZ(i)).normalize();
+        const ha = Math.atan2(d.x, -d.z);
+        let cut = false;
+        if (Math.abs(ha) < 1.75) {
+          const e = cutE(ha);
+          if (Math.asin(Math.max(-1, Math.min(1, d.y))) < e) {
+            const c = Math.cos(e);
+            d.set(Math.sin(ha) * c, Math.sin(e), -Math.cos(ha) * c);
+            cut = true;
+          }
+        }
         const al = Math.acos(Math.max(-1, Math.min(1, d.z)));
         const be = Math.atan2(d.x, d.y);
         const a0 = startA(be);
-        inside.push(al < a0);
+        inside.push(al < a0 || cut);
         const p = hoodPoint(Math.max(al, a0), be, 1);
         pos.push(p.x, p.y, p.z);
       }
@@ -370,11 +386,14 @@ Pets.register({
         const g = buildGill(len);
         pv.add(g);
         head.add(pv);
-        gills.push({ pv, s, k, base: -s * (2.9 - k * 0.1) });
+        gills.push({ pv, s, k, len, base: -s * (2.9 - k * 0.1) });
       });
     });
 
     const capeGeo = new THREE.BufferGeometry();
+    let capeBase = null;
+    let capeNU = 0;
+    let capeNV = 0;
     {
       const NU = 28;
       const NV = 18;
@@ -386,7 +405,7 @@ Pets.register({
           const u = iu / NU;
           const a = (u * 2 - 1) * 1.75;
           const yTop = HEAD.y - 0.06;
-          const y = lerp(yTop, 0.86, v) - (v > 0.9 ? 0 : 0) - Math.pow(Math.abs(u * 2 - 1), 2) * 0.25 * v;
+          const y = lerp(Math.min(yTop, HEAD.y - 0.38), 0.86, v) - (v > 0.9 ? 0 : 0) - Math.pow(Math.abs(u * 2 - 1), 2) * 0.25 * v;
           const ty = (y - TC.y) / 0.5;
           const tr = Math.sqrt(Math.max(0.05, 1 - ty * ty));
           const rxB = 0.38 * tr * (1 + 0.12 * smooth(0.3, -0.7, ty)) + 0.07;
@@ -413,7 +432,40 @@ Pets.register({
       capeGeo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
       capeGeo.setIndex(idx);
       capeGeo.computeVertexNormals();
+      capeBase = pos.slice();
+      capeNU = NU;
+      capeNV = NV;
     }
+    const edgeLocal = [];
+    for (let iu = 0; iu <= capeNU; iu++) {
+      const a = ((iu / capeNU) * 2 - 1) * 1.75;
+      edgeLocal.push(onHood(a * 0.98, cutE(a * 0.98) + 0.05, 0.985));
+    }
+    const headToTorso = new THREE.Matrix4();
+    const invTorso = new THREE.Matrix4();
+    const tmpV = V3(0, 0, 0);
+    const updateCape = () => {
+      torso.updateMatrixWorld(true);
+      invTorso.copy(torso.matrixWorld).invert();
+      headToTorso.multiplyMatrices(invTorso, head.matrixWorld);
+      const arr = capeGeo.attributes.position.array;
+      for (let iv = 0; iv <= capeNV; iv++) {
+        const v = iv / capeNV;
+        const w = smooth(0, 0.7, v);
+        for (let iu = 0; iu <= capeNU; iu++) {
+          const o = (iv * (capeNU + 1) + iu) * 3;
+          tmpV.copy(edgeLocal[iu]).applyMatrix4(headToTorso);
+          const bx = capeBase[o];
+          const by = capeBase[o + 1];
+          const bz = capeBase[o + 2];
+          arr[o] = lerp(tmpV.x, bx, w);
+          arr[o + 1] = lerp(tmpV.y, by, w);
+          arr[o + 2] = lerp(tmpV.z, bz, w);
+        }
+      }
+      capeGeo.attributes.position.needsUpdate = true;
+      capeGeo.computeVertexNormals();
+    };
     torso.add(mesh(capeGeo, slimeMat, false));
     const capeDrips = [];
     for (let k = 0; k < 9; k++) {
@@ -645,19 +697,29 @@ Pets.register({
 
         updateTail(t, 0.08 * motion);
 
-        mist.forEach(({ p: mp, m, a: ma, r, sp, o }) => {
+        updateCape();
+        root.updateMatrixWorld(true);
+        mist.forEach(({ p: mp, m, a: ma, r, sp, o }, i) => {
           const f = (t * sp + o) % 1;
           mp.visible = !reduceMotion;
-          mp.position.set(Math.cos(ma + t * 0.2) * r, 0.05 + f * 0.9, Math.sin(ma + t * 0.2) * r * 0.8 - 0.1);
-          mp.scale.setScalar(0.05 + f * 0.09);
+          if (i % 2) {
+            const gl = gills[i % gills.length];
+            gl.pv.localToWorld(tmpV.set(0, gl.len * 0.95, -0.16));
+          } else {
+            const dr = capeDrips[i % capeDrips.length];
+            dr.bulb.getWorldPosition(tmpV);
+          }
+          root.worldToLocal(tmpV);
+          mp.position.set(tmpV.x + Math.cos(ma) * f * 0.12, tmpV.y + f * 0.55, tmpV.z + Math.sin(ma) * f * 0.12);
+          mp.scale.setScalar(0.025 + f * 0.06);
           m.opacity = Math.sin(f * Math.PI) * 0.35 * (1 + (hoodGlowK - 0.3) * 0.5);
         });
         burst.forEach(({ p: bp, m, a: ba, d }) => {
           const q = burstK >= 0 ? (burstK - 0.25 - d) / 0.6 : -1;
           bp.visible = q > 0 && q < 1 && !reduceMotion;
           if (bp.visible) {
-            const r = 0.3 + q * 1.4;
-            bp.position.set(Math.cos(ba) * r, 0.2 + q * 0.6 + Math.sin(ba * 3) * 0.1, Math.sin(ba) * r * 0.8);
+            const r = 0.45 + q * 1.2;
+            bp.position.set(Math.cos(ba) * r, 1.5 + q * 0.5 + Math.sin(ba * 3) * 0.15, Math.sin(ba) * r * 0.8 - 0.25);
             bp.scale.setScalar(0.08 + q * 0.18);
             m.opacity = (1 - q) * 0.6;
           }
