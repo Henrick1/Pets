@@ -188,7 +188,7 @@ Pets.register({
       obj.position.copy(pts[i]).addScaledVector(topV, lift || 0);
     };
 
-    const bandGeo = new THREE.TorusGeometry(1, 0.17, 10, 28, Math.PI);
+    const bandGeo = new THREE.TorusGeometry(1, 0.15, 10, 40);
     const bands = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map(u => {
       const m = mesh(bandGeo, elecMat, false);
       swim.add(m);
@@ -652,9 +652,9 @@ Pets.register({
         crest.rotation.x = 0.2 + stream * 0.25 + Math.sin(t * 1.8) * 0.04 * motion;
 
         bands.forEach((b, k) => {
-          orientAt(b.m, b.i, 0);
           const r = radiusAt(b.u) * (1.02 + 0.06 * Math.max(0, Math.sin(t * 5 - k * 0.9)) * (charge + blast) * 2);
-          b.m.scale.set(r, r * 0.88, r);
+          orientAt(b.m, b.i, r * 0.1);
+          b.m.scale.set(r, r * 0.9, r);
         });
         bolts.forEach((b, k) => {
           orientAt(b.m, b.i, radiusAt(b.u) * 0.92);
