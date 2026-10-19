@@ -239,6 +239,32 @@ Pets.register({
       return g;
     };
 
+    const mossCap = (r, sx, sy, sz, seed, cover = 0.4) => {
+      const g = new THREE.SphereGeometry(r, 96, 32, 0, Math.PI * 2, 0, Math.PI * cover);
+      const pos = g.attributes.position;
+      const uv = g.attributes.uv;
+      const col = new Float32Array(pos.count * 3);
+      const A = hexParts(0x5a9040);
+      const B = hexParts(0xb8e888);
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i) / r;
+        const y = pos.getY(i) / r;
+        const z = pos.getZ(i) / r;
+        const a = Math.atan2(z, x);
+        const e = Math.acos(Math.max(-1, Math.min(1, y))) / (Math.PI * cover);
+        const lim = 0.68 + 0.16 * Math.sin(a * 5 + seed) + 0.08 * Math.sin(a * 13 - seed * 2);
+        const fine = Math.sin(x * 41 + seed) * Math.sin(y * 37) * Math.sin(z * 43 - seed) * 0.6 + Math.sin(x * 23 - z * 19 + y * 29) * 0.4;
+        const lift = 1.05 + 0.025 * fine - 0.1 * smooth(lim, Math.min(1, lim + 0.25), e);
+        pos.setXYZ(i, x * sx * r * lift, y * sy * r * lift, z * sz * r * lift);
+        uv.setXY(i, x * 1.2 + 0.5, z * 1.2 + 0.5);
+        const f = Math.max(0, Math.min(1, 0.5 + fine * 0.35 + (1 - e) * 0.3));
+        for (let j = 0; j < 3; j++) col[i * 3 + j] = lerp(A[j], B[j], f);
+      }
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      g.computeVertexNormals();
+      return g;
+    };
+
     const HIP = V3(0, 0.7, -0.05);
     const torsoPivot = new THREE.Group();
     torsoPivot.position.copy(HIP);
@@ -316,9 +342,8 @@ Pets.register({
       const m = mesh(g, barkMat);
       m.position.set(0.58 * s, 1.26, -0.02);
       torso.add(m);
-      const moss = mesh(mossBlob(0.22, 3 + s, 0.42), mossMat);
-      moss.position.set(0.58 * s, 1.42, -0.04);
-      moss.rotation.z = -s * 0.3;
+      const moss = mesh(mossCap(0.25, 1.05, 0.9, 1.0, 3 + s, 0.38), mossMat, false);
+      moss.position.copy(m.position);
       torso.add(moss);
       return m;
     });

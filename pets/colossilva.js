@@ -237,6 +237,32 @@ Pets.register({
       return g;
     };
 
+    const mossCap = (r, sx, sy, sz, seed, cover = 0.4) => {
+      const g = new THREE.SphereGeometry(r, 96, 32, 0, Math.PI * 2, 0, Math.PI * cover);
+      const pos = g.attributes.position;
+      const uv = g.attributes.uv;
+      const col = new Float32Array(pos.count * 3);
+      const A = hexParts(0x5a9040);
+      const B = hexParts(0xb8e888);
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i) / r;
+        const y = pos.getY(i) / r;
+        const z = pos.getZ(i) / r;
+        const a = Math.atan2(z, x);
+        const e = Math.acos(Math.max(-1, Math.min(1, y))) / (Math.PI * cover);
+        const lim = 0.68 + 0.16 * Math.sin(a * 5 + seed) + 0.08 * Math.sin(a * 13 - seed * 2);
+        const fine = Math.sin(x * 41 + seed) * Math.sin(y * 37) * Math.sin(z * 43 - seed) * 0.6 + Math.sin(x * 23 - z * 19 + y * 29) * 0.4;
+        const lift = 1.05 + 0.025 * fine - 0.1 * smooth(lim, Math.min(1, lim + 0.25), e);
+        pos.setXYZ(i, x * sx * r * lift, y * sy * r * lift, z * sz * r * lift);
+        uv.setXY(i, x * 1.2 + 0.5, z * 1.2 + 0.5);
+        const f = Math.max(0, Math.min(1, 0.5 + fine * 0.35 + (1 - e) * 0.3));
+        for (let j = 0; j < 3; j++) col[i * 3 + j] = lerp(A[j], B[j], f);
+      }
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      g.computeVertexNormals();
+      return g;
+    };
+
     const HIP = V3(0, 1.0, -0.35);
     const torsoPivot = new THREE.Group();
     torsoPivot.position.copy(HIP);
@@ -307,15 +333,12 @@ Pets.register({
       const m = mesh(g, barkMat);
       m.position.set(1.0 * s, 2.0, 0.05);
       torso.add(m);
-      const moss = mesh(mossBlob(0.5, 3 + s, 0.42), mossMat);
-      moss.position.set(1.0 * s, 2.33, 0.0);
-      moss.rotation.z = -s * 0.35;
+      const moss = mesh(mossCap(0.54, 1.05, 0.9, 1.0, 3 + s, 0.38), mossMat, false);
+      moss.position.copy(m.position);
       torso.add(moss);
       return m;
     });
-    const backMoss = mesh(mossBlob(0.55, 9, 0.35), mossMat);
-    backMoss.position.set(0, 2.25, -0.25);
-    torso.add(backMoss);
+    torsoMesh.add(mesh(mossCap(1, TR.x, TR.y, TR.z, 9, 0.3), mossMat, false));
 
     const capG = new THREE.Group();
     capG.position.set(0, 1.72, -0.64);
@@ -607,7 +630,24 @@ Pets.register({
     const legs = [-1, 1].map(s => {
       const g = new THREE.Group();
       root.add(g);
-      g.add(mesh(taperTube([V3(0.55 * s, 1.0, -0.42), V3(0.72 * s, 0.6, -0.32), V3(0.74 * s, 0.22, -0.26)], 0.36, 0.28, 20, 40, 8), limbMat));
+      g.add(mesh(taperTube([V3(0.42 * s, 1.3, -0.28), V3(0.6 * s, 0.95, -0.36), V3(0.72 * s, 0.6, -0.32), V3(0.74 * s, 0.22, -0.26)], 0.4, 0.28, 24, 40, 8), limbMat));
+      const hipGeo = new THREE.SphereGeometry(0.44, 80, 40);
+      {
+        const pos = hipGeo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i);
+          const y = pos.getY(i);
+          const z = pos.getZ(i);
+          const a = Math.atan2(z, x);
+          const gv = Math.abs(Math.cos(a * 4 + y * 6));
+          const k = 1.01 - 0.07 * Math.pow(gv, 16);
+          pos.setXYZ(i, x * k, y * k * 1.1, z * k);
+        }
+        hipGeo.computeVertexNormals();
+      }
+      const hip = mesh(hipGeo, barkMat);
+      hip.position.set(0.5 * s, 1.05, -0.4);
+      g.add(hip);
       const foot = new THREE.Group();
       foot.position.set(0.74 * s, 0.14, -0.24);
       g.add(foot);
