@@ -108,70 +108,67 @@ Pets.register({
     head.position.y = HOVER;
     floatG.add(head);
 
-    const headGeo = new THREE.SphereGeometry(0.62, 48, 36);
-    {
-      const pos = headGeo.attributes.position;
+    const PROFILE = [[0.001, -0.6], [0.3, -0.57], [0.47, -0.44], [0.56, -0.22], [0.57, -0.02], [0.52, 0.17], [0.5, 0.3], [0.62, 0.55], [0.69, 0.82], [0.66, 1.1], [0.52, 1.36], [0.28, 1.5], [0.001, 1.54]];
+    const SEAM = 0.3;
+    const bend = (x, y, z) => {
+      const k = Math.max(0, y - 0.2) / 1.1;
+      return [x, y - k * k * 0.16, z - k * k * 0.6];
+    };
+    const latheFrom = (fromY, toY) => {
+      const pts = [];
+      const N = 60;
+      const curve = new THREE.SplineCurve(PROFILE.map(([r, y]) => new THREE.Vector2(r, y)));
+      const all = curve.getPoints(N * 3);
+      all.forEach(v => {
+        if (v.y >= fromY - 1e-4 && v.y <= toY + 1e-4) pts.push(new THREE.Vector2(Math.max(0.001, v.x), v.y));
+      });
+      const g = new THREE.LatheGeometry(pts, 56);
+      const pos = g.attributes.position;
       for (let i = 0; i < pos.count; i++) {
-        let x = pos.getX(i);
-        let y = pos.getY(i);
-        let z = pos.getZ(i);
-        const bulge = Math.exp(-Math.pow((y - 0.05) / 0.2, 2)) * Math.max(0, Math.abs(x) / 0.62 - 0.4) * 0.25;
-        x *= 1.18 + bulge;
-        y *= 0.78;
-        z *= 1.0;
+        const [x, y, z] = bend(pos.getX(i), pos.getY(i), pos.getZ(i));
         pos.setXYZ(i, x, y, z);
       }
-      headGeo.computeVertexNormals();
-    }
-    paint(headGeo, (x, y) => grad(y, -0.45, 0.4));
-    const headM = mesh(headGeo, skin);
-    head.add(headM);
-
-    const mantlePivot = new THREE.Group();
-    mantlePivot.position.set(0, 0.3, -0.18);
-    head.add(mantlePivot);
-    const mantleOuterGeo = new THREE.SphereGeometry(0.62, 48, 36, 0, Math.PI * 2, 0, Math.PI * 0.85);
+      g.computeVertexNormals();
+      return g;
+    };
+    const bodyG = new THREE.Group();
+    head.add(bodyG);
+    const lowerGeo = paint(latheFrom(-0.7, SEAM), (x, y) => grad(y, -0.55, 0.45));
+    const lower = mesh(lowerGeo, skin);
+    bodyG.add(lower);
+    const upperSkinGeo = paint(latheFrom(SEAM, 1.7), (x, y) => grad(y, 0.3, 1.3));
+    const upperGlass = mesh(latheFrom(SEAM, 1.7), glassMat, false);
+    upperGlass.renderOrder = 2;
+    bodyG.add(upperGlass);
+    const backSkin = mesh(upperSkinGeo, skin);
     {
-      const pos = mantleOuterGeo.attributes.position;
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        const z = pos.getZ(i);
-        const u = (y + 0.62) / 1.24;
-        const w = 1 - 0.18 * Math.pow(u, 2);
-        pos.setXYZ(i, x * w * 1.05, y * 1.35 + 0.42, z * w);
-      }
-      mantleOuterGeo.computeVertexNormals();
-    }
-    const mantleGlass = mesh(mantleOuterGeo, glassMat, false);
-    mantleGlass.renderOrder = 2;
-    mantlePivot.add(mantleGlass);
-    const mantleSkinGeo = mantleOuterGeo.clone();
-    paint(mantleSkinGeo, (x, y, z) => {
-      const back = smooth(0.0, -0.45, z);
-      const c = grad(y, -0.2, 1.2);
-      return c;
-    });
-    {
-      const pos = mantleSkinGeo.attributes.position;
+      const pos = upperSkinGeo.attributes.position;
+      const src = upperSkinGeo.index.array;
       const idx = [];
-      const keep = [];
-      for (let i = 0; i < pos.count; i++) keep.push(pos.getY(i) < 0.3 + Math.sin(Math.atan2(pos.getZ(i), pos.getX(i)) * 6) * 0.05);
-      const src = mantleOuterGeo.index.array;
-      for (let k = 0; k < src.length; k += 3) {
-        if (keep[src[k]] && keep[src[k + 1]] && keep[src[k + 2]]) idx.push(src[k], src[k + 1], src[k + 2]);
-      }
-      mantleSkinGeo.setIndex(idx);
+      const keep = i => pos.getZ(i) < -0.18 - (pos.getY(i) - SEAM) * 0.12;
+      for (let k = 0; k < src.length; k += 3) if (keep(src[k]) && keep(src[k + 1]) && keep(src[k + 2])) idx.push(src[k], src[k + 1], src[k + 2]);
+      upperSkinGeo.setIndex(idx);
     }
-    const mantleSkin = mesh(mantleSkinGeo, skin);
-    mantleSkin.scale.setScalar(1.005);
-    mantlePivot.add(mantleSkin);
+    backSkin.scale.setScalar(1.004);
+    bodyG.add(backSkin);
+    const seamRing = mesh(new THREE.TorusGeometry(0.5, 0.03, 10, 56), new THREE.MeshStandardMaterial({ color: 0x8a8aff, roughness: 0.25, emissive: 0x4a3ad8, emissiveIntensity: 0.5 }), false);
+    seamRing.rotation.x = Math.PI / 2;
+    {
+      const [x, y, z] = bend(0, SEAM, 0);
+      seamRing.position.set(x, y, z);
+    }
+    bodyG.add(seamRing);
 
     const brain = new THREE.Group();
-    brain.position.set(0, 0.62, 0.08);
-    mantlePivot.add(brain);
+    {
+      const [x, y, z] = bend(0, 0.82, 0);
+      brain.position.set(x, y, z);
+      brain.scale.setScalar(1.3);
+    }
+    brain.rotation.x = -0.25;
+    bodyG.add(brain);
     [-1, 1].forEach(s => {
-      const lobeGeo = new THREE.SphereGeometry(0.26, 32, 24);
+      const lobeGeo = new THREE.SphereGeometry(0.24, 32, 24);
       const pos = lobeGeo.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
@@ -183,30 +180,34 @@ Pets.register({
       lobeGeo.computeVertexNormals();
       const lobe = mesh(lobeGeo, brainMat, false);
       lobe.scale.set(0.82, 1.0, 1.25);
-      lobe.position.x = 0.15 * s;
+      lobe.position.x = 0.14 * s;
       brain.add(lobe);
     });
     const brainLight = new THREE.PointLight(0xc08aff, 0.6, 2.5);
     brain.add(brainLight);
 
     const spots = [];
-    for (let k = 0; k < 22; k++) {
+    for (let k = 0; k < 26; k++) {
       const th = k * 2.399;
-      const yy = -0.1 + (k / 22) * 1.15;
-      const pos = V3(Math.cos(th), 0, Math.sin(th));
-      const u = (yy - 0.42) / 1.35 / 0.62;
-      const rr = 0.62 * Math.sqrt(Math.max(0, 1 - u * u)) * (1 - 0.18 * Math.pow((u + 1) / 2, 2));
-      if (pos.z > 0.3 && yy > 0.15) continue;
-      const sp = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), spotMat);
-      sp.position.set(pos.x * rr * 1.06, yy, pos.z * rr * 1.01);
-      mantlePivot.add(sp);
+      const yy = -0.4 + (k / 26) * 1.85;
+      let rr = 0;
+      for (let j = 0; j < PROFILE.length - 1; j++) {
+        const [r0, y0] = PROFILE[j];
+        const [r1, y1] = PROFILE[j + 1];
+        if (yy >= y0 && yy <= y1) rr = lerp(r0, r1, (yy - y0) / (y1 - y0));
+      }
+      const [x, y, z] = bend(Math.cos(th) * rr * 1.015, yy, Math.sin(th) * rr * 1.015);
+      if (z > 0.3 && yy > -0.25 && yy < 0.25) continue;
+      const sp = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 6), spotMat);
+      sp.position.set(x, y, z);
+      bodyG.add(sp);
       spots.push({ m: sp, ph: k * 0.7 });
     }
 
     const eyes = [];
     const turrets = [-1, 1].map(s => {
       const tg = new THREE.Group();
-      tg.position.set(0.5 * s, 0.12, 0.3);
+      tg.position.set(0.42 * s, 0.1, 0.32);
       head.add(tg);
       const tur = mesh(new THREE.SphereGeometry(0.2, 28, 20), skin);
       tur.geometry = paint(new THREE.SphereGeometry(0.2, 28, 20), (x, y) => grad(y, -0.2, 0.25));
@@ -228,7 +229,7 @@ Pets.register({
     });
 
     const third = new THREE.Group();
-    third.position.set(0, 0.36, 0.54);
+    third.position.set(0, 0.2, 0.53);
     head.add(third);
     const socket = mesh(new THREE.TorusGeometry(0.075, 0.022, 10, 24), new THREE.MeshStandardMaterial({ color: 0xffd86a, roughness: 0.25, metalness: 0.7 }), false);
     third.add(socket);
@@ -240,11 +241,11 @@ Pets.register({
     const siphon = mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.18, 14, 1, true), skin, false);
     siphon.geometry = paint(new THREE.CylinderGeometry(0.05, 0.08, 0.18, 14, 1, true), () => MID);
     siphon.rotation.set(Math.PI / 2 - 0.6, 0, 0);
-    siphon.position.set(0.0, -0.28, 0.48);
+    siphon.position.set(0.0, -0.3, 0.5);
     head.add(siphon);
     const beak = mesh(new THREE.ConeGeometry(0.05, 0.1, 10), new THREE.MeshStandardMaterial({ color: 0x1a1428, roughness: 0.3 }), false);
     beak.rotation.x = Math.PI;
-    beak.position.set(0, -0.44, 0.22);
+    beak.position.set(0, -0.58, 0.05);
     head.add(beak);
 
     const NT = 8;
@@ -383,9 +384,8 @@ Pets.register({
         floatG.rotation.x = lookPitch * 0.5 + Math.sin(swimT) * 0.035 * motion - charge * 0.12 + fire * 0.06;
         floatG.rotation.z = Math.sin(t * 0.6) * 0.04 * motion;
 
-        headM.scale.set(1 - squeeze * 0.06, 1 + squeeze * 0.05, 1 - squeeze * 0.06);
-        mantlePivot.rotation.x = -0.35 + Math.sin(swimT) * 0.08 * motion - squeeze * 0.15 - focus * 0.12;
-        mantlePivot.scale.set(1 - squeeze * 0.1, 1 + squeeze * 0.12, 1 - squeeze * 0.1);
+        bodyG.scale.set(1 - squeeze * 0.08 + fire * 0.04, 1 + squeeze * 0.1, 1 - squeeze * 0.08 + fire * 0.04);
+        bodyG.rotation.x = Math.sin(swimT) * 0.05 * motion - focus * 0.08;
         brain.scale.setScalar(1 + focus * 0.06 + charge * 0.1 + Math.sin(t * 1.8) * 0.015);
         brainMat.emissiveIntensity = (0.4 + focus * 0.5 + charge * 0.6 + fire * 0.5 + Math.max(0, Math.sin(t * 2.4)) * 0.12) * mind;
         brainLight.intensity = (0.4 + focus * 0.8 + charge + fire) * mind;
@@ -425,13 +425,13 @@ Pets.register({
             const reach = (0.1 + u * tn.len * 0.62) * spread;
             let down = u * tn.len * (0.95 - u * 0.35);
             down -= raise * Math.pow(u, 1.4) * 1.6;
-            const r = 0.5 + reach;
+            const r = 0.3 + 0.2 * smooth(0, 0.3, u) + reach - 0.1 * spread;
             const curlIn = Math.max(0, u - 0.55) * curl * 0.7;
             const rr = r - curlIn;
-            const yy = HOVER - 0.38 - down + curlIn * 0.9;
+            const yy = HOVER - 0.42 - down + curlIn * 0.9;
             tn.pts[i].set(ca * rr - sa * wave, Math.max(0.06, yy), sa * rr + ca * wave);
           }
-          const { g, curve } = taper(tn.pts, u => lerp(0.13, 0.012, Math.pow(u, 0.7)) * (1 + 0.12 * Math.sin(u * Math.PI)), 10, 32);
+          const { g, curve } = taper(tn.pts, u => lerp(0.15, 0.012, Math.pow(u, 0.7)) * (1 + 0.12 * Math.sin(u * Math.PI)), 10, 32);
           tn.m.geometry.dispose();
           tn.m.geometry = paint(g, (x, yv) => grad(yv, HOVER - 1.2, HOVER));
           tn.suckers.forEach((sk, j) => {
