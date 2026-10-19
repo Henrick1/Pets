@@ -80,10 +80,10 @@ Pets.register({
     };
     const elytra = [-1, 1].map(s => {
       const pivot = new THREE.Group();
-      pivot.position.set(0.012 * s, BODY_Y + RY * 0.98, 0.02);
+      pivot.position.set(0.012 * s, BODY_Y + RY * 0.82, 0.02 + RZ * 0.55);
       const shell = mesh(shellGeo(s), goldShell);
       shell.scale.set(RX, RY, RZ);
-      shell.position.set(0, -RY * 0.98, 0);
+      shell.position.set(0, -RY * 0.82, -RZ * 0.55);
       pivot.add(shell);
       const glass = [0x7ff0ff, 0xff7fd8, 0x9fff8a, 0xffb05a];
       [[0.45, 0.8, 0.35], [0.3, 0.88, -0.25], [0.7, 0.55, 0.05], [0.55, 0.6, -0.55]].forEach(([nx0, ny0, nz0], k) => {
@@ -91,7 +91,7 @@ Pets.register({
         const nrm = V3(n.x / RX, n.y / RY, n.z / RZ).normalize();
         const gem = mesh(new THREE.SphereGeometry(0.075, 18, 12), new THREE.MeshStandardMaterial({ color: glass[k], emissive: glass[k], emissiveIntensity: 0.35, roughness: 0.1, metalness: 0.1 }), false);
         gem.scale.set(1, 1, 0.4);
-        gem.position.set(n.x * RX - 0.012 * s, n.y * RY - RY * 0.98, n.z * RZ - 0.02);
+        gem.position.set(n.x * RX, n.y * RY - RY * 0.82, n.z * RZ - RZ * 0.55);
         gem.quaternion.setFromUnitVectors(V3(0, 0, 1), nrm);
         pivot.add(gem);
       });
@@ -239,7 +239,7 @@ Pets.register({
     };
     const wings = [-1, 1].map(s => {
       const mount = new THREE.Group();
-      mount.position.set(0.08 * s, BODY_Y + RY * 0.7, 0.12);
+      mount.position.set(0.12 * s, BODY_Y + RY * 0.62, RZ * 0.42);
       const w = buildWing();
       w.scale.set(s, 1, 1);
       const flapG = new THREE.Group();
@@ -341,9 +341,9 @@ Pets.register({
         bodyG.rotation.z = Math.sin(t * 1.4) * 0.03 * motion + (fly ? Math.sin(t * 2.2) * 0.06 * lift : 0);
 
         elytra.forEach(({ pivot, s: sd }) => {
-          pivot.rotation.z = sd * open * 0.95;
-          pivot.rotation.y = sd * open * 0.25;
-          pivot.rotation.x = -open * 0.2;
+          pivot.rotation.x = open * 0.95;
+          pivot.rotation.y = sd * open * 0.5;
+          pivot.rotation.z = sd * open * 0.45;
         });
         wings.forEach(({ mount, flapG, s: sd }) => {
           const unfold = smooth(0.1, 0.6, open);

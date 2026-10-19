@@ -50,10 +50,10 @@ Pets.register({
       return geo;
     };
 
-    const BODY_Y = 0.6;
-    const RX = 0.6;
-    const RY = 0.46;
-    const RZ = 0.74;
+    const BODY_Y = 0.62;
+    const RX = 0.64;
+    const RY = 0.44;
+    const RZ = 0.95;
 
     const darkMat = mat(0x3b2410, 0.45);
     const bronzeMat = new THREE.MeshStandardMaterial({ color: 0x6b4316, roughness: 0.3, metalness: 0.35 });
@@ -104,11 +104,30 @@ Pets.register({
     };
     const elytra = [-1, 1].map(s => {
       const pivot = new THREE.Group();
-      pivot.position.set(0.012 * s, BODY_Y + RY * 0.98, 0.02);
+      pivot.position.set(0.012 * s, BODY_Y + RY * 0.82, 0.02 + RZ * 0.55);
       const shell = mesh(shellGeo(s), goldShell);
       shell.scale.set(RX, RY, RZ);
-      shell.position.set(0, -RY * 0.98, 0);
+      shell.position.set(0, -RY * 0.82, -RZ * 0.55);
       pivot.add(shell);
+      const filMat = new THREE.MeshStandardMaterial({ color: 0xffd257, roughness: 0.2, metalness: 0.7 });
+      [0.42, 0.95].forEach(beta => {
+        const ptsF = [];
+        for (let k = 0; k <= 20; k++) {
+          const tz = -0.86 + (k / 20) * 1.62;
+          const rho = Math.sqrt(1 - tz * tz) * 1.012;
+          ptsF.push(V3(s * rho * Math.sin(beta) * RX, rho * Math.cos(beta) * RY - RY * 0.82, tz * 1.012 * RZ - RZ * 0.55));
+        }
+        pivot.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ptsF), 40, 0.013, 6, false), filMat, false));
+      });
+      const sunPts = [];
+      for (let k = 0; k <= 24; k++) {
+        const a = (k / 24) * Math.PI * 2;
+        const tz = -0.35 + Math.sin(a) * 0.16;
+        const beta = 0.68 + Math.cos(a) * 0.16;
+        const rho = Math.sqrt(1 - tz * tz) * 1.012;
+        sunPts.push(V3(s * rho * Math.sin(beta) * RX, rho * Math.cos(beta) * RY - RY * 0.82, tz * 1.012 * RZ - RZ * 0.55));
+      }
+      pivot.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(sunPts, true), 48, 0.012, 6, true), filMat, false));
       bodyG.add(pivot);
       return { pivot, s };
     });
@@ -127,13 +146,21 @@ Pets.register({
     }
     bodyG.add(sun);
 
-    const pronotum = mesh(paintY(new THREE.SphereGeometry(1, 36, 20, 0, Math.PI * 2, 0, Math.PI * 0.55), [[0, 0x7a4512], [0.9, 0xc9831c]]), goldShell);
-    pronotum.scale.set(RX * 0.72, RY * 0.62, 0.3);
-    pronotum.position.set(0, BODY_Y + 0.02, RZ * 0.78);
+    const pronotum = mesh(paintY(new THREE.SphereGeometry(1, 40, 22, 0, Math.PI * 2, 0, Math.PI * 0.56), [[0, 0x1d3f9a], [0.25, 0x3a6ad8], [0.4, 0xb8741a], [0.95, 0xffd257]]), goldShell);
+    pronotum.scale.set(RX * 0.92, RY * 0.78, 0.4);
+    pronotum.position.set(0, BODY_Y - 0.02, RZ * 0.76);
     bodyG.add(pronotum);
+    [-1, 1].forEach(s => {
+      const spike = mesh(new THREE.ConeGeometry(0.05, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0xffd257, roughness: 0.2, metalness: 0.7 }), false);
+      spike.position.set(RX * 0.9 * s, BODY_Y + 0.02, RZ * 0.78);
+      spike.rotation.z = -s * 1.25;
+      spike.rotation.x = 0.3;
+      bodyG.add(spike);
+    });
 
     const head = new THREE.Group();
-    head.position.set(0, BODY_Y - 0.02, RZ * 1.02);
+    head.position.set(0, BODY_Y - 0.02, RZ * 1.0);
+    head.scale.setScalar(1.25);
     bodyG.add(head);
     const skull = mesh(new THREE.SphereGeometry(0.3, 36, 26), new THREE.MeshStandardMaterial({ color: 0x1d3f9a, roughness: 0.25, metalness: 0.4 }));
     skull.scale.set(1.1, 0.85, 0.95);
@@ -156,19 +183,22 @@ Pets.register({
     clypeus.position.set(0, 0.17, 0.02);
     clypeus.rotation.x = -0.35;
     head.add(clypeus);
-    const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.62, whiteColor: 0xffe08a, pupilColor: 0x1a1206 });
-      e.g.children[0].material = new THREE.MeshBasicMaterial({ color: 0xffe08a });
-      e.pupil.scale.set(0.7, 1.15, 0.5);
-      e.g.position.set(0.17 * s, 0.03, 0.22);
-      e.g.rotation.y = 0.5 * s;
-      head.add(e.g);
-      return e;
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xffa81a, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.2, flatShading: true });
+    const eyes = [];
+    const compound = [-1, 1].map(s => {
+      const g = new THREE.Group();
+      g.position.set(0.24 * s, 0.04, 0.14);
+      const e = mesh(new THREE.IcosahedronGeometry(0.1, 1), eyeMat, false);
+      e.scale.set(0.8, 1, 1.1);
+      g.add(e);
+      const rim = mesh(new THREE.TorusGeometry(0.1, 0.014, 6, 20), new THREE.MeshStandardMaterial({ color: 0xffd257, roughness: 0.2, metalness: 0.7 }), false);
+      rim.rotation.y = Math.PI / 2;
+      rim.scale.set(1.1, 1, 1.1);
+      g.add(rim);
+      head.add(g);
+      return g;
     });
-    const smile = mesh(new THREE.TorusGeometry(0.045, 0.01, 6, 16, Math.PI), darkMat, false);
-    smile.rotation.z = Math.PI;
-    smile.position.set(0, -0.1, 0.285);
-    head.add(smile);
+    const smile = new THREE.Group();
     const mandibles = [-1, 1].map(s => {
       const g = new THREE.Group();
       g.position.set(0.07 * s, -0.17, 0.2);
@@ -183,8 +213,14 @@ Pets.register({
       g.position.set(0.16 * s, 0.12, 0.14);
       const c = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0.08 * s, 0.1, 0.04), V3(0.2 * s, 0.16, 0.0), V3(0.3 * s, 0.18, -0.08)]);
       g.add(mesh(new THREE.TubeGeometry(c, 16, 0.014, 6, false), darkMat, false));
-      const tip = mesh(new THREE.SphereGeometry(0.045, 16, 12), lightMat, false);
+      const tip = new THREE.Group();
       tip.position.set(0.3 * s, 0.18, -0.08);
+      for (let k = 0; k < 3; k++) {
+        const plate = mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.016, 16), lightMat, false);
+        plate.rotation.set(0, 0, Math.PI / 2 + (k - 1) * 0.45);
+        plate.position.set(0.015 * s * k, 0, -0.012 * k);
+        tip.add(plate);
+      }
       g.add(tip);
       const halo = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending }));
       halo.position.copy(tip.position);
@@ -194,7 +230,7 @@ Pets.register({
     });
 
     const legs = [];
-    [-0.38, -0.02].forEach((z, k) => {
+    [-0.55, -0.15].forEach((z, k) => {
       [-1, 1].forEach(s => {
         const g = new THREE.Group();
         g.position.set(RX * 0.62 * s, BODY_Y - RY * 0.55, z);
@@ -210,6 +246,12 @@ Pets.register({
         foot.scale.set(1.3, 0.6, 1.6);
         foot.position.set(0.26 * s, -0.14, 0.02);
         g.add(up, knee, low, foot);
+        [0.35, 0.65].forEach(f => {
+          const sp = mesh(new THREE.ConeGeometry(0.012, 0.05, 5), mat(0xffd257, 0.3), false);
+          sp.position.set(lerp(0.18, 0.26, f) * s, lerp(0.1, -0.14, f), 0);
+          sp.rotation.z = -s * 0.9;
+          g.add(sp);
+        });
         g.rotation.y = (k - 1) * -0.45 * s;
         bodyG.add(g);
         legs.push({ g, s, k });
@@ -308,7 +350,7 @@ Pets.register({
 
     const wings = [-1, 1].map(s => {
       const mount = new THREE.Group();
-      mount.position.set(0.08 * s, BODY_Y + RY * 0.7, 0.12);
+      mount.position.set(0.12 * s, BODY_Y + RY * 0.62, RZ * 0.42);
       const w = buildWing();
       w.scale.set(s * 1.4, 1, 1.4);
       const flapG = new THREE.Group();
@@ -341,6 +383,11 @@ Pets.register({
     bodyG.add(rays);
 
     const tmpO = V3(0, 0, 0);
+    const orbiters = [0, 1, 2, 3].map(() => {
+      const o = mesh(new THREE.OctahedronGeometry(0.045, 0), lightMat, false);
+      bodyG.add(o);
+      return o;
+    });
     const tmpH = V3(0, 0, 0);
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 6, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff1b0, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
     beam.geometry.translate(0, 3, 0);
@@ -426,9 +473,9 @@ Pets.register({
         bodyG.rotation.z = Math.sin(t * 1.4) * 0.03 * motion + (fly ? Math.sin(t * 2.2) * 0.06 * lift : 0);
 
         elytra.forEach(({ pivot, s: sd }) => {
-          pivot.rotation.z = sd * open * 0.95;
-          pivot.rotation.y = sd * open * 0.25;
-          pivot.rotation.x = -open * 0.2;
+          pivot.rotation.x = open * 0.95;
+          pivot.rotation.y = sd * open * 0.5;
+          pivot.rotation.z = sd * open * 0.45;
         });
         wings.forEach(({ mount, flapG, s: sd }) => {
           const unfold = smooth(0.1, 0.6, open);
@@ -534,10 +581,18 @@ Pets.register({
           food.scale.setScalar((1 - 0.85 * ph.bite) * 0.7);
         } else food.visible = false;
 
-        eyes.forEach(({ g }) => {
-          g.scale.y = airborne ? 1.08 : eat && eat.p > 0.3 ? 0.45 : charge > 0.3 ? 0.35 : blink;
+        eyeMat.emissiveIntensity = (0.6 + charge * 0.8 + burst * 1.4) * light;
+        compound.forEach((g, i) => {
+          g.rotation.y = pointer.x * 0.1;
+          g.scale.setScalar(1 + burst * 0.15);
         });
-        followPupils(eyes, pointer, 0.7);
+        orbiters.forEach((o, k) => {
+          const a = t * (1.2 + burst * 2) + (k / orbiters.length) * Math.PI * 2;
+          const rad = 0.42 + burst * 0.3;
+          o.position.set(orbG.position.x + Math.cos(a) * rad, orbG.position.y + Math.sin(a * 0.7) * 0.12, orbG.position.z + Math.sin(a) * rad);
+          o.rotation.set(t * 2 + k, t * 1.5, 0);
+          o.scale.setScalar((0.8 + Math.sin(t * 4 + k) * 0.2) * light);
+        });
       }
     };
   }
