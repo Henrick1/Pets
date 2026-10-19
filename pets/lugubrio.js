@@ -647,6 +647,90 @@ Pets.register({
       finGeo.computeVertexNormals();
     };
 
+    const WSEG = 16;
+    const WRAD = 7;
+    const wispIdx = [];
+    for (let i = 0; i < WSEG; i++) {
+      for (let j = 0; j < WRAD; j++) {
+        const a = i * (WRAD + 1) + j;
+        const b = a + WRAD + 1;
+        wispIdx.push(a, a + 1, b, a + 1, b + 1, b);
+      }
+    }
+    const wisps = [];
+    for (let i = 0; i < 22; i++) {
+      const pos = new Float32Array((WSEG + 1) * (WRAD + 1) * 3);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      g.setIndex(wispIdx);
+      const m = std(i % 3 === 0 ? 0x7a3ac0 : 0x3a1858, 0.6, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, emissive: i % 3 === 0 ? 0x5a20a0 : 0x2a0c48, emissiveIntensity: 0.7 });
+      const w = new THREE.Mesh(g, m);
+      w.frustumCulled = false;
+      root.add(w);
+      const puffs = [0, 1].map(() => {
+        const pm = std(0x2a1040, 0.7, { transparent: true, opacity: 0, depthWrite: false, emissive: 0x1a0830, emissiveIntensity: 0.5 });
+        const pf = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), pm);
+        root.add(pf);
+        return { pf, pm };
+      });
+      wisps.push({ g, pos, m, w, puffs, sp: 0.28 + (i % 5) * 0.05, off: (i * 0.37) % 1, ph: i * 2.1, curl: 2.2 + (i % 4) * 0.7, last: 1, origin: V3(0, 0, 0), em: i, back: 0 });
+    }
+    const wispOrigin = (em, out) => {
+      const nEm = capeDrips.length + tailRibbons.length * 2;
+      const k = em % nEm;
+      if (k < capeDrips.length) {
+        capeDrips[k].bulb.getWorldPosition(out);
+      } else {
+        const rb = tailRibbons[(k - capeDrips.length) % tailRibbons.length];
+        const o = rb.NS * 6;
+        const side = (k - capeDrips.length) >= tailRibbons.length ? 3 : 0;
+        out.set(rb.pos[o + side], rb.pos[o + side + 1], rb.pos[o + side + 2]);
+        torso.localToWorld(out);
+      }
+      root.worldToLocal(out);
+      return out;
+    };
+    const updateWisps = (t, boost, reduceMotion) => {
+      wisps.forEach(W => {
+        const age = (t * W.sp * (1 + boost * 0.8) + W.off) % 1;
+        if (age < W.last) {
+          wispOrigin(W.em, W.origin);
+          W.back = W.em % (capeDrips.length + tailRibbons.length * 2) < capeDrips.length ? 1 : 0;
+        }
+        W.last = age;
+        W.w.visible = !reduceMotion;
+        const L = 0.18 + age * 0.75;
+        const life = Math.sin(age * Math.PI);
+        for (let i = 0; i <= WSEG; i++) {
+          const f = i / WSEG;
+          const sw = f * (0.6 + age);
+          const cx = W.origin.x + Math.sin(f * W.curl + W.ph + t * 1.3) * 0.09 * sw + f * age * 0.25;
+          const cz = W.origin.z + Math.cos(f * W.curl * 0.8 + W.ph + t) * 0.07 * sw - f * age * (0.08 + W.back * 0.5);
+          const cy = W.origin.y + (L * f + age * 0.15) * (1 - W.back * 0.35) - Math.sin(f * Math.PI) * 0.02;
+          const rr = (0.006 + 0.03 * Math.pow(Math.sin(Math.PI * Math.pow(f, 0.65)), 1.2)) * (0.5 + age * 1.1) * (1 + 0.35 * Math.sin(f * 11 + W.ph + t * 2));
+          for (let j = 0; j <= WRAD; j++) {
+            const a = (j / WRAD) * Math.PI * 2 + f * 2.5;
+            const o = (i * (WRAD + 1) + j) * 3;
+            W.pos[o] = cx + Math.cos(a) * rr * 1.25;
+            W.pos[o + 1] = cy + Math.sin(a * 2) * rr * 0.15;
+            W.pos[o + 2] = cz + Math.sin(a) * rr * 0.7;
+          }
+        }
+        W.g.attributes.position.needsUpdate = true;
+        W.g.computeVertexNormals();
+        W.m.opacity = life * 0.7 * (1 + boost * 0.4);
+        W.puffs.forEach(({ pf, pm }, k) => {
+          const f = 0.55 + k * 0.4;
+          const sw = f * (0.6 + age);
+          pf.visible = !reduceMotion;
+          pf.position.set(W.origin.x + Math.sin(f * W.curl + W.ph + t * 1.3) * 0.09 * sw + f * age * 0.25, W.origin.y + L * f + age * 0.15, W.origin.z + Math.cos(f * W.curl * 0.8 + W.ph + t) * 0.07 * sw - f * age * (0.08 + W.back * 0.5));
+          pf.scale.set(0.035 + age * 0.05, 0.025 + age * 0.03, 0.03 + age * 0.04);
+          pf.rotation.set(t + k, t * 0.7 + W.ph, 0);
+          pm.opacity = life * 0.35 * smooth(0.2, 0.7, age);
+        });
+      });
+    };
+
     const mist = [];
     for (let i = 0; i < 14; i++) {
       const m = std(i % 3 ? 0x2a1040 : 0x6a2aa0, 0.8, { transparent: true, opacity: 0, depthWrite: false, emissive: 0x200830, emissiveIntensity: 0.5 });
@@ -791,6 +875,8 @@ Pets.register({
         updateRibbons(t, motion, a === "shadow" || a === "fume" ? Math.sin(Math.min(1, p * 2) * Math.PI) : 0);
 
         updateCape();
+        root.updateMatrixWorld(true);
+        updateWisps(t, a === "shadow" || a === "fume" ? 1 : 0, reduceMotion);
         root.updateMatrixWorld(true);
         mist.forEach(({ p: mp, m, a: ma, r, sp, o }, i) => {
           const f = (t * sp + o) % 1;
