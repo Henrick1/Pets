@@ -461,7 +461,7 @@ Pets.register({
       const dir = V3(Math.cos(a) * Math.cos(b), Math.sin(b) * 0.82, Math.sin(a) * Math.cos(b));
       const fg = new THREE.Group();
       fg.position.set(cd[0] + dir.x * cd[3] * 1.12, cd[1] + dir.y * cd[3] * 0.82 * 1.12, cd[2] + dir.z * cd[3] * 1.12);
-      fg.lookAt(canopy.position.clone().add(fg.position).add(dir));
+      fg.quaternion.setFromUnitVectors(V3(0, 0, 1), dir.clone().normalize());
       for (let p = 0; p < 5; p++) {
         const pet = mesh(new THREE.SphereGeometry(0.085, 12, 8), petalMat, false);
         pet.scale.set(0.7, 1.2, 0.25);
