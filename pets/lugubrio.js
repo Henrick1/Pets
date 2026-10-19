@@ -182,7 +182,7 @@ Pets.register({
         kn.position.set(k * 0.035, -0.1, 0.04);
         hand.add(kn);
       });
-      const thumb = mesh(tube([V3(-0.05 * s, -0.02, 0.02), V3(-0.06 * s, -0.07, 0.06), V3(-0.03 * s, -0.09, 0.075)], 0.022, 0.016, 8, 8), skin, false);
+      const thumb = mesh(tube([V3(0.05 * s, -0.02, 0.02), V3(0.06 * s, -0.07, 0.06), V3(0.03 * s, -0.09, 0.075)], 0.022, 0.016, 8, 8), skin, false);
       hand.add(thumb);
       studBand(el, V3(-0.015 * s, -0.24, 0.05), V3(0, 1, 0.15), 0.07, 0.032, 7);
       return { sh, el, s };
