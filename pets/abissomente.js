@@ -1,6 +1,6 @@
 Pets.register({
   id: "abissomente",
-  dex: 20,
+  dex: 21,
   name: "Abissomente",
   color: "#4a4ab8",
   types: ["psychic", "water"],

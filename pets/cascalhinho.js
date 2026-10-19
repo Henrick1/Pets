@@ -1,6 +1,6 @@
 Pets.register({
   id: "cascalhinho",
-  dex: 17,
+  dex: 18,
   name: "Cascalhinho",
   color: "#9a958c",
   types: ["rock"],
