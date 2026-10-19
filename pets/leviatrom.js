@@ -7,14 +7,14 @@ Pets.register({
   actions: {
     jump: { duration: 1.3 },
     eat: { duration: 2.4 },
-    jet: { duration: 2.6 },
+    reign: { duration: 3.6 },
     zap: { duration: 2.6 }
   },
   idle: [
     { action: "zap", min: 25, max: 50 },
-    { action: "jet", min: 45, max: 90 }
+    { action: "reign", min: 45, max: 90 }
   ],
-  clickAction: n => ["zap", "jet", "zap", "jump"][(n - 1) % 4],
+  clickAction: n => ["zap", "reign", "zap", "jump"][(n - 1) % 4],
 
   create({ THREE, kit }) {
     const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, fish } = kit;
@@ -516,7 +516,7 @@ Pets.register({
     const RIB_Y = 0.12;
     const hood = new THREE.Group();
     hood.position.set(0, -0.42, -0.42);
-    hood.rotation.x = -0.12;
+    hood.rotation.x = -0.34;
     hood.add(mesh(hoodGeo, hoodMat, false));
     tips.forEach(([x, y]) => {
       const rib = [];
@@ -635,6 +635,18 @@ Pets.register({
     ring2.position.y = 0.02;
     root.add(ring2);
 
+    const shocks = [0, 1, 2].map(() => {
+      const m = new THREE.Mesh(
+        new THREE.RingGeometry(1.15, 1.3, 72),
+        new THREE.MeshBasicMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
+      );
+      m.rotation.x = -Math.PI / 2;
+      m.position.y = 0.03;
+      m.visible = false;
+      root.add(m);
+      return m;
+    });
+
     const glow = new THREE.PointLight(0x9fe6ff, 0.6, 6);
     glow.position.set(0, 1.2, 0.9);
     swim.add(glow);
@@ -654,7 +666,17 @@ Pets.register({
         const hunger = typeof s.hunger === "number" ? s.hunger : 100;
         const jump = action && action.name === "jump" ? action : null;
         const eat = action && action.name === "eat" ? action : null;
-        const dash = action && action.name === "jet" ? action : null;
+        const dash = null;
+        const reignA = action && action.name === "reign" ? action : null;
+        let rise = 0;
+        let survey = 0;
+        let roar = 0;
+        if (reignA) {
+          const p = reignA.p;
+          rise = smooth(0, 0.25, p) * (1 - smooth(0.86, 1, p));
+          survey = p > 0.25 && p < 0.62 ? Math.sin(((p - 0.25) / 0.37) * Math.PI * 2) * 0.55 * smooth(0.25, 0.3, p) : 0;
+          roar = smooth(0.62, 0.68, p) * (1 - smooth(0.84, 0.95, p));
+        }
         const zap = action && action.name === "zap" ? action : null;
         const ph = eat ? eatPhase(eat.p) : null;
         const elec = s.dying ? 0.25 : 0.5 + 0.5 * Math.max(0, Math.min(1, hunger / 100));
@@ -698,7 +720,8 @@ Pets.register({
             x += Math.sin(t * 1.1) * 0.08 * k * motion;
             y -= crouch * 0.28 * k - Math.sin(t * 2) * 0.025 * k * motion;
             y -= droop * 0.9 * k * k;
-            z += droop * 0.35 * k + charge * -0.12 * k + blast * 0.08 * k;
+            z += droop * 0.35 * k + charge * -0.12 * k + blast * 0.08 * k - rise * 0.22 * k + roar * 0.1 * k;
+            y += rise * 0.55 * k * k;
             if (eat) {
               y += 0.08 * k * Math.sin(ph.fall * Math.PI);
               z -= 0.06 * k * ph.chew;
@@ -726,13 +749,16 @@ Pets.register({
         head.quaternion.copy(q);
         let nod = Math.sin(t * 1.4) * 0.05 * motion;
         if (eat) nod += -0.35 * (1 - ph.fall) * (eat.p < 0.3 ? 1 : 0) + Math.sin(ph.chew * Math.PI) * 0.06;
-        nod += -blast * 0.12 + charge * 0.15 + droop * 0.35 + crouch * 0.1 - hop * 0.2;
+        nod += -blast * 0.12 + charge * 0.15 + droop * 0.35 + crouch * 0.1 - hop * 0.2 + rise * 0.12 - roar * 0.42;
         head.rotateX(nod);
         head.rotateZ(Math.sin(t * 0.9) * 0.06 * motion);
+        head.rotateY(survey);
+        hood.scale.set(1.5 * (1 + rise * 0.18 + roar * 0.12), 1.3 * (1 + rise * 0.22 + roar * 0.14), 1.3);
 
         let mouth = 0;
         if (eat) mouth = eat.p < 0.3 ? smooth(0.08, 0.28, eat.p) * 0.55 : eat.p < 0.85 ? 0.08 + ph.chew * 0.3 : 0;
         if (blast) mouth = Math.max(mouth, blast * 0.45);
+        if (roar) mouth = Math.max(mouth, roar * 0.62);
         if (hop > 0.3) mouth = Math.max(mouth, 0.3);
         const flickT = (t * 0.23) % 1;
         const flick = !eat && !dash && !s.dying && flickT > 0.9 ? Math.sin(((flickT - 0.9) / 0.1) * Math.PI) : 0;
@@ -860,15 +886,23 @@ Pets.register({
           strikeGlow.geometry = new THREE.TubeGeometry(sc, 40, 0.1, 6, false);
         }
 
-        elecMat.emissiveIntensity = (0.55 + Math.sin(t * 3) * 0.15 * motion + charge * 0.9 + blast * 1.8 + (Math.sin(t * 50) > 0 ? blast * 0.6 : 0)) * elec;
+        elecMat.emissiveIntensity = (0.55 + Math.sin(t * 3) * 0.15 * motion + charge * 0.9 + blast * 1.8 + rise * 0.6 + roar * 1.2 + (Math.sin(t * 50) > 0 ? blast * 0.6 : 0)) * elec;
         finMat.emissiveIntensity = 0.2 + thrust * 0.5 + blast * 0.3;
         glow.color.setHex(live > 0.1 ? 0xfff0a0 : 0x9fe6ff);
-        glow.intensity = (0.45 + live * 1.1 + thrust * 0.5 + (blast && Math.sin(t * 37) > 0.2 ? 0.5 : 0) * blast) * (0.6 + elec * 0.4);
+        glow.intensity = (0.45 + rise * 0.5 + roar * 1.2 + live * 1.1 + thrust * 0.5 + (blast && Math.sin(t * 37) > 0.2 ? 0.5 : 0) * blast) * (0.6 + elec * 0.4);
         glow.position.copy(pts[Math.round(N * 0.4)]).add(tmp.set(0, 0.5, 1.3));
 
         const pulse = 1 + Math.sin(t * 2.4) * 0.05 * motion;
-        ring.scale.setScalar(pulse + stream * 0.5 + blast * 0.5);
-        ring.material.opacity = 0.16 + 0.06 * Math.sin(t * 2) + stream * 0.2;
+        ring.scale.setScalar(pulse + blast * 0.5 + rise * 0.25);
+        ring.material.opacity = 0.16 + 0.06 * Math.sin(t * 2) + rise * 0.15;
+        const roarP = reignA ? smooth(0.64, 1, reignA.p) : 0;
+        shocks.forEach((sh, k) => {
+          const f = roarP * 1.6 - k * 0.25;
+          sh.visible = f > 0 && f < 1;
+          if (!sh.visible) return;
+          sh.scale.setScalar(1 + f * 2.6);
+          sh.material.opacity = (1 - f) * 0.55;
+        });
         ring2.scale.setScalar(1.2 + blast * 1.8 + Math.sin(t * 3) * 0.04);
         ring2.material.opacity = (0.22 + live * 0.5) * elec;
 
@@ -887,7 +921,7 @@ Pets.register({
         root.rotation.x = lookPitch;
 
         eyes.forEach(({ g }) => {
-          g.scale.y = hop > 0.2 ? 1.1 : eat && eat.p > 0.3 ? 0.45 : charge > 0.3 ? 0.35 : blast > 0.3 ? 1.15 : blink;
+          g.scale.y = roar > 0.3 ? 1.2 : rise > 0.5 ? 0.75 : hop > 0.2 ? 1.1 : eat && eat.p > 0.3 ? 0.45 : charge > 0.3 ? 0.35 : blast > 0.3 ? 1.15 : blink;
         });
         followPupils(eyes, pointer, 0.8);
       }
