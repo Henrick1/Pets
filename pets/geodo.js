@@ -33,8 +33,51 @@ Pets.register({
 
     const R = 0.92;
     const CUT_Y = 0.98;
+    const stoneTex = (() => {
+      if (typeof document === "undefined") return null;
+      const c = document.createElement("canvas");
+      c.width = 256;
+      c.height = 256;
+      const g = c.getContext("2d");
+      g.fillStyle = "#c9c6c0";
+      g.fillRect(0, 0, 256, 256);
+      let seed = 11;
+      const rnd = () => {
+        seed = (seed * 16807) % 2147483647;
+        return seed / 2147483647;
+      };
+      const wrap = (x, y, fn) => {
+        [-256, 0, 256].forEach(dx => [-256, 0, 256].forEach(dy => fn(x + dx, y + dy)));
+      };
+      for (let i = 0; i < 160; i++) {
+        const x = rnd() * 256;
+        const y = rnd() * 256;
+        const r = 10 + rnd() * 34;
+        const v = (150 + rnd() * 80) | 0;
+        wrap(x, y, (px, py) => {
+          const gr = g.createRadialGradient(px, py, 0, px, py, r);
+          gr.addColorStop(0, "rgba(" + v + "," + v + "," + (v - 6) + ",0.45)");
+          gr.addColorStop(1, "rgba(" + v + "," + v + "," + (v - 6) + ",0)");
+          g.fillStyle = gr;
+          g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      for (let i = 0; i < 3000; i++) {
+        const x = rnd() * 256;
+        const y = rnd() * 256;
+        const dark = rnd() < 0.55;
+        const v = dark ? (90 + rnd() * 50) | 0 : (215 + rnd() * 40) | 0;
+        g.fillStyle = "rgba(" + v + "," + v + "," + v + "," + (0.25 + rnd() * 0.45) + ")";
+        g.fillRect(x, y, 1 + rnd() * 2, 1 + rnd() * 2);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = THREE.RepeatWrapping;
+      t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(3, 2);
+      return t;
+    })();
     const shellHalf = (top, seed) => {
-      const g = new THREE.SphereGeometry(R, 40, 20, 0, Math.PI * 2, top ? 0 : Math.PI / 2, Math.PI / 2);
+      const g = new THREE.SphereGeometry(R, 72, 36, 0, Math.PI * 2, top ? 0 : Math.PI / 2, Math.PI / 2);
       const pos = g.attributes.position;
       const col = new Float32Array(pos.count * 3);
       const A = hexParts(0x4a433c);
@@ -49,14 +92,14 @@ Pets.register({
         const k = 1 + n * 0.12;
         pos.setXYZ(i, x * R * k, y * R * k * 0.92, z * R * k);
         const f = Math.max(0, Math.min(1, 0.5 + n * 1.2));
-        const speck = Math.sin(x * 37 + y * 29 + z * 23) > 0.97 ? 1 : 0;
+        const speck = 0;
         for (let j = 0; j < 3; j++) col[i * 3 + j] = speck ? C[j] : lerp(A[j], B[j], f);
       }
       g.setAttribute("color", new THREE.BufferAttribute(col, 3));
       g.computeVertexNormals();
       return g;
     };
-    const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, flatShading: true });
+    const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, map: stoneTex, bumpMap: stoneTex, bumpScale: 0.03 });
     const innerMat = new THREE.MeshStandardMaterial({ color: 0x3a1f5c, roughness: 0.6, side: THREE.BackSide });
 
     const bandRing = () => {
@@ -160,7 +203,7 @@ Pets.register({
 
     const feet = [];
     [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => {
-      const f = mesh(new THREE.IcosahedronGeometry(0.16, 1), new THREE.MeshStandardMaterial({ color: 0x5c554c, roughness: 0.9, flatShading: true }), false);
+      const f = mesh(new THREE.SphereGeometry(0.16, 20, 14), new THREE.MeshStandardMaterial({ color: 0x6a6258, roughness: 0.95, map: stoneTex, bumpMap: stoneTex, bumpScale: 0.02 }), false);
       f.scale.set(1.2, 0.6, 1.2);
       f.position.set(0.48 * sx, 0.1, 0.38 * sz);
       squash.add(f);

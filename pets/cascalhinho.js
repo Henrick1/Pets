@@ -33,8 +33,51 @@ Pets.register({
       Math.sin(x * 3.1 + seed) * Math.sin(y * 2.7 + seed * 1.3) * 0.5 +
       Math.sin(x * 5.3 - y * 4.1 + z * 3.7 + seed * 2.1) * 0.25 +
       Math.sin(z * 6.7 + x * 2.2 - seed) * 0.15;
+    const stoneTex = (() => {
+      if (typeof document === "undefined") return null;
+      const c = document.createElement("canvas");
+      c.width = 256;
+      c.height = 256;
+      const g = c.getContext("2d");
+      g.fillStyle = "#c9c6c0";
+      g.fillRect(0, 0, 256, 256);
+      let seed = 11;
+      const rnd = () => {
+        seed = (seed * 16807) % 2147483647;
+        return seed / 2147483647;
+      };
+      const wrap = (x, y, fn) => {
+        [-256, 0, 256].forEach(dx => [-256, 0, 256].forEach(dy => fn(x + dx, y + dy)));
+      };
+      for (let i = 0; i < 160; i++) {
+        const x = rnd() * 256;
+        const y = rnd() * 256;
+        const r = 10 + rnd() * 34;
+        const v = (150 + rnd() * 80) | 0;
+        wrap(x, y, (px, py) => {
+          const gr = g.createRadialGradient(px, py, 0, px, py, r);
+          gr.addColorStop(0, "rgba(" + v + "," + v + "," + (v - 6) + ",0.45)");
+          gr.addColorStop(1, "rgba(" + v + "," + v + "," + (v - 6) + ",0)");
+          g.fillStyle = gr;
+          g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      for (let i = 0; i < 3000; i++) {
+        const x = rnd() * 256;
+        const y = rnd() * 256;
+        const dark = rnd() < 0.55;
+        const v = dark ? (90 + rnd() * 50) | 0 : (215 + rnd() * 40) | 0;
+        g.fillStyle = "rgba(" + v + "," + v + "," + v + "," + (0.25 + rnd() * 0.45) + ")";
+        g.fillRect(x, y, 1 + rnd() * 2, 1 + rnd() * 2);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = THREE.RepeatWrapping;
+      t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(3, 2);
+      return t;
+    })();
     const rockGeo = (r, detail, amp, seed, colA, colB, colC) => {
-      const g = new THREE.IcosahedronGeometry(r, detail);
+      const g = new THREE.SphereGeometry(r, 18 + detail * 12, 12 + detail * 9);
       const pos = g.attributes.position;
       const col = new Float32Array(pos.count * 3);
       const A = hexParts(colA);
@@ -48,7 +91,7 @@ Pets.register({
         const k = 1 + n * amp;
         pos.setXYZ(i, x * r * k, y * r * k, z * r * k);
         const f = Math.max(0, Math.min(1, 0.5 + n * 0.9));
-        const speck = Math.sin(x * 40 + y * 31 + z * 27) > 0.85 ? 1 : 0;
+        const speck = 0;
         for (let j = 0; j < 3; j++) col[i * 3 + j] = speck ? C[j] : lerp(A[j], B[j], f);
       }
       g.setAttribute("color", new THREE.BufferAttribute(col, 3));
@@ -57,13 +100,13 @@ Pets.register({
     };
 
     const BODY_Y = 0.78;
-    const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, flatShading: true });
-    const body = mesh(rockGeo(0.8, 3, 0.13, 1.7, 0x4f4b45, 0x86817a, 0xb4aea2), rockMat);
+    const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, map: stoneTex, bumpMap: stoneTex, bumpScale: 0.025 });
+    const body = mesh(rockGeo(0.8, 3, 0.13, 1.7, 0x6a665e, 0xa8a398, 0xc4beb2), rockMat);
     body.scale.set(1.1, 0.88, 1.0);
     body.position.y = BODY_Y;
     spinG.add(body);
 
-    const mossMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true });
+    const mossMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, bumpMap: stoneTex, bumpScale: 0.04 });
     [[0, 0.62, -0.05, 0.42], [0.32, 0.5, 0.22, 0.22], [-0.38, 0.52, 0.1, 0.2]].forEach(([x, y, z, r], k) => {
       const m = mesh(rockGeo(r, 2, 0.35, 4 + k, 0x3f7a2c, 0x7fbf4a, 0xa8d86a), mossMat, false);
       m.scale.set(1, 0.35, 1);
@@ -106,7 +149,7 @@ Pets.register({
       faceG.add(e.g);
       return e;
     });
-    const lidMat = new THREE.MeshStandardMaterial({ color: 0x8c877d, roughness: 0.9, flatShading: true });
+    const lidMat = new THREE.MeshStandardMaterial({ color: 0x8c877d, roughness: 0.95, map: stoneTex, bumpMap: stoneTex, bumpScale: 0.02 });
     const lids = [-1, 1].map(s => {
       const lid = mesh(new THREE.SphereGeometry(0.165, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), lidMat, false);
       lid.scale.set(1.0, 1.05, 0.62);
