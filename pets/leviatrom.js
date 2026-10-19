@@ -211,7 +211,7 @@ Pets.register({
     const boltGeo = new THREE.ExtrudeGeometry(boltShape, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 });
     boltGeo.translate(-0.15, -0.02, -0.0175);
     boltGeo.rotateY(Math.PI / 2);
-    const bolts = [0.3, 0.42, 0.54, 0.65, 0.73, 0.8].map((u, k) => {
+    const bolts = [0.3, 0.42, 0.54, 0.65, 0.73, 0.8, 0.86].map((u, k) => {
       const m = mesh(boltGeo, elecMat, false);
       const sc = 0.75 + u * 0.75;
       m.scale.setScalar(sc);
@@ -494,22 +494,25 @@ Pets.register({
 
     const hoodShape = new THREE.Shape();
     const tips = [[-0.62, 0.22], [-0.6, 0.55], [-0.42, 0.82], [-0.16, 0.96], [0.16, 0.96], [0.42, 0.82], [0.6, 0.55], [0.62, 0.22]];
-    hoodShape.moveTo(0, 0.02);
-    hoodShape.quadraticCurveTo(-0.42, -0.04, tips[0][0], tips[0][1]);
+    hoodShape.moveTo(0, -0.14);
+    hoodShape.quadraticCurveTo(-0.42, -0.14, tips[0][0], tips[0][1]);
     for (let k = 1; k < tips.length; k++) {
       const [x0, y0] = tips[k - 1];
       const [x1, y1] = tips[k];
       hoodShape.quadraticCurveTo((x0 + x1) * 0.42, (y0 + y1) * 0.42, x1, y1);
     }
-    hoodShape.quadraticCurveTo(0.42, -0.04, 0, 0.02);
-    const hoodGeo = new THREE.ShapeGeometry(hoodShape, 16);
+    hoodShape.quadraticCurveTo(0.42, -0.14, 0, -0.14);
     const bend = (x, y) => -0.42 * x * x - 0.12 * Math.max(0, y);
-    {
-      const pa = hoodGeo.attributes.position;
-      for (let k = 0; k < pa.count; k++) pa.setZ(k, bend(pa.getX(k), pa.getY(k)));
-      hoodGeo.computeVertexNormals();
-    }
-    const hoodMat = new THREE.MeshStandardMaterial({ color: 0x2f7fe0, emissive: 0x1450b0, emissiveIntensity: 0.45, roughness: 0.3, transparent: true, opacity: 0.86, side: THREE.DoubleSide });
+    const hoodRim = hoodShape.getSpacedPoints(120);
+    const HOOD_C = [0, 0.12];
+    const hoodGeo = surface((u, v, out) => {
+      const pr = hoodRim[Math.min(hoodRim.length - 1, Math.round(v * (hoodRim.length - 1)))];
+      const x = lerp(HOOD_C[0], pr.x, u);
+      const y = lerp(HOOD_C[1], pr.y, u);
+      return out.set(x, y, bend(x, y));
+    }, 16, hoodRim.length - 1, () => [1, 1, 1], false);
+    hoodGeo.deleteAttribute("color");
+    const hoodMat = new THREE.MeshStandardMaterial({ color: 0x2f7fe0, emissive: 0x1450b0, emissiveIntensity: 0.45, roughness: 0.65, transparent: true, opacity: 0.86, side: THREE.DoubleSide });
     const RIB_Y = 0.12;
     const hood = new THREE.Group();
     hood.position.set(0, -0.42, -0.42);
