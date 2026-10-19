@@ -221,49 +221,70 @@
       seen.add(pre);
       first = pre;
     }
-    const chain = [first];
-    while (nextForms(chain[chain.length - 1]).length && chain.length < 6) {
-      const nx = nextForms(chain[chain.length - 1])[0];
-      if (!meta[nx] || chain.includes(nx)) break;
-      chain.push(nx);
+    const stages = [[{ sp: first, from: null }]];
+    const used = new Set([first]);
+    while (stages.length < 6) {
+      const nx = [];
+      stages[stages.length - 1].forEach(({ sp }) => {
+        nextForms(sp).forEach(c => {
+          if (used.has(c)) return;
+          used.add(c);
+          nx.push({ sp: c, from: sp });
+        });
+      });
+      if (!nx.length) break;
+      stages.push(nx);
     }
-    $("dex-evo").hidden = chain.length < 2;
+    $("dex-evo").hidden = stages.length < 2;
     const box = $("dex-evo-chain");
     box.replaceChildren();
-    if (chain.length < 2) return;
-    chain.forEach((sp, i) => {
-      if (i > 0) {
-        const arrow = document.createElement("span");
-        arrow.className = "evo-arrow";
-        arrow.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        const lv = document.createElement("span");
-        lv.className = "evo-lv";
-        lv.textContent = meta[chain[i - 1]].evolveLevel ? "Nv " + meta[chain[i - 1]].evolveLevel : "";
-        arrow.append(lv);
-        box.append(arrow);
-      }
-      const known = owned.has(sp);
-      const node = document.createElement("button");
-      node.type = "button";
-      node.className = "evo-node" + (sp === id ? " current" : "") + (known ? "" : " unknown");
-      node.style.setProperty("--c", meta[sp].color);
-      node.style.setProperty("--i", String(i));
-      node.disabled = !known || sp === id;
-      const circle = document.createElement("span");
-      circle.className = "evo-circle";
-      const url = PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp);
-      if (url) {
-        const img = document.createElement("img");
-        img.src = url;
-        img.alt = known ? meta[sp].name : "Criatura desconhecida";
-        circle.append(img);
-      }
-      const name = document.createElement("span");
-      name.className = "evo-name";
-      name.textContent = known ? meta[sp].name : "???";
-      node.append(circle, name);
-      if (known && sp !== id) node.addEventListener("click", () => openDexDetail(sp));
-      box.append(node);
+    if (stages.length < 2) return;
+    let n = 0;
+    stages.forEach((items, si) => {
+      const col = document.createElement("div");
+      col.className = "evo-stage";
+      items.forEach(({ sp, from }) => {
+        const step = document.createElement("div");
+        step.className = "evo-step";
+        if (from) {
+          const arrow = document.createElement("span");
+          arrow.className = "evo-arrow";
+          arrow.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          const lv = document.createElement("span");
+          lv.className = "evo-lv";
+          const pm = meta[from];
+          let txt = pm.evolveLevel ? "Nv " + pm.evolveLevel : "";
+          if (pm.evolveBranches) txt += (txt ? "\n" : "") + (pm.evolveBranches.happy === sp ? "Feliz" : "Triste");
+          lv.textContent = txt;
+          arrow.append(lv);
+          step.append(arrow);
+        }
+        const known = owned.has(sp);
+        const node = document.createElement("button");
+        node.type = "button";
+        node.className = "evo-node" + (sp === id ? " current" : "") + (known ? "" : " unknown");
+        node.style.setProperty("--c", meta[sp].color);
+        node.style.setProperty("--i", String(n++));
+        node.disabled = !known || sp === id;
+        const circle = document.createElement("span");
+        circle.className = "evo-circle";
+        const url = PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp);
+        if (url) {
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = known ? meta[sp].name : "Criatura desconhecida";
+          circle.append(img);
+        }
+        const name = document.createElement("span");
+        name.className = "evo-name";
+        name.textContent = known ? meta[sp].name : "???";
+        node.append(circle, name);
+        if (known && sp !== id) node.addEventListener("click", () => openDexDetail(sp));
+        step.append(node);
+        col.append(step);
+      });
+      box.append(col);
+      if (si === 0) col.classList.add("first");
     });
   }
 
