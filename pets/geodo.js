@@ -120,21 +120,34 @@ Pets.register({
 
     const crystalMats = [0xb37cff, 0x9b5cf0, 0xd2a8ff, 0x7f45d6].map(c => new THREE.MeshStandardMaterial({ color: c, emissive: 0x6a2cc4, emissiveIntensity: 0.35, roughness: 0.15, metalness: 0.1, flatShading: true, transparent: true, opacity: 0.92 }));
     const crystals = [];
-    const lineWithCrystals = (group, top, count, seed) => {
+    let cseed = 97;
+    const crnd = () => {
+      cseed = (cseed * 16807) % 2147483647;
+      return cseed / 2147483647;
+    };
+    const lineWithCrystals = (group, top, count) => {
+      const golden = Math.PI * (3 - Math.sqrt(5));
       for (let k = 0; k < count; k++) {
-        const u = ((k * 0.618 + seed) % 1);
-        const v = ((k * 0.381 + seed * 0.7) % 1);
-        const th = (top ? 0.15 : Math.PI / 2 + 0.05) + v * (Math.PI / 2 - 0.25);
-        const phi = u * Math.PI * 2;
-        const d = V3(Math.sin(th) * Math.cos(phi), Math.cos(th), Math.sin(th) * Math.sin(phi));
-        const len = 0.2 + ((k * 7) % 5) * 0.07;
-        const rad = 0.06 + ((k * 3) % 4) * 0.02;
-        const c = mesh(new THREE.ConeGeometry(rad, len, 6), crystalMats[k % crystalMats.length], false);
-        c.position.copy(d).multiplyScalar(R * 0.8 - len * 0.35);
-        c.position.y *= 0.92;
-        c.quaternion.setFromUnitVectors(V3(0, 1, 0), d.clone().negate());
-        group.add(c);
-        crystals.push(c);
+        const f = (k + 0.5) / count;
+        const cy = top ? 0.04 + f * 0.94 : -(0.04 + f * 0.94);
+        const rr = Math.sqrt(Math.max(0, 1 - cy * cy));
+        const phi = k * golden + crnd() * 0.6;
+        const base = V3(Math.cos(phi) * rr, cy, Math.sin(phi) * rr).normalize();
+        const cluster = 1 + Math.floor(crnd() * 3);
+        for (let c = 0; c < cluster; c++) {
+          const d = base.clone().add(V3(crnd() - 0.5, crnd() - 0.5, crnd() - 0.5).multiplyScalar(0.18)).normalize();
+          if (top ? d.y < 0.03 : d.y > -0.03) continue;
+          const len = 0.12 + crnd() * 0.26;
+          const rad = 0.035 + crnd() * 0.05;
+          const cm = mesh(new THREE.ConeGeometry(rad, len, 6), crystalMats[Math.floor(crnd() * crystalMats.length)], false);
+          cm.position.copy(d).multiplyScalar(R * 0.84 - len * 0.38);
+          cm.position.y *= 0.92;
+          const aim = d.clone().negate().add(V3(crnd() - 0.5, crnd() - 0.5, crnd() - 0.5).multiplyScalar(0.5)).normalize();
+          cm.quaternion.setFromUnitVectors(V3(0, 1, 0), aim);
+          cm.rotateY(crnd() * Math.PI);
+          group.add(cm);
+          crystals.push(cm);
+        }
       }
     };
 
@@ -149,7 +162,7 @@ Pets.register({
     bandB.rotation.x = -Math.PI / 2;
     bandB.position.y = 0.002;
     bottom.add(bandB);
-    lineWithCrystals(bottom, false, 46, 0.13);
+    lineWithCrystals(bottom, false, 70);
 
     const hinge = new THREE.Group();
     hinge.position.set(0, CUT_Y, -R * 0.95);
@@ -165,7 +178,7 @@ Pets.register({
     bandT.rotation.x = Math.PI / 2;
     bandT.position.y = -0.002;
     top.add(bandT);
-    lineWithCrystals(top, true, 34, 0.57);
+    lineWithCrystals(top, true, 60);
 
 
     const core = new THREE.Group();
