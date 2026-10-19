@@ -100,23 +100,52 @@ Pets.register({
       const foot = new THREE.Group();
       foot.position.set(0, -0.32, -0.02);
       knee.add(foot);
-      const palm = mesh(new THREE.SphereGeometry(1, 18, 12), skin);
-      palm.scale.set(0.09, 0.05, 0.12);
-      palm.position.set(0, -0.02, 0.05);
+      foot.add(mesh(new THREE.SphereGeometry(0.075, 18, 14), limbSkin));
+      const pg = new THREE.SphereGeometry(1, 32, 20);
+      {
+        const pp = pg.attributes.position;
+        for (let i = 0; i < pp.count; i++) {
+          const x = pp.getX(i);
+          const y = pp.getY(i);
+          const z = pp.getZ(i);
+          const yy = y < 0 ? y * 0.35 : y;
+          const front = Math.max(0, z);
+          pp.setXYZ(i, x * (0.085 + front * 0.025), yy * 0.05, z * 0.11);
+        }
+        pg.computeVertexNormals();
+      }
+      const palm = mesh(pg, skin);
+      palm.position.set(0, -0.045, 0.05);
       foot.add(palm);
-      [-0.45, -0.15, 0.15, 0.45].forEach((a, i) => {
-        const l = i === 1 || i === 2 ? 0.17 : 0.13;
-        const mid = V3(Math.sin(a) * l * 0.55, -0.045, 0.08 + Math.cos(a) * l * 0.55);
-        const end = V3(Math.sin(a + 0.08) * l, -0.06, 0.08 + Math.cos(a + 0.08) * l);
-        foot.add(mesh(tube([V3(0, -0.03, 0.08), V3(Math.sin(a) * l * 0.3, -0.04, 0.08 + Math.cos(a) * l * 0.3), mid], 0.032, 0.024, 8, 8), skin));
-        const j = mesh(new THREE.SphereGeometry(0.025, 10, 8), skin);
-        j.position.copy(mid);
-        foot.add(j);
-        foot.add(mesh(tube([mid, mid.clone().lerp(end, 0.5).add(V3(0, 0.004, 0)), end], 0.023, 0.016, 8, 8), skin));
-        const tip = mesh(new THREE.SphereGeometry(0.019, 8, 6), skin);
-        tip.position.copy(end);
+      const tipsP = [];
+      [-0.5, -0.17, 0.17, 0.5].forEach((a, i) => {
+        const l = i === 1 || i === 2 ? 0.19 : 0.155;
+        const ca = Math.cos(a);
+        const sa = Math.sin(a);
+        const p0 = V3(sa * 0.04, -0.045, 0.08 + ca * 0.04);
+        const p1 = V3(sa * l * 0.55, -0.05, 0.08 + ca * l * 0.55);
+        const p2 = V3(sa * l * 0.9, -0.065, 0.08 + ca * l * 0.9);
+        const p3 = V3(sa * l, -0.078, 0.08 + ca * l);
+        foot.add(mesh(tube([p0, p1, p2, p3], 0.036, 0.022, 14, 12), skin));
+        const tip = mesh(new THREE.SphereGeometry(0.027, 14, 10), skin);
+        tip.position.copy(p3);
+        tip.scale.set(1, 0.75, 1.15);
         foot.add(tip);
+        tipsP.push(p1);
       });
+      {
+        const wpos = [];
+        for (let i = 0; i < tipsP.length - 1; i++) {
+          const a0 = tipsP[i];
+          const a1 = tipsP[i + 1];
+          const base = V3((a0.x + a1.x) * 0.3, -0.045, 0.1);
+          wpos.push(base.x, base.y, base.z, a0.x, a0.y + 0.008, a0.z, a1.x, a1.y + 0.008, a1.z);
+        }
+        const wg = new THREE.BufferGeometry();
+        wg.setAttribute("position", new THREE.Float32BufferAttribute(wpos, 3));
+        wg.computeVertexNormals();
+        foot.add(mesh(wg, std(0xd8cbe8, 0.5, { side: THREE.DoubleSide }), false));
+      }
       [[0.05 * s, -0.12, 0.13, 0.03], [-0.06 * s, -0.25, 0.1, 0.022]].forEach(([x, y, z, rr]) => {
         const d = mesh(new THREE.SphereGeometry(1, 12, 8), venomMat, false);
         d.position.set(x, y, z);
