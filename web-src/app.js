@@ -135,15 +135,18 @@
       card.style.setProperty("--c", known ? m.color : "#8a958f");
       card.disabled = !known;
       const sw = document.createElement("span");
-      sw.className = "dex-dot";
+      sw.className = "dex-art";
       sw.textContent = known ? "" : "?";
+      const info = document.createElement("span");
+      info.className = "dex-card-info";
       const name = document.createElement("span");
       name.className = "dex-card-name";
       name.textContent = known ? m.name : "???";
       const num = document.createElement("span");
       num.className = "dex-card-num";
       num.textContent = dexNum(id);
-      card.append(sw, name, num);
+      info.append(num, name);
+      card.append(sw, info);
       if (known) {
         card.addEventListener("click", () => openDexDetail(id));
         thumbQueue.push([sw, id]);
@@ -154,12 +157,12 @@
       const job = thumbQueue.shift();
       if (!job) return;
       const [dot, sp] = job;
-      const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 192, true) : null;
+      const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
       if (url && dot.isConnected) {
         const img = document.createElement("img");
         img.src = url;
         img.alt = "";
-        dot.classList.add("has-img");
+        img.addEventListener("load", () => dot.classList.add("loaded"), { once: true });
         dot.append(img);
       }
       requestAnimationFrame(step);
