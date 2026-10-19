@@ -78,7 +78,7 @@ Pets.register({
     })();
 
     const skin = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.32, clearcoat: 0.9, clearcoatRoughness: 0.25, map: skinTex, bumpMap: skinTex, bumpScale: 0.006, emissive: 0x1a1460, emissiveIntensity: 0.25 });
-    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x8a9aff, roughness: 0.05, transparent: true, opacity: 0.32, clearcoat: 1, emissive: 0x3a3ac8, emissiveIntensity: 0.25, side: THREE.DoubleSide, depthWrite: false });
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x6a6af0, roughness: 0.05, transparent: true, opacity: 0.5, clearcoat: 1, emissive: 0x3a3ac8, emissiveIntensity: 0.25, side: THREE.DoubleSide, depthWrite: false });
     const brainMat = new THREE.MeshStandardMaterial({ color: 0xd88aff, roughness: 0.45, emissive: 0xa04aff, emissiveIntensity: 0.5 });
     const spotMat = new THREE.MeshBasicMaterial({ color: 0xffe27a });
     const underMat = new THREE.MeshStandardMaterial({ color: 0xe8c8ff, roughness: 0.4, emissive: 0x8a4ad8, emissiveIntensity: 0.2 });
@@ -108,11 +108,11 @@ Pets.register({
     head.position.y = HOVER;
     floatG.add(head);
 
-    const PROFILE = [[0.001, -0.6], [0.3, -0.57], [0.47, -0.44], [0.56, -0.22], [0.57, -0.02], [0.52, 0.17], [0.5, 0.3], [0.62, 0.55], [0.69, 0.82], [0.66, 1.1], [0.52, 1.36], [0.28, 1.5], [0.001, 1.54]];
+    const PROFILE = [[0.001, -0.6], [0.3, -0.57], [0.47, -0.44], [0.56, -0.22], [0.57, -0.02], [0.52, 0.17], [0.5, 0.3], [0.57, 0.5], [0.63, 0.75], [0.63, 1.0], [0.55, 1.22], [0.35, 1.38], [0.001, 1.44]];
     const SEAM = 0.3;
     const bend = (x, y, z) => {
       const k = Math.max(0, y - 0.2) / 1.1;
-      return [x, y - k * k * 0.16, z - k * k * 0.6];
+      return [x, y - k * k * 0.08, z - k * k * 0.32];
     };
     const latheFrom = (fromY, toY) => {
       const pts = [];
@@ -136,22 +136,18 @@ Pets.register({
     const lowerGeo = paint(latheFrom(-0.7, SEAM), (x, y) => grad(y, -0.55, 0.45));
     const lower = mesh(lowerGeo, skin);
     bodyG.add(lower);
-    const upperSkinGeo = paint(latheFrom(SEAM, 1.7), (x, y) => grad(y, 0.3, 1.3));
     const upperGlass = mesh(latheFrom(SEAM, 1.7), glassMat, false);
     upperGlass.renderOrder = 2;
     bodyG.add(upperGlass);
-    const backSkin = mesh(upperSkinGeo, skin);
+    const floor = mesh(new THREE.CircleGeometry(0.5, 48), new THREE.MeshStandardMaterial({ color: 0x3a2a8a, roughness: 0.6, emissive: 0x4a2ab0, emissiveIntensity: 0.35 }), false);
+    floor.rotation.x = -Math.PI / 2;
     {
-      const pos = upperSkinGeo.attributes.position;
-      const src = upperSkinGeo.index.array;
-      const idx = [];
-      const keep = i => pos.getZ(i) < -0.18 - (pos.getY(i) - SEAM) * 0.12;
-      for (let k = 0; k < src.length; k += 3) if (keep(src[k]) && keep(src[k + 1]) && keep(src[k + 2])) idx.push(src[k], src[k + 1], src[k + 2]);
-      upperSkinGeo.setIndex(idx);
+      const [x, y, z] = bend(0, SEAM - 0.02, 0);
+      floor.position.set(x, y, z);
     }
-    backSkin.scale.setScalar(1.004);
-    bodyG.add(backSkin);
-    const seamRing = mesh(new THREE.TorusGeometry(0.5, 0.03, 10, 56), new THREE.MeshStandardMaterial({ color: 0x8a8aff, roughness: 0.25, emissive: 0x4a3ad8, emissiveIntensity: 0.5 }), false);
+    bodyG.add(floor);
+
+    const seamRing = mesh(new THREE.TorusGeometry(0.5, 0.045, 14, 56), new THREE.MeshPhysicalMaterial({ color: 0x6f6cf0, roughness: 0.3, clearcoat: 0.9, emissive: 0x2a20a0, emissiveIntensity: 0.35 }), false);
     seamRing.rotation.x = Math.PI / 2;
     {
       const [x, y, z] = bend(0, SEAM, 0);
@@ -161,14 +157,14 @@ Pets.register({
 
     const brain = new THREE.Group();
     {
-      const [x, y, z] = bend(0, 0.82, 0);
+      const [x, y, z] = bend(0, 0.86, 0);
       brain.position.set(x, y, z);
-      brain.scale.setScalar(1.3);
+      brain.scale.setScalar(1.45);
     }
-    brain.rotation.x = -0.25;
+    brain.rotation.x = -0.12;
     bodyG.add(brain);
     [-1, 1].forEach(s => {
-      const lobeGeo = new THREE.SphereGeometry(0.24, 32, 24);
+      const lobeGeo = new THREE.SphereGeometry(0.26, 32, 24);
       const pos = lobeGeo.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
@@ -386,7 +382,7 @@ Pets.register({
 
         bodyG.scale.set(1 - squeeze * 0.08 + fire * 0.04, 1 + squeeze * 0.1, 1 - squeeze * 0.08 + fire * 0.04);
         bodyG.rotation.x = Math.sin(swimT) * 0.05 * motion - focus * 0.08;
-        brain.scale.setScalar(1 + focus * 0.06 + charge * 0.1 + Math.sin(t * 1.8) * 0.015);
+        brain.scale.setScalar(1.45 + focus * 0.06 + charge * 0.1 + Math.sin(t * 1.8) * 0.015);
         brainMat.emissiveIntensity = (0.4 + focus * 0.5 + charge * 0.6 + fire * 0.5 + Math.max(0, Math.sin(t * 2.4)) * 0.12) * mind;
         brainLight.intensity = (0.4 + focus * 0.8 + charge + fire) * mind;
         glassMat.emissiveIntensity = (0.2 + focus * 0.25 + fire * 0.3) * mind;
