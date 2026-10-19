@@ -1,0 +1,655 @@
+Pets.register({
+  id: "turboa",
+  name: "Turbóa",
+  color: "#2f8fe0",
+  types: ["water", "electric"],
+  description: "Serpente das correntezas que guarda eletricidade nos anéis do corpo. Debaixo d'água, dispara jatos pela turbina da cauda e cruza os rios como um raio azul.",
+  actions: {
+    jump: { duration: 1.1 },
+    eat: { duration: 2.4 },
+    jet: { duration: 2.4 },
+    zap: { duration: 2.2 }
+  },
+  idle: [
+    { action: "zap", min: 25, max: 50 },
+    { action: "jet", min: 45, max: 90 }
+  ],
+  clickAction: n => ["jet", "zap", "jump", "zap"][(n - 1) % 4],
+
+  create({ THREE, kit }) {
+    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, fish } = kit;
+
+    const root = new THREE.Group();
+    const swim = new THREE.Group();
+    root.add(swim);
+
+    const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+    const UP = V3(0, 1, 0);
+    const DOWN = V3(0, -1, 0);
+    const FWD = V3(0, 0, 1);
+
+    const hexParts = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map(v => v / 255);
+    const C_TOP = hexParts(0x1d5cb4);
+    const C_SIDE = hexParts(0x3596e6);
+    const C_BELLY = hexParts(0xaee8ff);
+    const C_STRIPE = hexParts(0x10336e);
+
+    const paint = (geo, bottom, top, y0, y1) => {
+      const pos = geo.attributes.position;
+      const out = new Float32Array(pos.count * 3);
+      const cb = hexParts(bottom);
+      const ct = hexParts(top);
+      for (let i = 0; i < pos.count; i++) {
+        const k = smooth(y0, y1, pos.getY(i));
+        out[i * 3] = lerp(cb[0], ct[0], k);
+        out[i * 3 + 1] = lerp(cb[1], ct[1], k);
+        out[i * 3 + 2] = lerp(cb[2], ct[2], k);
+      }
+      geo.setAttribute("color", new THREE.BufferAttribute(out, 3));
+      return geo;
+    };
+
+    const skinMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.08 });
+    const navyMat = mat(0x0f2a5c, 0.4);
+    const elecMat = new THREE.MeshStandardMaterial({ color: 0xffe45a, emissive: 0xffc21a, emissiveIntensity: 0.7, roughness: 0.35 });
+    const finMat = new THREE.MeshStandardMaterial({ color: 0x8fe6ff, emissive: 0x2a8fd0, emissiveIntensity: 0.25, roughness: 0.25, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x9cc2e6, roughness: 0.28, metalness: 0.65, side: THREE.DoubleSide });
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x8ff8ff });
+    const jetMat = new THREE.MeshBasicMaterial({ color: 0x9ff4ff, transparent: true, opacity: 0.55, depthWrite: false });
+
+    const N = 96;
+    const M = 20;
+    const radiusAt = u => 0.1 + 0.17 * smooth(0, 0.42, u) - 0.06 * smooth(0.72, 1, u);
+
+    const bodyGeo = new THREE.BufferGeometry();
+    const bodyPos = new Float32Array((N + 1) * M * 3);
+    const bodyCol = new Float32Array((N + 1) * M * 3);
+    bodyGeo.setAttribute("position", new THREE.BufferAttribute(bodyPos, 3));
+    bodyGeo.setAttribute("color", new THREE.BufferAttribute(bodyCol, 3));
+    const idx = [];
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < M; j++) {
+        const a = i * M + j;
+        const b = i * M + ((j + 1) % M);
+        const c = (i + 1) * M + j;
+        const d = (i + 1) * M + ((j + 1) % M);
+        idx.push(a, b, c, b, d, c);
+      }
+    }
+    bodyGeo.setIndex(idx);
+    const body = mesh(bodyGeo, skinMat);
+    body.frustumCulled = false;
+    swim.add(body);
+
+    const REST = [
+      [0.95, 0, -1.25],
+      [0.35, 0, -1.5],
+      [-0.4, 0, -1.25],
+      [-0.85, 0, -0.62],
+      [-0.7, 0, 0.1],
+      [-0.05, 0, 0.46],
+      [0.58, 0, 0.18],
+      [0.42, 0.55, -0.28],
+      [0.08, 1.08, -0.22],
+      [0, 1.55, 0.04],
+      [0, 1.8, 0.3]
+    ];
+    REST.forEach((p, i) => {
+      if (i < 7) p[1] = radiusAt(i / 10) * 0.8;
+    });
+    const ctrl = REST.map(() => V3(0, 0, 0));
+    const curve = new THREE.CatmullRomCurve3(ctrl, false, "centripetal");
+
+    const pts = [];
+    const tans = [];
+    const nors = [];
+    const bins = [];
+    const bellies = [];
+    for (let i = 0; i <= N; i++) {
+      pts.push(V3(0, 0, 0));
+      tans.push(V3(0, 0, 1));
+      nors.push(V3(1, 0, 0));
+      bins.push(V3(0, 1, 0));
+      bellies.push(V3(0, -1, 0));
+    }
+    const tmp = V3(0, 0, 0);
+    const tmp2 = V3(0, 0, 0);
+    const dir = V3(0, 0, 0);
+
+    function buildBody() {
+      curve.updateArcLengths();
+      for (let i = 0; i <= N; i++) {
+        const u = i / N;
+        curve.getPointAt(u, pts[i]);
+        curve.getTangentAt(u, tans[i]).normalize();
+      }
+      const t0 = tans[0];
+      tmp.copy(Math.abs(t0.y) > 0.9 ? FWD : UP);
+      nors[0].crossVectors(tmp, t0).normalize();
+      bins[0].crossVectors(t0, nors[0]);
+      for (let i = 1; i <= N; i++) {
+        const T = tans[i];
+        const n = nors[i].copy(nors[i - 1]);
+        n.addScaledVector(T, -n.dot(T)).normalize();
+        bins[i].crossVectors(T, n);
+      }
+      for (let i = 0; i <= N; i++) {
+        const T = tans[i];
+        const v = Math.min(1, Math.abs(T.y) * 1.3);
+        const bd = bellies[i].copy(DOWN).multiplyScalar(1 - v).addScaledVector(FWD, v);
+        bd.addScaledVector(T, -bd.dot(T));
+        if (bd.lengthSq() < 1e-6) bd.copy(nors[i]);
+        bd.normalize();
+        const u = i / N;
+        const r = radiusAt(u);
+        const p = pts[i];
+        const n = nors[i];
+        const b = bins[i];
+        const stripeOn = u > 0.08 && u < 0.97 && Math.sin(u * 46) > 0.35;
+        for (let j = 0; j < M; j++) {
+          const a = (j / M) * Math.PI * 2;
+          dir.copy(n).multiplyScalar(Math.cos(a)).addScaledVector(b, Math.sin(a));
+          const dot = dir.dot(bd);
+          const rr = r * (1 - 0.2 * Math.max(0, dot));
+          const k = (i * M + j) * 3;
+          bodyPos[k] = p.x + dir.x * rr;
+          bodyPos[k + 1] = p.y + dir.y * rr;
+          bodyPos[k + 2] = p.z + dir.z * rr;
+          const belly = smooth(0.45, 0.85, dot);
+          const top = smooth(-0.2, -0.85, dot);
+          let c0 = lerp(C_SIDE[0], C_TOP[0], top);
+          let c1 = lerp(C_SIDE[1], C_TOP[1], top);
+          let c2 = lerp(C_SIDE[2], C_TOP[2], top);
+          if (stripeOn && dot < -0.55) {
+            c0 = C_STRIPE[0];
+            c1 = C_STRIPE[1];
+            c2 = C_STRIPE[2];
+          }
+          bodyCol[k] = lerp(c0, C_BELLY[0], belly);
+          bodyCol[k + 1] = lerp(c1, C_BELLY[1], belly);
+          bodyCol[k + 2] = lerp(c2, C_BELLY[2], belly);
+        }
+      }
+      bodyGeo.attributes.position.needsUpdate = true;
+      bodyGeo.attributes.color.needsUpdate = true;
+      bodyGeo.computeVertexNormals();
+      bodyGeo.computeBoundingSphere();
+    }
+
+    const basis = new THREE.Matrix4();
+    const side = V3(0, 0, 0);
+    const topV = V3(0, 0, 0);
+    const orientAt = (obj, i, lift) => {
+      const T = tans[i];
+      topV.copy(bellies[i]).negate();
+      side.crossVectors(topV, T).normalize();
+      basis.makeBasis(side, topV, T);
+      obj.quaternion.setFromRotationMatrix(basis);
+      obj.position.copy(pts[i]).addScaledVector(topV, lift || 0);
+    };
+
+    const bandGeo = new THREE.TorusGeometry(1, 0.17, 10, 28, Math.PI);
+    const bands = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map(u => {
+      const m = mesh(bandGeo, elecMat, false);
+      swim.add(m);
+      return { m, i: Math.round(u * N), u };
+    });
+
+    const boltShape = new THREE.Shape();
+    boltShape.moveTo(0, 0);
+    boltShape.lineTo(0.3, 0);
+    boltShape.lineTo(0.17, 0.13);
+    boltShape.lineTo(0.34, 0.13);
+    boltShape.lineTo(0.04, 0.44);
+    boltShape.lineTo(0.11, 0.22);
+    boltShape.lineTo(-0.03, 0.22);
+    boltShape.lineTo(0, 0);
+    const boltGeo = new THREE.ExtrudeGeometry(boltShape, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 });
+    boltGeo.translate(-0.15, -0.02, -0.0175);
+    boltGeo.rotateY(Math.PI / 2);
+    const bolts = [0.76, 0.83, 0.9].map((u, k) => {
+      const m = mesh(boltGeo, elecMat, false);
+      const sc = 0.75 + k * 0.12;
+      m.scale.setScalar(sc);
+      swim.add(m);
+      return { m, i: Math.round(u * N), u, sc };
+    });
+
+    const nozzle = new THREE.Group();
+    nozzle.scale.setScalar(1.3);
+    swim.add(nozzle);
+    const lathePts = [
+      [0.07, -0.08],
+      [0.11, -0.02],
+      [0.165, 0.07],
+      [0.185, 0.16],
+      [0.17, 0.25],
+      [0.14, 0.275],
+      [0.125, 0.2]
+    ].map(([r, y]) => new THREE.Vector2(r, y));
+    const shellGeo = new THREE.LatheGeometry(lathePts, 28);
+    shellGeo.rotateX(Math.PI / 2);
+    nozzle.add(mesh(shellGeo, metalMat));
+    const rim = mesh(new THREE.TorusGeometry(0.152, 0.026, 10, 28), navyMat, false);
+    rim.position.z = 0.268;
+    nozzle.add(rim);
+    const bandRing = mesh(new THREE.TorusGeometry(0.18, 0.018, 8, 28), elecMat, false);
+    bandRing.position.z = 0.14;
+    nozzle.add(bandRing);
+    const fan = new THREE.Group();
+    fan.position.z = 0.17;
+    for (let k = 0; k < 6; k++) {
+      const blade = mesh(new THREE.BoxGeometry(0.035, 0.11, 0.012), navyMat, false);
+      blade.position.y = 0.055;
+      const arm = new THREE.Group();
+      arm.rotation.z = (k / 6) * Math.PI * 2;
+      blade.rotation.y = 0.5;
+      arm.add(blade);
+      fan.add(arm);
+    }
+    nozzle.add(fan);
+    const core = new THREE.Mesh(new THREE.CircleGeometry(0.12, 24), coreMat);
+    core.position.z = 0.15;
+    nozzle.add(core);
+    const jetGeo = new THREE.ConeGeometry(0.12, 1, 20, 1, true);
+    jetGeo.translate(0, -0.5, 0);
+    jetGeo.rotateX(-Math.PI / 2);
+    const jet = new THREE.Mesh(jetGeo, jetMat);
+    jet.position.z = 0.27;
+    nozzle.add(jet);
+    const jetInner = new THREE.Mesh(jetGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthWrite: false }));
+    jetInner.position.z = 0.27;
+    nozzle.add(jetInner);
+    const stabShape = new THREE.Shape();
+    stabShape.moveTo(0, 0);
+    stabShape.lineTo(0.22, 0);
+    stabShape.lineTo(0.3, 0.16);
+    stabShape.lineTo(0.12, 0.1);
+    stabShape.lineTo(0, 0);
+    const stabGeo = new THREE.ExtrudeGeometry(stabShape, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 1 });
+    stabGeo.translate(0, 0.14, -0.01);
+    stabGeo.rotateY(-Math.PI / 2);
+    for (let k = 0; k < 3; k++) {
+      const arm = new THREE.Group();
+      arm.rotation.z = (k / 3) * Math.PI * 2 + Math.PI / 6;
+      const f = mesh(stabGeo, finMat, false);
+      f.position.z = -0.02;
+      arm.add(f);
+      nozzle.add(arm);
+    }
+
+    const head = new THREE.Group();
+    head.scale.setScalar(1.22);
+    swim.add(head);
+    const skullGeo = paint(new THREE.SphereGeometry(0.34, 36, 26), 0xd2f6ff, 0x2a86dc, -0.12, 0.08);
+    const skull = mesh(skullGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3 }));
+    skull.scale.set(1.02, 0.8, 1.42);
+    skull.position.z = 0.2;
+    head.add(skull);
+    const capGeo = paint(new THREE.SphereGeometry(0.3, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.5), 0x2a86dc, 0x1d5cb4, 0, 0.2);
+    const cap = mesh(capGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3 }), false);
+    cap.scale.set(1.0, 0.72, 1.45);
+    cap.position.set(0, 0.035, 0.18);
+    head.add(cap);
+    const snoutGeo = paint(new THREE.SphereGeometry(0.2, 28, 20), 0xd2f6ff, 0x2a86dc, -0.08, 0.06);
+    const snout = mesh(snoutGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3 }));
+    snout.scale.set(1.12, 0.62, 1.3);
+    snout.position.set(0, -0.05, 0.6);
+    head.add(snout);
+    [-1, 1].forEach(s => {
+      const nostril = mesh(new THREE.SphereGeometry(0.022, 10, 8), navyMat, false);
+      nostril.position.set(0.07 * s, 0.03, 0.82);
+      head.add(nostril);
+    });
+
+    const jaw = new THREE.Group();
+    jaw.position.set(0, -0.12, 0.05);
+    head.add(jaw);
+    const jawMesh = mesh(new THREE.SphereGeometry(0.25, 28, 18), mat(0xd2f6ff, 0.35), false);
+    jawMesh.scale.set(0.92, 0.32, 1.38);
+    jawMesh.position.set(0, 0.0, 0.32);
+    jaw.add(jawMesh);
+    const mouthIn = mesh(new THREE.SphereGeometry(0.2, 20, 14), mat(0x5a1e3a, 0.6), false);
+    mouthIn.scale.set(0.85, 0.3, 1.3);
+    mouthIn.position.set(0, -0.08, 0.4);
+    head.add(mouthIn);
+    const tongue = mesh(new THREE.SphereGeometry(0.06, 14, 10), mat(0xff6f8e, 0.5), false);
+    tongue.scale.set(1, 0.4, 2.2);
+    tongue.position.set(0, 0.02, 0.42);
+    jaw.add(tongue);
+    const smileGeo = new THREE.TorusGeometry(0.18, 0.012, 6, 24, Math.PI * 0.6);
+    const smile = mesh(smileGeo, navyMat, false);
+    smile.rotation.set(Math.PI / 2, 0, Math.PI * 1.2);
+    smile.position.set(0, -0.105, 0.6);
+    head.add(smile);
+
+    const eyes = [-1, 1].map(s => {
+      const e = eye({ size: 0.7, whiteColor: 0xfffbe6, pupilColor: 0x0b1a3a });
+      e.pupil.scale.set(0.78, 1.15, 0.5);
+      e.g.position.set(0.22 * s, 0.13, 0.4);
+      e.g.rotation.set(-0.1, 0.5 * s, 0);
+      head.add(e.g);
+      const lid = mesh(new THREE.TorusGeometry(0.17, 0.022, 6, 20, Math.PI * 0.75), elecMat, false);
+      lid.scale.setScalar(0.85);
+      lid.position.set(0.225 * s, 0.15, 0.4);
+      lid.rotation.set(0, 0.5 * s, Math.PI * 0.125);
+      head.add(lid);
+      return e;
+    });
+
+    const crestShape = new THREE.Shape();
+    crestShape.moveTo(0, 0);
+    crestShape.lineTo(0.5, 0);
+    crestShape.quadraticCurveTo(0.68, 0.06, 0.82, 0.34);
+    crestShape.lineTo(0.62, 0.22);
+    crestShape.lineTo(0.66, 0.4);
+    crestShape.lineTo(0.38, 0.16);
+    crestShape.quadraticCurveTo(0.2, 0.12, 0, 0);
+    const crestGeo = new THREE.ExtrudeGeometry(crestShape, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.014, bevelSize: 0.014, bevelSegments: 2 });
+    crestGeo.translate(0, 0, -0.02);
+    crestGeo.rotateY(Math.PI / 2);
+    const crest = mesh(crestGeo, elecMat, false);
+    crest.scale.setScalar(1.25);
+    crest.position.set(0, 0.2, 0.52);
+    crest.rotation.x = -0.12;
+    head.add(crest);
+
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0, 0);
+    wingShape.lineTo(0.12, 0.05);
+    wingShape.quadraticCurveTo(0.34, 0.02, 0.5, -0.12);
+    wingShape.lineTo(0.3, -0.08);
+    wingShape.lineTo(0.38, -0.2);
+    wingShape.lineTo(0.16, -0.1);
+    wingShape.quadraticCurveTo(0.06, -0.08, 0, 0);
+    const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 1 });
+    const wings = [-1, 1].map(s => {
+      const g = new THREE.Group();
+      g.position.set(0.3 * s, -0.04, 0.08);
+      const w = mesh(wingGeo, finMat, false);
+      w.rotation.set(0, s > 0 ? Math.PI * 0.62 : Math.PI * 0.38, 0);
+      if (s < 0) w.scale.set(1, 1, -1);
+      g.add(w);
+      head.add(g);
+      return { g, s };
+    });
+
+    const barbels = [-1, 1].map(s => {
+      const g = new THREE.Group();
+      g.position.set(0.16 * s, -0.08, 0.72);
+      const c = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0.12 * s, -0.04, -0.06), V3(0.26 * s, -0.02, -0.2), V3(0.34 * s, 0.06, -0.36)]);
+      g.add(mesh(new THREE.TubeGeometry(c, 16, 0.016, 6, false), navyMat, false));
+      const tip = mesh(new THREE.SphereGeometry(0.045, 14, 10), elecMat, false);
+      tip.position.set(0.34 * s, 0.06, -0.36);
+      g.add(tip);
+      head.add(g);
+      return { g, tip, s };
+    });
+
+    const bubbleMat = new THREE.MeshStandardMaterial({ color: 0xcff6ff, roughness: 0.1, transparent: true, opacity: 0.55, depthWrite: false });
+    const bubbleGeo = new THREE.SphereGeometry(0.05, 12, 10);
+    const bubbles = [];
+    for (let k = 0; k < 16; k++) {
+      const m = new THREE.Mesh(bubbleGeo, bubbleMat);
+      swim.add(m);
+      bubbles.push({ m, ph: k / 16, jx: Math.sin(k * 12.9) * 0.5, jy: Math.cos(k * 7.3) * 0.5, sz: 0.6 + ((k * 37) % 10) / 14 });
+    }
+
+    const sparkMat = new THREE.MeshBasicMaterial({ color: 0xfff27a });
+    const sparkGeo = new THREE.OctahedronGeometry(0.05, 0);
+    const sparks = [];
+    for (let k = 0; k < 10; k++) {
+      const m = new THREE.Mesh(sparkGeo, sparkMat);
+      swim.add(m);
+      sparks.push({ m, ph: k * 0.71, a: (k / 10) * Math.PI * 2, i: Math.round((0.15 + 0.8 * ((k * 3) % 10) / 10) * N) });
+    }
+
+    const arcMat = new THREE.LineBasicMaterial({ color: 0xfff6a0, transparent: true, opacity: 0.95 });
+    const arcs = [];
+    for (let k = 0; k < 7; k++) {
+      const g = new THREE.BufferGeometry();
+      const arr = new Float32Array(10 * 3);
+      g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+      const line = new THREE.Line(g, arcMat);
+      line.frustumCulled = false;
+      line.visible = false;
+      swim.add(line);
+      arcs.push({ line, arr, seed: k * 3.7 });
+    }
+
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.0, 1.45, 64),
+      new THREE.MeshBasicMaterial({ color: 0x3aa8ff, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.015;
+    root.add(ring);
+    const ring2 = new THREE.Mesh(
+      new THREE.RingGeometry(0.62, 0.68, 64),
+      new THREE.MeshBasicMaterial({ color: 0xffe45a, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false })
+    );
+    ring2.rotation.x = -Math.PI / 2;
+    ring2.position.y = 0.02;
+    root.add(ring2);
+
+    const glow = new THREE.PointLight(0x9fe6ff, 0.6, 6);
+    glow.position.set(0, 1.2, 0.9);
+    swim.add(glow);
+
+    const food = fish(0xffb35a);
+    food.visible = false;
+    swim.add(food);
+
+    const headDir = V3(0, 0, 1);
+    const q = new THREE.Quaternion();
+    const noise = (a, b) => Math.sin(a * 12.9898 + b * 78.233) * 0.5 + Math.sin(a * 4.1 + b * 9.7) * 0.5;
+
+    return {
+      root,
+      update(s) {
+        const { t, pointer, lookYaw, lookPitch, blink, action, motion, reduceMotion } = s;
+        const hunger = typeof s.hunger === "number" ? s.hunger : 100;
+        const jump = action && action.name === "jump" ? action : null;
+        const eat = action && action.name === "eat" ? action : null;
+        const dash = action && action.name === "jet" ? action : null;
+        const zap = action && action.name === "zap" ? action : null;
+        const ph = eat ? eatPhase(eat.p) : null;
+        const elec = s.dying ? 0.25 : 0.5 + 0.5 * Math.max(0, Math.min(1, hunger / 100));
+
+        let stream = 0;
+        let thrust = 0.12;
+        let orbit = 0;
+        if (dash) {
+          const p = dash.p;
+          stream = smooth(0.02, 0.2, p) * (1 - smooth(0.84, 1, p));
+          thrust = 0.12 + 0.5 * smooth(0.05, 0.2, p) + 0.5 * smooth(0.18, 0.26, p) * (1 - smooth(0.8, 0.9, p));
+          orbit = smooth(0.2, 0.84, p) * Math.PI * 2;
+        }
+        let charge = 0;
+        let blast = 0;
+        if (zap) {
+          charge = smooth(0, 0.35, zap.p) * (1 - smooth(0.35, 0.45, zap.p));
+          blast = smooth(0.35, 0.45, zap.p) * (1 - smooth(0.75, 1, zap.p));
+        }
+        let hop = 0;
+        let crouch = 0;
+        if (jump) {
+          const p = jump.p;
+          crouch = p < 0.2 ? Math.sin((p / 0.2) * Math.PI / 2) : p > 0.8 ? Math.sin(((1 - p) / 0.2) * Math.PI / 2) * 0.6 : 0;
+          if (p > 0.2 && p < 0.8) hop = Math.sin(((p - 0.2) / 0.6) * Math.PI);
+        }
+        const droop = s.dying ? 1 : 0;
+        const fastWag = 1 + stream * 4 + charge * 2;
+
+        for (let i = 0; i < REST.length; i++) {
+          const r = REST[i];
+          const c = ctrl[i];
+          const u = i / (REST.length - 1);
+          const ground = i < 7;
+          const wave = Math.sin(t * 1.7 * fastWag - i * 0.95) * (ground ? 0.06 : 0.03) * motion;
+          let x = r[0] + wave * (ground ? Math.cos(i) : 1);
+          let y = r[1];
+          let z = r[2] + wave * (ground ? Math.sin(i) : 0);
+          if (!ground) {
+            const k = (i - 6) / 4;
+            x += Math.sin(t * 1.1) * 0.08 * k * motion;
+            y -= crouch * 0.28 * k - Math.sin(t * 2) * 0.025 * k * motion;
+            y -= droop * 0.9 * k * k;
+            z += droop * 0.35 * k + charge * -0.12 * k + blast * 0.08 * k;
+            if (eat) {
+              y += 0.08 * k * Math.sin(ph.fall * Math.PI);
+              z -= 0.06 * k * ph.chew;
+            }
+          } else {
+            y = Math.max(r[1] * 0.92, y - crouch * 0.03);
+          }
+          const sx = Math.sin(t * 9 - i * 0.9) * 0.08 * (1 - u) * motion;
+          const sy = 0.95 + 0.02 * i + Math.sin(t * 3 - i * 0.6) * 0.03 * motion;
+          const sz = -1.9 + i * 0.27;
+          c.set(lerp(x, sx, stream), lerp(y, sy, stream), lerp(z, sz, stream));
+        }
+        buildBody();
+
+        if (stream > 0.001) {
+          swim.position.set(Math.sin(orbit) * 1.15, 0, (Math.cos(orbit) - 1) * 1.15);
+          swim.rotation.set(0, stream * Math.PI * 0.5 + orbit, Math.sin(orbit * 0.5) * 0.3 * stream);
+        } else {
+          swim.position.set(0, 0, 0);
+          swim.rotation.set(0, 0, 0);
+        }
+
+        const end = pts[N];
+        headDir.copy(tans[N]).multiplyScalar(0.35).addScaledVector(FWD, 0.65).normalize();
+        q.setFromUnitVectors(FWD, headDir);
+        head.position.copy(end).addScaledVector(tans[N], -0.05);
+        head.quaternion.copy(q);
+        let nod = Math.sin(t * 1.4) * 0.05 * motion;
+        if (eat) nod += -0.35 * (1 - ph.fall) * (eat.p < 0.3 ? 1 : 0) + Math.sin(ph.chew * Math.PI) * 0.06;
+        nod += -blast * 0.12 + charge * 0.15 + droop * 0.35 + crouch * 0.1 - hop * 0.2;
+        head.rotateX(nod);
+        head.rotateZ(Math.sin(t * 0.9) * 0.06 * motion);
+
+        let mouth = 0.04;
+        if (eat) mouth = eat.p < 0.3 ? smooth(0.08, 0.28, eat.p) * 0.55 : eat.p < 0.85 ? 0.08 + ph.chew * 0.3 : 0.04;
+        if (blast) mouth = Math.max(mouth, blast * 0.45);
+        if (hop > 0.3) mouth = Math.max(mouth, 0.3);
+        jaw.rotation.x = lerp(jaw.rotation.x, mouth, 0.35);
+        mouthIn.visible = jaw.rotation.x > 0.1;
+        smile.visible = jaw.rotation.x < 0.1;
+
+        wings.forEach(({ g, s: sd }) => {
+          const flap = Math.sin(t * 2.2 + sd) * 0.12 * motion;
+          g.rotation.y = sd * (-0.15 - stream * 0.55 + flap * 0.5);
+          g.rotation.z = sd * (flap + blast * 0.3 - stream * 0.15);
+        });
+        barbels.forEach(({ g, tip, s: sd }, i) => {
+          g.rotation.y = sd * (Math.sin(t * 2.6 + i * 1.7) * 0.18 * motion - stream * 0.35);
+          g.rotation.x = Math.sin(t * 2 + i) * 0.1 * motion + stream * 0.25;
+          tip.scale.setScalar(1 + (charge + blast) * 0.7 + Math.sin(t * 6 + i * 2) * 0.12 * motion);
+        });
+        crest.rotation.x = -0.12 + stream * 0.25 + Math.sin(t * 1.8) * 0.04 * motion;
+
+        bands.forEach((b, k) => {
+          orientAt(b.m, b.i, 0);
+          const r = radiusAt(b.u) * (1.02 + 0.06 * Math.max(0, Math.sin(t * 5 - k * 0.9)) * (charge + blast) * 2);
+          b.m.scale.set(r, r * 0.88, r);
+        });
+        bolts.forEach((b, k) => {
+          orientAt(b.m, b.i, radiusAt(b.u) * 0.92);
+          b.m.scale.setScalar(b.sc * (1 + blast * 0.25 + Math.sin(t * 4 + k) * 0.03 * motion));
+        });
+
+        orientAt(nozzle, 0, 0);
+        nozzle.rotateY(Math.PI);
+        nozzle.position.addScaledVector(tans[0], 0.04);
+        fan.rotation.z = t * (6 + thrust * 30);
+        const jl = 0.15 + thrust * 1.6 + Math.sin(t * 30) * 0.04 * thrust;
+        jet.scale.set(1 + thrust * 0.4, 1 + thrust * 0.4, jl);
+        jetInner.scale.set(0.45, 0.45, jl * 0.7);
+        jet.material.opacity = 0.25 + thrust * 0.45;
+        jet.visible = thrust > 0.13;
+        jetInner.visible = thrust > 0.3;
+        core.scale.setScalar(0.85 + thrust * 0.3 + Math.sin(t * 8) * 0.05);
+
+        const back = tmp2.copy(tans[0]).negate();
+        bubbles.forEach(b => {
+          const speed = 0.35 + thrust * 1.6;
+          const u = (((t * speed + b.ph) % 1) + 1) % 1;
+          const reach = 0.4 + thrust * 2.2;
+          b.m.position.copy(pts[0]).addScaledVector(back, 0.32 + u * reach);
+          b.m.position.x += b.jx * u * 0.35 * (1 - stream * 0.6);
+          b.m.position.y += b.jy * u * 0.3 + u * u * 0.6 * (1 - stream);
+          b.m.position.z += b.jy * u * 0.2;
+          const fade = Math.sin(Math.PI * u);
+          b.m.scale.setScalar(Math.max(0.001, b.sz * fade * (0.5 + thrust * 0.8)));
+          b.m.visible = !reduceMotion || thrust > 0.2;
+        });
+
+        const live = charge + blast;
+        sparks.forEach((sp, k) => {
+          const i = sp.i;
+          const a = sp.a + t * (1.5 + live * 4);
+          const rad = radiusAt(sp.i / N) + 0.12 + live * 0.25 + Math.sin(t * 3 + sp.ph) * 0.04;
+          dir.copy(nors[i]).multiplyScalar(Math.cos(a)).addScaledVector(bins[i], Math.sin(a));
+          sp.m.position.copy(pts[i]).addScaledVector(dir, rad);
+          sp.m.rotation.set(t * 3 + sp.ph, t * 2, 0);
+          const tw = Math.max(0, Math.sin(t * 2.3 + sp.ph * 3));
+          sp.m.scale.setScalar(Math.max(0.001, (0.25 + live * 1.1) * (0.4 + tw * 0.6) * elec));
+        });
+
+        arcs.forEach((arc, k) => {
+          const on = live > 0.15 && (Math.sin(t * 40 + arc.seed * 5) > -0.3);
+          arc.line.visible = on;
+          if (!on) return;
+          const i0 = bands[k % bands.length].i;
+          const i1 = k % 2 ? N - 4 : bands[(k + 2) % bands.length].i;
+          const seed = Math.floor(t * 18) + arc.seed;
+          for (let j = 0; j < 10; j++) {
+            const f = j / 9;
+            const ii = Math.round(lerp(i0, i1, f));
+            const p = pts[ii];
+            topV.copy(bellies[ii]).negate();
+            const lift = radiusAt(ii / N) + 0.06 + Math.sin(f * Math.PI) * (0.2 + blast * 0.35);
+            const jx = j === 0 || j === 9 ? 0 : noise(seed + j, k) * 0.12 * (1 + blast);
+            const jy = j === 0 || j === 9 ? 0 : noise(k, seed - j) * 0.12 * (1 + blast);
+            arc.arr[j * 3] = p.x + topV.x * lift + jx;
+            arc.arr[j * 3 + 1] = p.y + topV.y * lift + jy;
+            arc.arr[j * 3 + 2] = p.z + topV.z * lift + jx * 0.5;
+          }
+          arc.line.geometry.attributes.position.needsUpdate = true;
+        });
+
+        elecMat.emissiveIntensity = (0.55 + Math.sin(t * 3) * 0.15 * motion + charge * 0.9 + blast * 1.8 + (Math.sin(t * 50) > 0 ? blast * 0.6 : 0)) * elec;
+        finMat.emissiveIntensity = 0.2 + thrust * 0.5 + blast * 0.3;
+        glow.color.setHex(live > 0.1 ? 0xfff0a0 : 0x9fe6ff);
+        glow.intensity = (0.45 + live * 1.1 + thrust * 0.5 + (blast && Math.sin(t * 37) > 0.2 ? 0.5 : 0) * blast) * (0.6 + elec * 0.4);
+        glow.position.copy(pts[Math.round(N * 0.4)]).add(tmp.set(0, 0.5, 1.3));
+
+        const pulse = 1 + Math.sin(t * 2.4) * 0.05 * motion;
+        ring.scale.setScalar(pulse + stream * 0.5 + blast * 0.5);
+        ring.material.opacity = 0.16 + 0.06 * Math.sin(t * 2) + stream * 0.2;
+        ring2.scale.setScalar(1 + blast * 1.3 + Math.sin(t * 3) * 0.04);
+        ring2.material.opacity = (0.22 + live * 0.5) * elec;
+
+        if (eat) {
+          food.visible = ph.visible;
+          const mouthPos = tmp.copy(head.position).addScaledVector(headDir, 0.75);
+          food.position.set(mouthPos.x, lerp(3.6, mouthPos.y, ph.fall * ph.fall), lerp(mouthPos.z + 0.3, mouthPos.z, ph.fall));
+          food.scale.setScalar(1 - 0.85 * ph.bite);
+          food.rotation.set(0, Math.PI / 2, (1 - ph.fall) * 1.4);
+        } else {
+          food.visible = false;
+        }
+
+        root.position.y = hop * 0.9;
+        root.rotation.y = lookYaw;
+        root.rotation.x = lookPitch;
+
+        eyes.forEach(({ g }) => {
+          g.scale.y = hop > 0.2 ? 1.1 : eat && eat.p > 0.3 ? 0.45 : charge > 0.3 ? 0.35 : blast > 0.3 ? 1.15 : blink;
+        });
+        followPupils(eyes, pointer, 0.8);
+      }
+    };
+  }
+});
