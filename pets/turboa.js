@@ -96,7 +96,8 @@ Pets.register({
     });
     const ctrl = REST.map(() => V3(0, 0, 0));
     const REST_LEN = new THREE.CatmullRomCurve3(REST.map(p => V3(p[0], p[1], p[2])), false, "centripetal").getLength();
-    const RING_R = REST_LEN / (Math.PI * 2 * 0.86);
+    const HELIX_DROP = 1.55;
+    const RING_R = Math.sqrt(REST_LEN * REST_LEN - HELIX_DROP * HELIX_DROP) / (Math.PI * 2 * 1.15 * 0.91);
     const curve = new THREE.CatmullRomCurve3(ctrl, false, "centripetal");
 
     const pts = [];
@@ -250,71 +251,147 @@ Pets.register({
     const head = new THREE.Group();
     head.scale.setScalar(1.22);
     swim.add(head);
-    const skullGeo = paint(new THREE.SphereGeometry(0.34, 36, 26), 0xd2f6ff, 0x2a86dc, -0.12, 0.08);
-    const skull = mesh(skullGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3 }));
-    skull.scale.set(1.02, 0.8, 1.42);
-    skull.position.z = 0.2;
-    head.add(skull);
-    const capGeo = paint(new THREE.SphereGeometry(0.3, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.5), 0x2a86dc, 0x1d5cb4, 0, 0.2);
-    const cap = mesh(capGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3 }), false);
-    cap.scale.set(1.0, 0.72, 1.45);
-    cap.position.set(0, 0.035, 0.18);
-    head.add(cap);
     const MOUTH_Y = -0.15;
-    const skinHead = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3 });
+    const HZ0 = -0.3;
+    const HZ1 = 0.92;
+    const HINGE_Z = 0.08;
+    const hz = t => lerp(HZ0, HZ1, t);
+    const bump = t => Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, t)))), 0.34);
+    const hw = t => 0.38 * bump(t) * (1 - 0.36 * t * t) * (1 + 0.06 * Math.exp(-Math.pow((t - 0.55) / 0.08, 2)));
+    const ht = t => 0.5 * bump(t) * (1 - 0.5 * smooth(0.3, 1, t)) + 0.035 * Math.exp(-Math.pow((t - 0.55) / 0.07, 2));
+    const hd = t => 0.25 * bump(t) * (1 - 0.45 * smooth(0.4, 1, t));
+    const spow = (v, e) => Math.sign(v) * Math.pow(Math.abs(v), e);
+    const upperAt = (t, th, out) => out.set(hw(t) * spow(Math.cos(th), 0.85), MOUTH_Y + ht(t) * Math.pow(Math.max(0, Math.sin(th)), 0.9), hz(t));
+    const lowerAt = (t, th, out) => out.set(hw(t) * spow(Math.cos(th), 0.85), MOUTH_Y - hd(t) * Math.pow(Math.max(0, Math.sin(th)), 0.9), hz(t));
+
+    const surface = (fn, nu, nv, colorFn, flip) => {
+      const g = new THREE.BufferGeometry();
+      const pos = new Float32Array((nu + 1) * (nv + 1) * 3);
+      const col = new Float32Array((nu + 1) * (nv + 1) * 3);
+      const pt = V3(0, 0, 0);
+      for (let i = 0; i <= nu; i++) {
+        for (let j = 0; j <= nv; j++) {
+          const k = (i * (nv + 1) + j) * 3;
+          fn(i / nu, j / nv, pt);
+          pos[k] = pt.x;
+          pos[k + 1] = pt.y;
+          pos[k + 2] = pt.z;
+          const c = colorFn(i / nu, j / nv, pt);
+          col[k] = c[0];
+          col[k + 1] = c[1];
+          col[k + 2] = c[2];
+        }
+      }
+      const index = [];
+      for (let i = 0; i < nu; i++) {
+        for (let j = 0; j < nv; j++) {
+          const a = i * (nv + 1) + j;
+          const b = a + 1;
+          const c = a + nv + 1;
+          const d = c + 1;
+          if (flip) index.push(a, c, b, b, c, d);
+          else index.push(a, b, c, b, d, c);
+        }
+      }
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      g.setIndex(index);
+      g.computeVertexNormals();
+      return g;
+    };
+    const mixC = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+    const H_TOP = hexParts(0x1d5cb4);
+    const H_SIDE = hexParts(0x3596e6);
+    const H_LIP = hexParts(0x9fe0ff);
+    const H_JAW = hexParts(0xe2faff);
+    const H_JAW2 = hexParts(0xaee8ff);
+
+    const skinHead = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, side: THREE.DoubleSide });
     const gumMat = mat(0x8a2648, 0.55);
+    gumMat.side = THREE.DoubleSide;
     const throatMat = mat(0x4a1028, 0.7);
+    throatMat.side = THREE.DoubleSide;
     const toothMat = mat(0xffffff, 0.25);
-    const snoutGeo = paint(new THREE.SphereGeometry(0.2, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), 0x9fe0ff, 0x2a86dc, 0.0, 0.1);
-    const snout = mesh(snoutGeo, skinHead);
-    snout.scale.set(1.12, 0.85, 1.32);
-    snout.position.set(0, MOUTH_Y, 0.6);
-    head.add(snout);
-    const roof = mesh(new THREE.CircleGeometry(0.2, 32), gumMat, false);
-    roof.rotation.x = Math.PI / 2;
-    roof.scale.set(1.0, 1.2, 1);
-    roof.position.set(0, MOUTH_Y - 0.001, 0.6);
-    head.add(roof);
-    const lipPts = [];
-    for (let k = 0; k <= 24; k++) {
-      const a = Math.PI * (-0.06 + (k / 24) * 1.12);
-      const x = Math.cos(a) * 0.226;
-      const z = 0.6 + Math.sin(a) * 0.266;
-      lipPts.push(V3(x, MOUTH_Y + 0.004 + Math.pow(Math.abs(x) / 0.226, 2.5) * 0.1, z));
+
+    const upperGeo = surface((u, v, out) => upperAt(u, v * Math.PI, out), 64, 40, (u, v, p) => {
+      const h = (p.y - MOUTH_Y) / Math.max(0.001, ht(u));
+      const c = mixC(H_LIP, H_SIDE, smooth(0.05, 0.4, h));
+      return mixC(c, H_TOP, smooth(0.55, 0.95, h) * (1 - 0.6 * smooth(0.8, 1, u)));
+    }, false);
+    const upper = mesh(upperGeo, skinHead);
+    head.add(upper);
+
+    const outline = [];
+    for (let k = 0; k <= 48; k++) {
+      const t = k / 48;
+      outline.push([hw(t), hz(t)]);
     }
-    const lip = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts), 48, 0.011, 6, false), navyMat, false);
+    const capShape = sign => {
+      const sh = new THREE.Shape();
+      sh.moveTo(0, sign * HZ0);
+      outline.forEach(([x, z]) => sh.lineTo(x, sign * z));
+      for (let k = outline.length - 1; k >= 0; k--) sh.lineTo(-outline[k][0], sign * outline[k][1]);
+      return new THREE.ShapeGeometry(sh, 2);
+    };
+    const roof = mesh(capShape(1), gumMat, false);
+    roof.rotation.x = Math.PI / 2;
+    roof.scale.set(0.985, 1, 1);
+    roof.position.y = MOUTH_Y + 0.002;
+    head.add(roof);
+
+    const lipPts = [];
+    const LIP_T = 0.42;
+    for (let k = 0; k <= 40; k++) {
+      const f = k / 40;
+      const side = f < 0.5 ? 1 : -1;
+      const t = f < 0.5 ? lerp(LIP_T, 1, f * 2) : lerp(1, LIP_T, (f - 0.5) * 2);
+      const lift = 0.07 * Math.pow(1 - smooth(LIP_T, LIP_T + 0.2, t), 1.5);
+      lipPts.push(V3(side * hw(t) * 1.02, MOUTH_Y + 0.006 + lift, hz(t) + (t > 0.98 ? 0.01 : 0)));
+    }
+    const lip = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts), 80, 0.011, 6, false), navyMat, false);
     head.add(lip);
+
+    const tmpS = V3(0, 0, 0);
     [-1, 1].forEach(s => {
-      const nostril = mesh(new THREE.SphereGeometry(0.022, 10, 8), navyMat, false);
-      nostril.position.set(0.07 * s, MOUTH_Y + 0.13, 0.8);
+      const nostril = mesh(new THREE.SphereGeometry(0.02, 10, 8), navyMat, false);
+      upperAt(0.9, s > 0 ? Math.PI * 0.32 : Math.PI * 0.68, tmpS);
+      nostril.position.copy(tmpS);
+      nostril.scale.set(1, 0.6, 1);
       head.add(nostril);
-      const fang = mesh(new THREE.ConeGeometry(0.022, 0.075, 10), toothMat, false);
+      const fang = mesh(new THREE.ConeGeometry(0.02, 0.075, 10), toothMat, false);
       fang.rotation.x = Math.PI;
-      fang.position.set(0.1 * s, MOUTH_Y - 0.03, 0.78);
+      fang.position.set(hw(0.86) * 0.7 * s, MOUTH_Y - 0.03, hz(0.86));
       head.add(fang);
     });
 
     const jaw = new THREE.Group();
-    jaw.position.set(0, MOUTH_Y, 0.22);
+    jaw.position.set(0, MOUTH_Y, HINGE_Z);
     head.add(jaw);
-    const jawGeo = paint(new THREE.SphereGeometry(0.2, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), 0xe6fbff, 0xaee8ff, -0.18, 0);
+    const jawGeo = surface((u, v, out) => lowerAt(u, Math.PI + v * Math.PI, out), 64, 30, (u, v, p) => {
+      const h = (MOUTH_Y - p.y) / Math.max(0.001, hd(u));
+      return mixC(H_LIP, mixC(H_JAW2, H_JAW, smooth(0.5, 1, h)), smooth(0.02, 0.25, h));
+    }, false);
+    jawGeo.translate(0, -MOUTH_Y, -HINGE_Z);
     const jawMesh = mesh(jawGeo, skinHead, false);
-    jawMesh.scale.set(1.08, 0.62, 1.62);
-    jawMesh.position.set(0, 0, 0.32);
     jaw.add(jawMesh);
-    const floor = mesh(new THREE.CircleGeometry(0.2, 32), throatMat, false);
+    const floor = mesh(capShape(-1), throatMat, false);
     floor.rotation.x = -Math.PI / 2;
-    floor.scale.set(0.98, 1.5, 1);
-    floor.position.set(0, 0.002, 0.33);
+    floor.scale.set(0.97, 1, 1);
+    floor.position.set(0, 0.002, -HINGE_Z);
     jaw.add(floor);
-    for (let k = 0; k < 6; k++) {
-      const a = Math.PI * (0.18 + (k / 5) * 0.64);
-      const tooth = mesh(new THREE.ConeGeometry(0.014, 0.035, 8), toothMat, false);
-      tooth.position.set(Math.cos(a) * 0.17, 0.012, 0.32 + Math.sin(a) * 0.26);
+    const lowerTeeth = [];
+    for (let k = 0; k < 9; k++) {
+      const f = k / 8;
+      const side = f < 0.5 ? 1 : -1;
+      const t = f < 0.5 ? lerp(0.55, 0.97, f * 2) : lerp(0.97, 0.55, (f - 0.5) * 2);
+      if (k === 4) continue;
+      const tooth = mesh(new THREE.ConeGeometry(0.013, 0.035, 8), toothMat, false);
+      tooth.position.set(side * hw(t) * 0.82, 0.012, hz(t) - HINGE_Z - 0.01);
       jaw.add(tooth);
+      lowerTeeth.push(tooth);
     }
     const tongue = new THREE.Group();
-    tongue.position.set(0, 0.012, 0.18);
+    tongue.position.set(0, 0.012, 0.1);
     jaw.add(tongue);
     const tongueMat = mat(0xff5f86, 0.45);
     const stem = mesh(new THREE.CylinderGeometry(0.016, 0.024, 0.34, 10), tongueMat, false);
@@ -331,12 +408,13 @@ Pets.register({
     const eyes = [-1, 1].map(s => {
       const e = eye({ size: 0.7, whiteColor: 0xfffbe6, pupilColor: 0x0b1a3a });
       e.pupil.scale.set(0.78, 1.15, 0.5);
-      e.g.position.set(0.22 * s, 0.13, 0.4);
+      upperAt(0.55, s > 0 ? 0.66 : Math.PI - 0.66, tmpS);
+      e.g.position.set(tmpS.x * 0.9, tmpS.y, tmpS.z);
       e.g.rotation.set(-0.1, 0.5 * s, 0);
       head.add(e.g);
       const lid = mesh(new THREE.TorusGeometry(0.17, 0.022, 6, 20, Math.PI * 0.75), elecMat, false);
       lid.scale.setScalar(0.85);
-      lid.position.set(0.225 * s, 0.15, 0.4);
+      lid.position.set(tmpS.x * 0.9 + 0.005 * s, tmpS.y + 0.02, tmpS.z);
       lid.rotation.set(0, 0.5 * s, Math.PI * 0.125);
       head.add(lid);
       return e;
@@ -355,8 +433,8 @@ Pets.register({
     crestGeo.rotateY(Math.PI / 2);
     const crest = mesh(crestGeo, elecMat, false);
     crest.scale.setScalar(1.25);
-    crest.position.set(0, 0.2, 0.52);
-    crest.rotation.x = -0.12;
+    crest.position.set(0, 0.12, 0.42);
+    crest.rotation.x = 0.2;
     head.add(crest);
 
     const wingShape = new THREE.Shape();
@@ -381,7 +459,7 @@ Pets.register({
 
     const barbels = [-1, 1].map(s => {
       const g = new THREE.Group();
-      g.position.set(0.2 * s, 0.05, 0.6);
+      g.position.set(0.17 * s, -0.06, 0.62);
       const c = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0.12 * s, -0.04, -0.06), V3(0.26 * s, -0.02, -0.2), V3(0.34 * s, 0.06, -0.36)]);
       g.add(mesh(new THREE.TubeGeometry(c, 16, 0.016, 6, false), navyMat, false));
       const tip = mesh(new THREE.SphereGeometry(0.045, 14, 10), elecMat, false);
@@ -510,9 +588,9 @@ Pets.register({
           }
           const along = (1 - u) * REST_LEN;
           const ang = -along / RING_R;
-          const rr = RING_R + Math.sin(along * 4.2 - t * 12) * 0.1 * Math.min(1, along) * motion;
+          const rr = RING_R * (1 - 0.18 * (along / REST_LEN)) + Math.sin(along * 4.2 - t * 12) * 0.07 * Math.min(1, along) * motion;
           const sx = Math.sin(ang) * rr;
-          const sy = 1.0 + Math.sin(along * 3 - t * 8) * 0.06 * motion;
+          const sy = 2.0 - (along / REST_LEN) * HELIX_DROP + Math.sin(along * 3 - t * 8) * 0.04 * motion;
           const sz = Math.cos(ang) * rr - 0.15;
           c.set(lerp(x, sx, stream), lerp(y, sy, stream), lerp(z, sz, stream));
         }
@@ -544,6 +622,9 @@ Pets.register({
         tongue.position.z = 0.18 + out * 0.32;
         tongue.rotation.x = -0.15 * out + Math.sin(t * 40) * 0.08 * out;
         tongue.visible = jaw.rotation.x > 0.05;
+        lowerTeeth.forEach(tt => {
+          tt.visible = jaw.rotation.x > 0.06;
+        });
 
         wings.forEach(({ g, s: sd }) => {
           const flap = Math.sin(t * 2.2 + sd) * 0.12 * motion;
@@ -555,7 +636,7 @@ Pets.register({
           g.rotation.x = Math.sin(t * 2 + i) * 0.1 * motion + stream * 0.25;
           tip.scale.setScalar(1 + (charge + blast) * 0.7 + Math.sin(t * 6 + i * 2) * 0.12 * motion);
         });
-        crest.rotation.x = -0.12 + stream * 0.25 + Math.sin(t * 1.8) * 0.04 * motion;
+        crest.rotation.x = 0.2 + stream * 0.25 + Math.sin(t * 1.8) * 0.04 * motion;
 
         bands.forEach((b, k) => {
           orientAt(b.m, b.i, 0);
@@ -575,7 +656,7 @@ Pets.register({
         halo.position.copy(orb.position);
         const orbPulse = 1 + Math.sin(t * 6) * 0.15 * motion + thrust * 1.2 + (charge + blast) * 0.8;
         orb.scale.setScalar(orbPulse * elec);
-        halo.scale.setScalar((1 + thrust * 2.4 + Math.sin(t * 13) * 0.12) * elec);
+        halo.scale.setScalar((1 + thrust * 1.1 + Math.sin(t * 13) * 0.12) * elec);
         haloMat.opacity = 0.25 + thrust * 0.35;
         plasma.forEach(pl => {
           const on = thrust > 0.2;
