@@ -33,6 +33,19 @@ npm start
 
 Ao abrir sem sessão, o painel pede e-mail e senha. Também dá para continuar sem conta.
 
+### Instalar no Ubuntu sem baixar o código
+
+No terminal:
+
+```
+curl -fsSL https://raw.githubusercontent.com/Henrick1/Pets/main/scripts/instalar-ubuntu.sh | bash
+```
+
+Isso baixa a versão mais recente (`Pets-Linux.AppImage`) para `~/.local/share/pets`, instala o `libfuse2` se faltar e cria o atalho Pets na tela de aplicativos. Rodar o mesmo comando de novo atualiza.
+
+- Abrir junto com o computador: adicione `-s -- --autostart` no fim do comando.
+- Remover: adicione `-s -- --remover` no fim do comando.
+
 ## 3. Celular (site instalável)
 
 ```
