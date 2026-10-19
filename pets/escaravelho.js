@@ -50,10 +50,10 @@ Pets.register({
       return geo;
     };
 
-    const BODY_Y = 0.62;
-    const RX = 0.64;
-    const RY = 0.44;
-    const RZ = 0.95;
+    const BODY_Y = 0.6;
+    const RX = 0.62;
+    const RY = 0.46;
+    const RZ = 0.76;
 
     const darkMat = mat(0x3b2410, 0.45);
     const bronzeMat = new THREE.MeshStandardMaterial({ color: 0x6b4316, roughness: 0.3, metalness: 0.35 });
@@ -182,7 +182,6 @@ Pets.register({
     const clypeus = mesh(shovelGeo, new THREE.MeshStandardMaterial({ color: 0xffc843, roughness: 0.25, metalness: 0.55 }), false);
     clypeus.position.set(0, 0.17, 0.02);
     clypeus.rotation.x = -0.35;
-    head.add(clypeus);
     const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xffa81a, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.2, flatShading: true });
     const eyes = [];
     const compound = [-1, 1].map(s => {
@@ -230,7 +229,7 @@ Pets.register({
     });
 
     const legs = [];
-    [-0.55, -0.15].forEach((z, k) => {
+    [-0.4, -0.04].forEach((z, k) => {
       [-1, 1].forEach(s => {
         const g = new THREE.Group();
         g.position.set(RX * 0.62 * s, BODY_Y - RY * 0.55, z);
@@ -474,8 +473,8 @@ Pets.register({
 
         elytra.forEach(({ pivot, s: sd }) => {
           pivot.rotation.x = open * 0.95;
-          pivot.rotation.y = sd * open * 0.5;
-          pivot.rotation.z = sd * open * 0.45;
+          pivot.rotation.y = -sd * open * 0.5;
+          pivot.rotation.z = -sd * open * 0.45;
         });
         wings.forEach(({ mount, flapG, s: sd }) => {
           const unfold = smooth(0.1, 0.6, open);

@@ -342,8 +342,8 @@ Pets.register({
 
         elytra.forEach(({ pivot, s: sd }) => {
           pivot.rotation.x = open * 0.95;
-          pivot.rotation.y = sd * open * 0.5;
-          pivot.rotation.z = sd * open * 0.45;
+          pivot.rotation.y = -sd * open * 0.5;
+          pivot.rotation.z = -sd * open * 0.45;
         });
         wings.forEach(({ mount, flapG, s: sd }) => {
           const unfold = smooth(0.1, 0.6, open);
