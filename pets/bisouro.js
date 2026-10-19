@@ -341,9 +341,9 @@ Pets.register({
         bodyG.rotation.z = Math.sin(t * 1.4) * 0.03 * motion + (fly ? Math.sin(t * 2.2) * 0.06 * lift : 0);
 
         elytra.forEach(({ pivot, s: sd }) => {
-          pivot.rotation.x = open * 0.95;
-          pivot.rotation.y = -sd * open * 0.5;
-          pivot.rotation.z = -sd * open * 0.45;
+          pivot.rotation.x = open * 0.62;
+          pivot.rotation.y = -sd * open * 0.75;
+          pivot.rotation.z = -sd * open * 0.3;
         });
         wings.forEach(({ mount, flapG, s: sd }) => {
           const unfold = smooth(0.1, 0.6, open);
@@ -351,7 +351,7 @@ Pets.register({
           mount.scale.setScalar(Math.max(0.01, sc));
           mount.rotation.y = sd * lerp(-1.25, -0.1, unfold);
           mount.visible = unfold > 0.02;
-          flapG.rotation.z = sd * (0.75 * unfold + Math.sin(t * 38) * 0.4 * flapAmp);
+          flapG.rotation.z = sd * (0.45 * unfold + Math.sin(t * 38) * 0.45 * flapAmp);
           flapG.rotation.x = Math.sin(t * 38 + 1) * 0.08 * flapAmp;
         });
         paneMats.forEach((m, k) => {

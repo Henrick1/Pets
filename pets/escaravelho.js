@@ -182,18 +182,17 @@ Pets.register({
     const clypeus = mesh(shovelGeo, new THREE.MeshStandardMaterial({ color: 0xffc843, roughness: 0.25, metalness: 0.55 }), false);
     clypeus.position.set(0, 0.17, 0.02);
     clypeus.rotation.x = -0.35;
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xffa81a, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.2, flatShading: true });
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, emissive: 0xff9a1a, emissiveIntensity: 0.25, roughness: 0.15, metalness: 0.3, flatShading: true });
     const eyes = [];
     const compound = [-1, 1].map(s => {
       const g = new THREE.Group();
       g.position.set(0.24 * s, 0.04, 0.14);
-      const e = mesh(new THREE.IcosahedronGeometry(0.1, 1), eyeMat, false);
-      e.scale.set(0.8, 1, 1.1);
+      const e = mesh(new THREE.IcosahedronGeometry(0.11, 2), eyeMat, false);
+      e.scale.set(0.75, 1, 1.15);
       g.add(e);
-      const rim = mesh(new THREE.TorusGeometry(0.1, 0.014, 6, 20), new THREE.MeshStandardMaterial({ color: 0xffd257, roughness: 0.2, metalness: 0.7 }), false);
-      rim.rotation.y = Math.PI / 2;
-      rim.scale.set(1.1, 1, 1.1);
-      g.add(rim);
+      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      shine.position.set(0.06 * s, 0.05, 0.06);
+      g.add(shine);
       head.add(g);
       return g;
     });
@@ -472,9 +471,9 @@ Pets.register({
         bodyG.rotation.z = Math.sin(t * 1.4) * 0.03 * motion + (fly ? Math.sin(t * 2.2) * 0.06 * lift : 0);
 
         elytra.forEach(({ pivot, s: sd }) => {
-          pivot.rotation.x = open * 0.95;
-          pivot.rotation.y = -sd * open * 0.5;
-          pivot.rotation.z = -sd * open * 0.45;
+          pivot.rotation.x = open * 0.62;
+          pivot.rotation.y = -sd * open * 0.75;
+          pivot.rotation.z = -sd * open * 0.3;
         });
         wings.forEach(({ mount, flapG, s: sd }) => {
           const unfold = smooth(0.1, 0.6, open);
@@ -482,7 +481,7 @@ Pets.register({
           mount.scale.setScalar(Math.max(0.01, sc));
           mount.rotation.y = sd * lerp(-1.25, -0.1, unfold);
           mount.visible = unfold > 0.02;
-          flapG.rotation.z = sd * (0.75 * unfold + Math.sin(t * 38) * 0.4 * flapAmp);
+          flapG.rotation.z = sd * (0.45 * unfold + Math.sin(t * 38) * 0.45 * flapAmp);
           flapG.rotation.x = Math.sin(t * 38 + 1) * 0.08 * flapAmp;
         });
         paneMats.forEach((m, k) => {
@@ -580,7 +579,7 @@ Pets.register({
           food.scale.setScalar((1 - 0.85 * ph.bite) * 0.7);
         } else food.visible = false;
 
-        eyeMat.emissiveIntensity = (0.6 + charge * 0.8 + burst * 1.4) * light;
+        eyeMat.emissiveIntensity = (0.2 + charge * 0.5 + burst * 0.9) * light;
         compound.forEach((g, i) => {
           g.rotation.y = pointer.x * 0.1;
           g.scale.setScalar(1 + burst * 0.15);
