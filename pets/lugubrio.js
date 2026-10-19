@@ -489,15 +489,96 @@ Pets.register({
       });
     });
 
+    const slimeTex = (() => {
+      const N = 256;
+      const cv = document.createElement("canvas");
+      cv.width = N;
+      cv.height = N;
+      const c = cv.getContext("2d");
+      let seed = 7;
+      const rnd = () => {
+        seed = (seed * 16807) % 2147483647;
+        return seed / 2147483647;
+      };
+      const wrap = fn => {
+        for (let dx = -N; dx <= N; dx += N) for (let dy = -N; dy <= N; dy += N) fn(dx, dy);
+      };
+      c.fillStyle = "#a6a6a6";
+      c.fillRect(0, 0, N, N);
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * N;
+        const y = rnd() * N;
+        const r = 10 + rnd() * 34;
+        const light = rnd() < 0.55;
+        wrap((dx, dy) => {
+          const g = c.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+          g.addColorStop(0, light ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.3)");
+          g.addColorStop(1, "rgba(128,128,128,0)");
+          c.fillStyle = g;
+          c.beginPath();
+          c.ellipse(x + dx, y + dy, r * 0.8, r * 1.3, 0, 0, Math.PI * 2);
+          c.fill();
+        });
+      }
+      for (let i = 0; i < 22; i++) {
+        const x = rnd() * N;
+        const y = rnd() * N;
+        const len = 30 + rnd() * 80;
+        const w = 2 + rnd() * 4;
+        wrap((dx, dy) => {
+          const g = c.createLinearGradient(0, y + dy, 0, y + dy + len);
+          g.addColorStop(0, "rgba(255,255,255,0)");
+          g.addColorStop(0.5, "rgba(255,255,255,0.22)");
+          g.addColorStop(1, "rgba(255,255,255,0)");
+          c.fillStyle = g;
+          c.beginPath();
+          c.ellipse(x + dx, y + dy + len / 2, w, len / 2, 0, 0, Math.PI * 2);
+          c.fill();
+        });
+      }
+      for (let i = 0; i < 24; i++) {
+        const x = rnd() * N;
+        const y = rnd() * N;
+        const r = 3 + rnd() * 7;
+        wrap((dx, dy) => {
+          c.strokeStyle = "rgba(255,255,255,0.55)";
+          c.lineWidth = 1.2;
+          c.beginPath();
+          c.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+          c.stroke();
+          c.fillStyle = "rgba(255,255,255,0.7)";
+          c.beginPath();
+          c.arc(x + dx - r * 0.35, y + dy - r * 0.35, r * 0.3, 0, Math.PI * 2);
+          c.fill();
+        });
+      }
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2.5, 1.6);
+      return tex;
+    })();
+    const capeMat = std(0xb070f0, 0.12, {
+      map: slimeTex,
+      bumpMap: slimeTex,
+      bumpScale: 0.025,
+      emissive: 0x3a1470,
+      emissiveIntensity: 0.45,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.86,
+      depthWrite: false
+    });
     const capeGeo = new THREE.BufferGeometry();
     let capeBase = null;
     let capeNU = 0;
     let capeNV = 0;
     {
-      const NU = 28;
-      const NV = 18;
+      const NU = 56;
+      const NV = 34;
       const pos = [];
       const idx = [];
+      const uvs = [];
       for (let iv = 0; iv <= NV; iv++) {
         const v = iv / NV;
         for (let iu = 0; iu <= NU; iu++) {
@@ -519,6 +600,7 @@ Pets.register({
           const cz = lerp(HEAD.z - 0.02, 0, m);
           const wave = v * 0.03 * Math.sin(u * 22);
           pos.push(Math.sin(a) * (rx + wave), y, cz - Math.cos(a) * (rz + wave));
+          uvs.push(u, 1 - v);
         }
       }
       for (let iv = 0; iv < NV; iv++) {
@@ -529,6 +611,7 @@ Pets.register({
         }
       }
       capeGeo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      capeGeo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
       capeGeo.setIndex(idx);
       capeGeo.computeVertexNormals();
       capeBase = pos.slice();
@@ -543,7 +626,14 @@ Pets.register({
     const headToTorso = new THREE.Matrix4();
     const invTorso = new THREE.Matrix4();
     const tmpV = V3(0, 0, 0);
-    const updateCape = () => {
+    const hemDrop = (u, t, motion) => {
+      const c = Math.abs(u * 2 - 1);
+      const lobe = Math.max(0, Math.sin(u * Math.PI * 9 + 0.5 + Math.sin(t * 0.6 + u * 4) * 0.4 * motion));
+      const drip = Math.max(0, Math.sin(u * Math.PI * 4.5 + 1.3));
+      const stretch = 1 + Math.sin(t * 0.9 + u * 11) * 0.25 * motion;
+      return (Math.pow(lobe, 3) * 0.07 + Math.pow(drip, 12) * 0.12 * stretch + 0.012 * Math.sin(u * 37)) * (1 - c * 0.5);
+    };
+    const updateCape = (t = 0, motion = 0) => {
       torso.updateMatrixWorld(true);
       invTorso.copy(torso.matrixWorld).invert();
       headToTorso.multiplyMatrices(invTorso, head.matrixWorld);
@@ -557,15 +647,67 @@ Pets.register({
           const bx = capeBase[o];
           const by = capeBase[o + 1];
           const bz = capeBase[o + 2];
-          arr[o] = lerp(tmpV.x, bx, w);
-          arr[o + 1] = lerp(tmpV.y, by, w);
-          arr[o + 2] = lerp(tmpV.z, bz, w);
+          const u = iu / capeNU;
+          const cz = lerp(HEAD.z - 0.02, 0, smooth(0.1, 0.45, v));
+          let nx = bx;
+          let nz = bz - cz;
+          const nl = Math.hypot(nx, nz) || 1;
+          nx /= nl;
+          nz /= nl;
+          const flow = t * 0.55 * motion;
+          const goo =
+            (Math.sin(u * 17 + v * 5 - flow * 2.2) * Math.sin(v * 9 - flow * 3 + u * 6) * 0.022 +
+              Math.sin(u * 31 - v * 13 + flow * 1.3) * 0.008 +
+              Math.max(0, Math.sin(u * 11 + 2.1)) * Math.sin(v * 3.2 - flow * 1.6) * 0.018) *
+            w;
+          const sag = smooth(0.55, 1, v) * hemDrop(u, t, motion);
+          arr[o] = lerp(tmpV.x, bx + nx * goo, w);
+          arr[o + 1] = lerp(tmpV.y, by - sag, w);
+          arr[o + 2] = lerp(tmpV.z, bz + nz * goo, w);
         }
       }
       capeGeo.attributes.position.needsUpdate = true;
       capeGeo.computeVertexNormals();
     };
-    torso.add(mesh(capeGeo, slimeMat, false));
+    const capeMesh = mesh(capeGeo, capeMat, false);
+    capeMesh.renderOrder = 2;
+    torso.add(capeMesh);
+    const capeBubbles = [];
+    for (let k = 0; k < 14; k++) {
+      const b = mesh(new THREE.SphereGeometry(1, 10, 8), glowMat, false);
+      torso.add(b);
+      capeBubbles.push({ b, u: 0.06 + ((k * 0.618) % 1) * 0.88, v0: (k * 0.37) % 1, sp: 0.05 + ((k * 7) % 5) * 0.012, r: 0.012 + ((k * 3) % 4) * 0.005 });
+    }
+    const capePoint = (u, v, out) => {
+      const fu = u * capeNU;
+      const fv = v * capeNV;
+      const iu = Math.min(capeNU - 1, Math.floor(fu));
+      const iv = Math.min(capeNV - 1, Math.floor(fv));
+      const du = fu - iu;
+      const dv = fv - iv;
+      const arr = capeGeo.attributes.position.array;
+      const at = (a, b, c) => arr[((iv + b) * (capeNU + 1) + iu + a) * 3 + c];
+      for (let c = 0; c < 3; c++) {
+        const top = lerp(at(0, 0, c), at(1, 0, c), du);
+        const bot = lerp(at(0, 1, c), at(1, 1, c), du);
+        out.setComponent(c, lerp(top, bot, dv));
+      }
+      return out;
+    };
+    const updateBubbles = (t, motion, reduceMotion) => {
+      capeBubbles.forEach(({ b, u, v0, sp, r }) => {
+        const f = reduceMotion ? v0 : (v0 + t * sp) % 1;
+        const v = 0.3 + f * 0.62;
+        capePoint(u + Math.sin(t * 0.8 + v0 * 9) * 0.01 * motion, v, b.position);
+        const cz = lerp(HEAD.z - 0.02, 0, smooth(0.1, 0.45, v));
+        const nx = b.position.x;
+        const nz = b.position.z - cz;
+        const nl = Math.hypot(nx, nz) || 1;
+        b.position.x -= (nx / nl) * 0.012;
+        b.position.z -= (nz / nl) * 0.012;
+        b.scale.setScalar(r * Math.sin(f * Math.PI) * (1 + Math.sin(t * 3 + v0 * 20) * 0.15));
+      });
+    };
     const tailRibbons = [[0.16, 1.62, 1.0, 0.95, 0.13], [0.05, 1.5, 0.7, 0.75, 0.1]].map(([x0, y0, sideK, len, wid], k) => {
       const NS = 20;
       const pos = new Float32Array((NS + 1) * 2 * 3);
@@ -917,13 +1059,18 @@ Pets.register({
         });
 
         slimeMat.emissiveIntensity = 0.45 + (hoodGlowK - 0.3) * 0.4 + Math.sin(t * 1.5) * 0.08 * motion;
+        capeMat.emissiveIntensity = slimeMat.emissiveIntensity;
+        slimeTex.offset.y = reduceMotion ? 0 : (t * 0.035) % 1;
         glowMat.emissiveIntensity = 0.6 + hoodGlowK;
         venomMat.emissiveIntensity = 0.55 + Math.sin(t * 1.8) * 0.2 * motion + (hoodGlowK - 0.3) * 0.6;
         plumeTipMat.emissiveIntensity = 0.8 + Math.sin(t * 2.2) * 0.2 * motion + (hoodGlowK - 0.3) * 0.5;
         hoodGlow.forEach((d, i) => {
           d.scale.setScalar(1 + Math.sin(t * 2 + i) * 0.15 * motion + (hoodGlowK - 0.3) * 0.3);
         });
-        capeDrips.forEach(({ stem, bulb, len, ph: dp }) => {
+        updateCape(t, reduceMotion ? 0 : motion);
+        capeDrips.forEach(({ stem, bulb, len, ph: dp }, k) => {
+          const u = 0.1 + (k / (capeDrips.length - 1)) * 0.8;
+          capePoint(u, 0.999, stem.parent.position);
           const l = len * (1 + 0.25 * Math.sin(t * 1.1 + dp) * motion);
           stem.scale.y = l;
           stem.position.y = -l / 2;
@@ -933,7 +1080,7 @@ Pets.register({
         updateTail(t, 0.08 * motion);
         updateRibbons(t, motion, a === "shadow" || a === "fume" ? Math.sin(Math.min(1, p * 2) * Math.PI) : 0);
 
-        updateCape();
+        updateBubbles(t, motion, reduceMotion);
         root.updateMatrixWorld(true);
         updateWisps(t, a === "shadow" || a === "fume" ? 1 : 0, reduceMotion);
         root.updateMatrixWorld(true);
