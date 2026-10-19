@@ -561,17 +561,7 @@ Pets.register({
     wingShape.lineTo(0.16, -0.1);
     wingShape.quadraticCurveTo(0.06, -0.08, 0, 0);
     const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 1 });
-    const wings = [-1, 1].map(s => {
-      const g = new THREE.Group();
-      g.position.set(0.32 * s, -0.06, 0.12);
-      g.scale.setScalar(1.35);
-      const w = mesh(wingGeo, finMat, false);
-      w.rotation.set(0, s > 0 ? Math.PI * 0.62 : Math.PI * 0.38, 0);
-      if (s < 0) w.scale.set(1, 1, -1);
-      g.add(w);
-      head.add(g);
-      return { g, s };
-    });
+    const wings = [];
 
     const barbels = [-1, 1].map(s => {
       const g = new THREE.Group();
