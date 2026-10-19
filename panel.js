@@ -80,11 +80,7 @@ async function submit(kind) {
 function statusText(acc) {
   if (acc.error) return acc.error;
   if (acc.offline) return "Sem conexão. Salvo neste computador.";
-  if (acc.lastSync) {
-    const d = new Date(acc.lastSync);
-    return "Sincronizado às " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
-  }
-  return "Sincronizando...";
+  return "";
 }
 
 const barColor = v => (v > 50 ? "#5fbf8c" : v > 25 ? "#f2c14e" : "#e5645a");
@@ -183,10 +179,12 @@ function renderAccount(acc) {
   if (acc.signedIn) {
     accEmail.textContent = acc.email || "";
     accStatus.textContent = statusText(acc);
+    accStatus.hidden = !accStatus.textContent;
     accountBtn.textContent = "Sair";
   } else {
     accEmail.textContent = "Sem conta";
     accStatus.textContent = "O progresso fica só neste computador.";
+    accStatus.hidden = false;
     accountBtn.textContent = "Entrar";
   }
 }
@@ -199,8 +197,9 @@ function render(s) {
   if (!cardEl.classList.contains("auth-mode")) cardEl.classList.toggle("box-mode", boxMode);
   renderParty(s);
   renderBox(s);
+  cardEl.classList.toggle("empty-mode", !!s.needsStarter);
   const cur = s.party.find(p => p.id === s.pet);
-  nameEl.textContent = cur ? cur.name : "";
+  nameEl.textContent = cur ? cur.name : s.needsStarter ? "Pets" : "";
   const v = Math.round(s.hunger);
   fillEl.style.width = v + "%";
   fillEl.style.background = barColor(s.hunger);
@@ -214,7 +213,7 @@ function render(s) {
   joyFillEl.style.background = barColor(j);
   joyValueEl.textContent = j + "%";
   statusEl.textContent = s.needsStarter
-    ? "Abra o site para escolher seu primeiro bichinho."
+    ? ""
     : [s.hunger <= 25 && "Fome", s.joy <= 25 && "Triste", s.dying && "Morrendo"].filter(Boolean).join(" ");
   treatBtn.disabled = s.life >= 100;
   evolveBtn.hidden = !s.evolveTo;
@@ -279,3 +278,5 @@ window.addEventListener("keydown", e => {
     window.pet.closePanel();
   }
 });
+
+document.getElementById("open-site").addEventListener("click", () => window.pet.openSite());

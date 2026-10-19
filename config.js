@@ -1,5 +1,6 @@
 (function (root) {
   const config = {
+    siteUrl: "https://henrick1.github.io/Pets/",
     supabaseUrl: "https://nnysxczifguvmcoktbhc.supabase.co",
     supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueXN4Y3ppZmd1dm1jb2t0YmhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNzAyNjAsImV4cCI6MjEwNzg0NjI2MH0.K6ogJQkWqJsKCMwyRqLT14pBnmkMF6wH3l0RvNAQjgg"
   };

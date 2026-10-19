@@ -22,6 +22,24 @@ html, body {
 #card:not(.box-mode) > #box {
   display: none;
 }
+#card.empty-mode > :not(header):not(#empty):not(#account):not(#auth):not(#box),
+#card.empty-mode #level-badge,
+#card.empty-mode #status,
+#card:not(.empty-mode) > #empty {
+  display: none;
+}
+#empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+  text-align: center;
+}
+#empty p {
+  margin: 0;
+}
 #box {
   display: flex;
   flex-direction: column;
@@ -439,6 +457,10 @@ button:focus-visible {
     <button id="close" type="button" aria-label="Fechar">&times;</button>
   </header>
   <p id="toast" role="status" hidden></p>
+  <section id="empty">
+    <p>Você ainda não tem nenhum bichinho.</p>
+    <button id="open-site" class="link" type="button">Abrir o site para escolher o primeiro</button>
+  </section>
   <section>
     <div class="row"><span>Fome</span><span id="hunger-val">100%</span></div>
     <div class="track"><div id="fill"></div></div>

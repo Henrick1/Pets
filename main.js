@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, screen, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
@@ -423,6 +423,10 @@ ipcMain.on("auth-skip", () => {
 });
 
 ipcMain.on("close-panel", closePanel);
+
+ipcMain.on("open-site", () => {
+  if (config.siteUrl) shell.openExternal(config.siteUrl);
+});
 
 ipcMain.on("drag-start", (_e, p) => {
   if (!win) return;
