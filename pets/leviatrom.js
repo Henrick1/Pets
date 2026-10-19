@@ -494,14 +494,14 @@ Pets.register({
 
     const hoodShape = new THREE.Shape();
     const tips = [[-0.62, 0.22], [-0.6, 0.55], [-0.42, 0.82], [-0.16, 0.96], [0.16, 0.96], [0.42, 0.82], [0.6, 0.55], [0.62, 0.22]];
-    hoodShape.moveTo(0, -0.22);
-    hoodShape.quadraticCurveTo(-0.4, -0.16, tips[0][0], tips[0][1]);
+    hoodShape.moveTo(0, 0.02);
+    hoodShape.quadraticCurveTo(-0.42, -0.04, tips[0][0], tips[0][1]);
     for (let k = 1; k < tips.length; k++) {
       const [x0, y0] = tips[k - 1];
       const [x1, y1] = tips[k];
       hoodShape.quadraticCurveTo((x0 + x1) * 0.42, (y0 + y1) * 0.42, x1, y1);
     }
-    hoodShape.quadraticCurveTo(0.4, -0.16, 0, -0.22);
+    hoodShape.quadraticCurveTo(0.42, -0.04, 0, 0.02);
     const hoodGeo = new THREE.ShapeGeometry(hoodShape, 16);
     const bend = (x, y) => -0.42 * x * x - 0.12 * Math.max(0, y);
     {
@@ -510,6 +510,8 @@ Pets.register({
       hoodGeo.computeVertexNormals();
     }
     const hoodMat = new THREE.MeshStandardMaterial({ color: 0x2f7fe0, emissive: 0x1450b0, emissiveIntensity: 0.45, roughness: 0.3, transparent: true, opacity: 0.86, side: THREE.DoubleSide });
+    const RIB_Y = 0.12;
+    const RIB_Z = -0.12;
     const hood = new THREE.Group();
     hood.position.set(0, -0.42, -0.42);
     hood.rotation.x = -0.12;
@@ -519,8 +521,8 @@ Pets.register({
       for (let k = 0; k <= 8; k++) {
         const f = k / 8;
         const px = x * f * 0.96;
-        const py = -0.18 + (y + 0.18) * f * 0.96;
-        rib.push(V3(px, py, bend(px, py) + 0.012));
+        const py = RIB_Y + (y - RIB_Y) * f * 0.96;
+        rib.push(V3(px, py, lerp(RIB_Z, bend(px, py) + 0.012, smooth(0, 0.45, f))));
       }
       hood.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rib), 12, 0.014, 6, false), elecMat, false));
       const tipBall = mesh(new THREE.SphereGeometry(0.03, 10, 8), elecMat, false);
