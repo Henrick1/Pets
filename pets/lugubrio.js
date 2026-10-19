@@ -47,9 +47,11 @@ Pets.register({
       }
       return band;
     };
-    const plumeStalkMat = std(0x7a4a9a, 0.5);
-    const plumeFilMat = std(0xffffff, 0.5);
-    const plumeTipMat = std(0x9a6ac8, 0.4, { emissive: 0x4a1a80, emissiveIntensity: 0.4 });
+    const plumeStalkMat = std(0x5a2a7a, 0.4, { emissive: 0x2a0a40, emissiveIntensity: 0.3 });
+    const plumeFilMat = std(0xffffff, 0.45, { emissive: 0x2a0a3a, emissiveIntensity: 0.25 });
+    const plumeTipMat = std(0xc080ff, 0.3, { emissive: 0x8a30e0, emissiveIntensity: 0.9 });
+    const limbSkin = std(0xd2c4e2, 0.5);
+    const venomMat = std(0x9a50e0, 0.3, { emissive: 0x7a28d0, emissiveIntensity: 0.7 });
 
     const tube = (pts, r0, r1, seg = 16, rad = 12) => {
       const curve = new THREE.CatmullRomCurve3(pts);
@@ -82,19 +84,19 @@ Pets.register({
 
     const root = new THREE.Group();
     const body = new THREE.Group();
-    body.scale.setScalar(1.3);
+    body.scale.setScalar(1.43);
     root.add(body);
 
     const legs = [-1, 1].map(s => {
       const hip = new THREE.Group();
       hip.position.set(0.2 * s, 0.78, -0.02);
       body.add(hip);
-      hip.add(mesh(tube([V3(0, 0.06, 0), V3(0.03 * s, -0.2, 0.04), V3(0.04 * s, -0.36, 0.05)], 0.14, 0.1, 12, 14), skin));
+      hip.add(mesh(tube([V3(0, 0.06, 0), V3(0.03 * s, -0.2, 0.04), V3(0.04 * s, -0.36, 0.05)], 0.14, 0.1, 12, 14), limbSkin));
       const knee = new THREE.Group();
       knee.position.set(0.04 * s, -0.36, 0.05);
       hip.add(knee);
-      knee.add(mesh(new THREE.SphereGeometry(0.1, 16, 12), skin));
-      knee.add(mesh(tube([V3(0, 0, 0), V3(0, -0.18, -0.02), V3(0, -0.3, -0.03)], 0.095, 0.07, 10, 14), skin));
+      knee.add(mesh(new THREE.SphereGeometry(0.1, 16, 12), limbSkin));
+      knee.add(mesh(tube([V3(0, 0, 0), V3(0, -0.18, -0.02), V3(0, -0.3, -0.03)], 0.095, 0.07, 10, 14), limbSkin));
       const foot = new THREE.Group();
       foot.position.set(0, -0.32, -0.02);
       knee.add(foot);
@@ -104,10 +106,22 @@ Pets.register({
       foot.add(palm);
       [-0.45, -0.15, 0.15, 0.45].forEach((a, i) => {
         const l = i === 1 || i === 2 ? 0.17 : 0.13;
-        foot.add(mesh(tube([V3(0, -0.03, 0.08), V3(Math.sin(a) * l * 0.6, -0.05, 0.08 + Math.cos(a) * l * 0.6), V3(Math.sin(a) * l, -0.06, 0.08 + Math.cos(a) * l)], 0.03, 0.018, 8, 8), skin));
-        const tip = mesh(new THREE.SphereGeometry(0.02, 8, 6), skin);
-        tip.position.set(Math.sin(a) * l, -0.06, 0.08 + Math.cos(a) * l);
+        const mid = V3(Math.sin(a) * l * 0.55, -0.045, 0.08 + Math.cos(a) * l * 0.55);
+        const end = V3(Math.sin(a + 0.08) * l, -0.06, 0.08 + Math.cos(a + 0.08) * l);
+        foot.add(mesh(tube([V3(0, -0.03, 0.08), V3(Math.sin(a) * l * 0.3, -0.04, 0.08 + Math.cos(a) * l * 0.3), mid], 0.032, 0.024, 8, 8), skin));
+        const j = mesh(new THREE.SphereGeometry(0.025, 10, 8), skin);
+        j.position.copy(mid);
+        foot.add(j);
+        foot.add(mesh(tube([mid, mid.clone().lerp(end, 0.5).add(V3(0, 0.004, 0)), end], 0.023, 0.016, 8, 8), skin));
+        const tip = mesh(new THREE.SphereGeometry(0.019, 8, 6), skin);
+        tip.position.copy(end);
         foot.add(tip);
+      });
+      [[0.05 * s, -0.12, 0.13, 0.03], [-0.06 * s, -0.25, 0.1, 0.022]].forEach(([x, y, z, rr]) => {
+        const d = mesh(new THREE.SphereGeometry(1, 12, 8), venomMat, false);
+        d.position.set(x, y, z);
+        d.scale.set(rr, rr * 1.1, rr * 0.35);
+        hip.add(d);
       });
       return { hip, knee, foot, s };
     });
@@ -124,15 +138,15 @@ Pets.register({
     {
       const pos = torsoGeo.attributes.position;
       const col = new Float32Array(pos.count * 3);
-      const A = [0.9, 0.86, 0.94];
-      const B = [0.98, 0.95, 1.0];
+      const A = [0.8, 0.74, 0.88];
+      const B = [0.99, 0.96, 1.0];
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
         const z = pos.getZ(i);
         const w = 1 + 0.12 * smooth(0.3, -0.7, y) - 0.12 * smooth(0.2, 0.9, y);
         pos.setXYZ(i, x * 0.38 * w, y * 0.48, z * 0.31 * w + 0.03 * smooth(0, -0.8, y) * Math.max(0, z));
-        const b = smooth(0.2, 0.8, z) * smooth(0.5, -0.2, y);
+        const b = smooth(-0.1, 0.7, z) * smooth(0.7, -0.4, y);
         for (let j = 0; j < 3; j++) col[i * 3 + j] = lerp(A[j], B[j], b);
       }
       torsoGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
@@ -146,7 +160,7 @@ Pets.register({
         const w = 1 + 0.12 * smooth(0.3, -0.7, y) - 0.12 * smooth(0.2, 0.9, y);
         return V3(x * 0.38 * w, y * 0.48, z * 0.31 * w + 0.03 * smooth(0, -0.8, y) * Math.max(0, z));
       };
-      const spotMat = std(0x7234b0, 0.35, { emissive: 0x2a1055, emissiveIntensity: 0.35 });
+      const spotMat = venomMat;
       [[-0.35, 0.3, 0.06], [0.42, -0.05, 0.07], [-0.12, -0.38, 0.05], [0.95, 0.35, 0.05], [-1.05, -0.2, 0.06], [1.35, -0.4, 0.045], [-1.4, 0.45, 0.045]].forEach(([u, y, rr]) => {
         const c = Math.sqrt(1 - y * y);
         const p = tdef(c * Math.sin(u), y, c * Math.cos(u));
@@ -163,13 +177,13 @@ Pets.register({
       const sh = new THREE.Group();
       sh.position.set(0.34 * s, 1.44, 0.02);
       torso.add(sh);
-      sh.add(mesh(new THREE.SphereGeometry(0.1, 16, 12), skin));
-      sh.add(mesh(tube([V3(0, 0, 0), V3(0.05 * s, -0.18, 0.02), V3(0.07 * s, -0.36, 0.04)], 0.09, 0.07, 10, 12), skin));
+      sh.add(mesh(new THREE.SphereGeometry(0.1, 16, 12), limbSkin));
+      sh.add(mesh(tube([V3(0, 0, 0), V3(0.05 * s, -0.18, 0.02), V3(0.07 * s, -0.36, 0.04)], 0.09, 0.07, 10, 12), limbSkin));
       const el = new THREE.Group();
       el.position.set(0.07 * s, -0.36, 0.04);
       sh.add(el);
-      el.add(mesh(new THREE.SphereGeometry(0.07, 12, 10), skin));
-      el.add(mesh(tube([V3(0, 0, 0), V3(-0.01 * s, -0.16, 0.04), V3(-0.02 * s, -0.3, 0.06)], 0.068, 0.05, 10, 12), skin));
+      el.add(mesh(new THREE.SphereGeometry(0.07, 12, 10), limbSkin));
+      el.add(mesh(tube([V3(0, 0, 0), V3(-0.01 * s, -0.16, 0.04), V3(-0.02 * s, -0.3, 0.06)], 0.068, 0.05, 10, 12), limbSkin));
       const hand = new THREE.Group();
       hand.position.set(-0.02 * s, -0.32, 0.06);
       el.add(hand);
@@ -185,6 +199,12 @@ Pets.register({
       const thumb = mesh(tube([V3(0.05 * s, -0.02, 0.02), V3(0.06 * s, -0.07, 0.06), V3(0.03 * s, -0.09, 0.075)], 0.022, 0.016, 8, 8), skin, false);
       hand.add(thumb);
       studBand(el, V3(-0.015 * s, -0.24, 0.05), V3(0, 1, 0.15), 0.07, 0.032, 7);
+      [[0.07 * s, -0.12, 0.07, 0.024], [0.02 * s, -0.27, 0.075, 0.018]].forEach(([x, y, z, rr]) => {
+        const d = mesh(new THREE.SphereGeometry(1, 12, 8), venomMat, false);
+        d.position.set(x, y, z);
+        d.scale.set(rr, rr * 1.1, rr * 0.35);
+        sh.add(d);
+      });
       return { sh, el, s };
     });
 
@@ -392,10 +412,10 @@ Pets.register({
     const buildGill = len => {
       const g = new THREE.Group();
       const curve = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(0, len * 0.4, -0.02), V3(0.0, len * 0.75, -0.08), V3(0, len, -0.18)]);
-      g.add(mesh(new THREE.TubeGeometry(curve, 16, 0.028, 8, false), plumeStalkMat, false));
-      const N = 12;
-      const fil = new THREE.InstancedMesh(filUnit, plumeFilMat, N * 4);
-      const tips = new THREE.InstancedMesh(tipUnit, plumeTipMat, N * 4);
+      g.add(mesh(new THREE.TubeGeometry(curve, 20, 0.034, 8, false), plumeStalkMat, false));
+      const N = 18;
+      const fil = new THREE.InstancedMesh(filUnit, plumeFilMat, N * 6);
+      const tips = new THREE.InstancedMesh(tipUnit, plumeTipMat, N * 6);
       const dummy = new THREE.Object3D();
       const col = new THREE.Color();
       let n = 0;
@@ -403,19 +423,20 @@ Pets.register({
         const f = 0.15 + (i / (N - 1)) * 0.8;
         const p = curve.getPointAt(f);
         const tan = curve.getTangentAt(f);
-        [-1, 1].forEach(sd => [-0.3, 0.3].forEach(zo => {
-          const l = 0.22 * (1 - f * 0.5);
-          const dir = V3(zo * 0.6, 0, sd * 0.42).add(tan.clone().multiplyScalar(1.0)).normalize();
+        [-1, 1].forEach(sd => [-0.4, 0, 0.4].forEach(zo => {
+          const jit = Math.sin(i * 12.9898 + sd * 78.233 + zo * 37.7) * 0.5 + 0.5;
+          const l = 0.24 * (1 - f * 0.5) * (0.75 + jit * 0.5) * (zo ? 0.85 : 1);
+          const dir = V3(zo * 0.6, -0.05 + jit * 0.08, sd * 0.42).add(tan.clone().multiplyScalar(1.0)).normalize();
           dummy.position.copy(p);
           dummy.quaternion.setFromUnitVectors(V3(0, 1, 0), dir);
-          dummy.scale.set(0.008, l, 0.008);
+          dummy.scale.set(0.0075, l, 0.0075);
           dummy.updateMatrix();
           fil.setMatrixAt(n, dummy.matrix);
-          col.setHSL(0.78, 0.25, 0.55 + f * 0.1);
+          col.setHSL(0.76 + f * 0.04, 0.45, 0.32 + f * 0.25);
           fil.setColorAt(n, col);
           dummy.position.copy(p).add(dir.multiplyScalar(l));
           dummy.quaternion.identity();
-          dummy.scale.setScalar(0.011);
+          dummy.scale.setScalar(zo ? 0.009 : 0.012 + (1 - f) * 0.004);
           dummy.updateMatrix();
           tips.setMatrixAt(n, dummy.matrix);
           n++;
@@ -868,6 +889,8 @@ Pets.register({
 
         slimeMat.emissiveIntensity = 0.45 + (hoodGlowK - 0.3) * 0.4 + Math.sin(t * 1.5) * 0.08 * motion;
         glowMat.emissiveIntensity = 0.6 + hoodGlowK;
+        venomMat.emissiveIntensity = 0.55 + Math.sin(t * 1.8) * 0.2 * motion + (hoodGlowK - 0.3) * 0.6;
+        plumeTipMat.emissiveIntensity = 0.8 + Math.sin(t * 2.2) * 0.2 * motion + (hoodGlowK - 0.3) * 0.5;
         hoodGlow.forEach((d, i) => {
           d.scale.setScalar(1 + Math.sin(t * 2 + i) * 0.15 * motion + (hoodGlowK - 0.3) * 0.3);
         });
