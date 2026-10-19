@@ -85,44 +85,35 @@ Pets.register({
     body.scale.setScalar(1.3);
     root.add(body);
 
-    const clawMat = std(0x3a2050, 0.3);
-    const clawGeo = new THREE.ConeGeometry(0.016, 0.07, 8);
-    clawGeo.translate(0, 0.035, 0);
-    const claw = (parent, at, dir, sc = 1) => {
-      const c = mesh(clawGeo, clawMat, false);
-      c.position.copy(at);
-      c.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.clone().normalize());
-      c.scale.setScalar(sc);
-      parent.add(c);
-    };
     const legs = [-1, 1].map(s => {
       const hip = new THREE.Group();
-      hip.position.set(0.15 * s, 0.98, -0.02);
+      hip.position.set(0.2 * s, 0.78, -0.02);
       body.add(hip);
-      hip.add(mesh(tube([V3(0, 0.06, 0), V3(0.02 * s, -0.24, 0.05), V3(0.03 * s, -0.46, 0.06)], 0.105, 0.075, 14, 14), skin));
+      hip.add(mesh(tube([V3(0, 0.06, 0), V3(0.03 * s, -0.2, 0.04), V3(0.04 * s, -0.36, 0.05)], 0.14, 0.1, 12, 14), skin));
       const knee = new THREE.Group();
-      knee.position.set(0.03 * s, -0.46, 0.06);
+      knee.position.set(0.04 * s, -0.36, 0.05);
       hip.add(knee);
-      knee.add(mesh(new THREE.SphereGeometry(0.075, 16, 12), skin));
-      knee.add(mesh(tube([V3(0, 0, 0), V3(0, -0.22, -0.04), V3(0, -0.4, -0.05)], 0.07, 0.05, 12, 14), skin));
+      knee.add(mesh(new THREE.SphereGeometry(0.1, 16, 12), skin));
+      knee.add(mesh(tube([V3(0, 0, 0), V3(0, -0.18, -0.02), V3(0, -0.3, -0.03)], 0.095, 0.07, 10, 14), skin));
       const foot = new THREE.Group();
-      foot.position.set(0, -0.42, -0.04);
+      foot.position.set(0, -0.32, -0.02);
       knee.add(foot);
       const palm = mesh(new THREE.SphereGeometry(1, 18, 12), skin);
-      palm.scale.set(0.07, 0.04, 0.13);
+      palm.scale.set(0.09, 0.05, 0.12);
       palm.position.set(0, -0.02, 0.05);
       foot.add(palm);
-      [-0.35, 0, 0.35].forEach((a, i) => {
-        const l = i === 1 ? 0.22 : 0.18;
-        const e = V3(Math.sin(a) * l, -0.055, 0.08 + Math.cos(a) * l);
-        foot.add(mesh(tube([V3(0, -0.03, 0.08), V3(Math.sin(a) * l * 0.6, -0.04, 0.08 + Math.cos(a) * l * 0.6), e], 0.028, 0.016, 8, 8), skin));
-        claw(foot, e, V3(Math.sin(a), -0.25, Math.cos(a)), 0.9);
+      [-0.45, -0.15, 0.15, 0.45].forEach((a, i) => {
+        const l = i === 1 || i === 2 ? 0.17 : 0.13;
+        foot.add(mesh(tube([V3(0, -0.03, 0.08), V3(Math.sin(a) * l * 0.6, -0.05, 0.08 + Math.cos(a) * l * 0.6), V3(Math.sin(a) * l, -0.06, 0.08 + Math.cos(a) * l)], 0.03, 0.018, 8, 8), skin));
+        const tip = mesh(new THREE.SphereGeometry(0.02, 8, 6), skin);
+        tip.position.set(Math.sin(a) * l, -0.06, 0.08 + Math.cos(a) * l);
+        foot.add(tip);
       });
       return { hip, knee, foot, s };
     });
 
     const torsoPivot = new THREE.Group();
-    torsoPivot.position.set(0, 0.8 + 0.2, 0);
+    torsoPivot.position.set(0, 0.8, 0);
     body.add(torsoPivot);
     const torso = new THREE.Group();
     torso.position.set(0, -0.8, 0);
@@ -139,8 +130,8 @@ Pets.register({
         const x = pos.getX(i);
         const y = pos.getY(i);
         const z = pos.getZ(i);
-        const w = 1 + 0.1 * smooth(-0.2, 0.6, y) - 0.06 * smooth(0.1, -0.8, y);
-        pos.setXYZ(i, x * 0.3 * w, y * 0.5, z * 0.24 * w);
+        const w = 1 + 0.12 * smooth(0.3, -0.7, y) - 0.12 * smooth(0.2, 0.9, y);
+        pos.setXYZ(i, x * 0.38 * w, y * 0.48, z * 0.31 * w + 0.03 * smooth(0, -0.8, y) * Math.max(0, z));
         const b = smooth(0.2, 0.8, z) * smooth(0.5, -0.2, y);
         for (let j = 0; j < 3; j++) col[i * 3 + j] = lerp(A[j], B[j], b);
       }
@@ -152,14 +143,14 @@ Pets.register({
     torso.add(torsoMesh);
     {
       const tdef = (x, y, z) => {
-        const w = 1 + 0.1 * smooth(-0.2, 0.6, y) - 0.06 * smooth(0.1, -0.8, y);
-        return V3(x * 0.3 * w, y * 0.5, z * 0.24 * w);
+        const w = 1 + 0.12 * smooth(0.3, -0.7, y) - 0.12 * smooth(0.2, 0.9, y);
+        return V3(x * 0.38 * w, y * 0.48, z * 0.31 * w + 0.03 * smooth(0, -0.8, y) * Math.max(0, z));
       };
       const spotMat = std(0x7234b0, 0.35, { emissive: 0x2a1055, emissiveIntensity: 0.35 });
-      [[-0.4, 0.3, 0.045], [0.45, -0.05, 0.05], [-0.15, -0.4, 0.038], [1.0, 0.35, 0.04], [-1.1, -0.2, 0.045], [1.35, -0.45, 0.035], [-1.45, 0.45, 0.035]].forEach(([u, y, rr]) => {
+      [[-0.35, 0.3, 0.06], [0.42, -0.05, 0.07], [-0.12, -0.38, 0.05], [0.95, 0.35, 0.05], [-1.05, -0.2, 0.06], [1.35, -0.4, 0.045], [-1.4, 0.45, 0.045]].forEach(([u, y, rr]) => {
         const c = Math.sqrt(1 - y * y);
         const p = tdef(c * Math.sin(u), y, c * Math.cos(u));
-        const n = V3(c * Math.sin(u) / 0.3, y / 0.5, c * Math.cos(u) / 0.24).normalize();
+        const n = V3(c * Math.sin(u) / 0.38, y / 0.48, c * Math.cos(u) / 0.31).normalize();
         const d = mesh(new THREE.SphereGeometry(1, 16, 10), spotMat, false);
         d.position.copy(p).add(n.clone().multiplyScalar(0.002));
         d.lookAt(d.position.clone().add(n));
@@ -170,34 +161,30 @@ Pets.register({
 
     const arms = [-1, 1].map(s => {
       const sh = new THREE.Group();
-      sh.position.set(0.33 * s, 1.5, 0.0);
+      sh.position.set(0.34 * s, 1.44, 0.02);
       torso.add(sh);
-      sh.add(mesh(new THREE.SphereGeometry(0.075, 16, 12), skin));
-      sh.add(mesh(tube([V3(0, 0, 0), V3(0.04 * s, -0.22, 0.01), V3(0.05 * s, -0.44, 0.02)], 0.068, 0.05, 12, 12), skin));
+      sh.add(mesh(new THREE.SphereGeometry(0.1, 16, 12), skin));
+      sh.add(mesh(tube([V3(0, 0, 0), V3(0.05 * s, -0.18, 0.02), V3(0.07 * s, -0.36, 0.04)], 0.09, 0.07, 10, 12), skin));
       const el = new THREE.Group();
-      el.position.set(0.05 * s, -0.44, 0.02);
+      el.position.set(0.07 * s, -0.36, 0.04);
       sh.add(el);
-      el.add(mesh(new THREE.SphereGeometry(0.05, 12, 10), skin));
-      el.add(mesh(tube([V3(0, 0, 0), V3(-0.01 * s, -0.2, 0.03), V3(-0.015 * s, -0.38, 0.05)], 0.05, 0.038, 12, 12), skin));
+      el.add(mesh(new THREE.SphereGeometry(0.07, 12, 10), skin));
+      el.add(mesh(tube([V3(0, 0, 0), V3(-0.01 * s, -0.16, 0.04), V3(-0.02 * s, -0.3, 0.06)], 0.068, 0.05, 10, 12), skin));
       const hand = new THREE.Group();
-      hand.position.set(-0.015 * s, -0.4, 0.05);
+      hand.position.set(-0.02 * s, -0.32, 0.06);
       el.add(hand);
       const palm = mesh(new THREE.SphereGeometry(1, 16, 12), skin);
-      palm.scale.set(0.05, 0.065, 0.035);
-      palm.position.y = -0.03;
+      palm.scale.set(0.075, 0.08, 0.065);
+      palm.position.y = -0.04;
       hand.add(palm);
-      [-0.5, -0.17, 0.17, 0.5].forEach((a, i) => {
-        const l = i === 1 || i === 2 ? 0.13 : 0.11;
-        const b0 = V3(Math.sin(a) * 0.04, -0.07, 0.01);
-        const m = V3(Math.sin(a) * 0.055, -0.07 - l * 0.6, 0.03);
-        const e = V3(Math.sin(a) * 0.06, -0.07 - l, 0.06);
-        hand.add(mesh(tube([b0, m, e], 0.017, 0.011, 8, 8), skin, false));
-        claw(hand, e, V3(Math.sin(a) * 0.2, -0.6, 1), 0.75);
+      [-1, 0, 1].forEach(k => {
+        const kn = mesh(new THREE.SphereGeometry(0.03, 10, 8), skin, false);
+        kn.position.set(k * 0.035, -0.1, 0.04);
+        hand.add(kn);
       });
-      const thumbEnd = V3(-0.03 * s, -0.08, 0.075);
-      hand.add(mesh(tube([V3(-0.04 * s, -0.02, 0.01), V3(-0.055 * s, -0.06, 0.05), thumbEnd], 0.018, 0.012, 8, 8), skin, false));
-      claw(hand, thumbEnd, V3(0.3 * s, -0.4, 1), 0.7);
-      studBand(el, V3(-0.012 * s, -0.3, 0.04), V3(0, 1, 0.12), 0.055, 0.028, 7);
+      const thumb = mesh(tube([V3(-0.05 * s, -0.02, 0.02), V3(-0.06 * s, -0.07, 0.06), V3(-0.03 * s, -0.09, 0.075)], 0.022, 0.016, 8, 8), skin, false);
+      hand.add(thumb);
+      studBand(el, V3(-0.015 * s, -0.24, 0.05), V3(0, 1, 0.15), 0.07, 0.032, 7);
       return { sh, el, s };
     });
 
@@ -211,18 +198,7 @@ Pets.register({
     headPivot.add(head);
     const HR = 0.42;
     const headGeo = new THREE.SphereGeometry(HR, 48, 36);
-    {
-      const hp = headGeo.attributes.position;
-      for (let i = 0; i < hp.count; i++) {
-        const x = hp.getX(i);
-        const y = hp.getY(i);
-        const z = hp.getZ(i);
-        const low = smooth(0.1, -0.9, y / HR);
-        const k = 1 - 0.28 * low;
-        hp.setXYZ(i, x * 1.06 * k, y * 0.95 - low * 0.03, z * (1 - 0.1 * low) + low * Math.max(0, z) * 0.12);
-      }
-      headGeo.computeVertexNormals();
-    }
+    headGeo.scale(1.12, 0.92, 1.0);
     head.add(mesh(headGeo, skin));
 
     const eyes = [-1, 1].map(s => {
@@ -232,7 +208,7 @@ Pets.register({
       head.add(g);
       g.add(new THREE.Object3D());
       const ball = mesh(new THREE.SphereGeometry(0.062, 18, 14), darkMat, false);
-      ball.scale.set(1.0, 0.8, 0.5);
+      ball.scale.set(0.95, 1.0, 0.5);
       g.add(ball);
       const shine = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), new THREE.MeshBasicMaterial({ color: 0xc8b8e0 }));
       shine.position.set(0.02, -0.015, 0.05);
@@ -249,42 +225,11 @@ Pets.register({
     [-1, 1].forEach(s => {
       head.add(mesh(tube([V3(0.05 * s, 0.1, HR * 0.92), V3(0.16 * s, 0.135, HR * 0.89), V3(0.27 * s, 0.18, HR * 0.76)], 0.026, 0.018, 12, 8), std(0x4a2a5a, 0.6), false));
     });
-    const frown = new THREE.Group();
-    frown.position.set(0.01, -0.19, HR * 0.91);
-    frown.rotation.x = 0.4;
-    frown.scale.setScalar(1.15);
+    const frown = mesh(new THREE.TorusGeometry(0.085, 0.016, 8, 20, Math.PI), mouthMat, false);
+    frown.scale.set(1.1, 0.4, 1);
+    frown.position.set(0.02, -0.17, HR * 0.97);
+    frown.rotation.z = 0.06;
     head.add(frown);
-    {
-      const sh = new THREE.Shape();
-      const N = 16;
-      for (let i = 0; i <= N; i++) {
-        const t = i / N;
-        const x = lerp(-0.09, 0.09, t);
-        const y = 0.012 + 0.03 * Math.sin(t * Math.PI) - 0.008 * t;
-        if (i) sh.lineTo(x, y);
-        else sh.moveTo(x, y);
-      }
-      for (let i = N; i >= 0; i--) {
-        const t = i / N;
-        sh.lineTo(lerp(-0.09, 0.09, t), -0.012 + 0.012 * Math.sin(t * Math.PI) - 0.006 * t);
-      }
-      const mg = new THREE.ShapeGeometry(sh, 4);
-      const mm = new THREE.Mesh(mg, new THREE.MeshBasicMaterial({ color: 0x2a0e24, side: THREE.DoubleSide }));
-      mm.position.z = 0.01;
-      frown.add(mm);
-      const toothMat = std(0xf6f2fa, 0.3);
-      [-0.055, -0.02, 0.02, 0.055].forEach((x, i) => {
-        const tooth = mesh(new THREE.ConeGeometry(0.011, 0.028, 6), toothMat, false);
-        tooth.rotation.z = Math.PI;
-        tooth.position.set(x, 0.022 + 0.022 * Math.sin(((x + 0.09) / 0.18) * Math.PI) - 0.014, 0.014);
-        frown.add(tooth);
-      });
-      [-0.065, 0.065].forEach(x => {
-        const tooth = mesh(new THREE.ConeGeometry(0.012, 0.032, 6), toothMat, false);
-        tooth.position.set(x, -0.004, 0.014);
-        frown.add(tooth);
-      });
-    }
     const openMouth = mesh(new THREE.SphereGeometry(0.06, 14, 10), mouthMat, false);
     openMouth.scale.set(1.2, 0.8, 0.4);
     openMouth.position.set(0, -0.16, HR * 0.96);
@@ -567,7 +512,7 @@ Pets.register({
       hoodGlow.push(d);
     });
 
-    const TAIL = [V3(0, 1.02, -0.2), V3(0, 0.72, -0.42), V3(0.05, 0.35, -0.65), V3(0.15, 0.1, -0.85), V3(0.3, 0.05, -1.02), V3(0.42, 0.05, -1.12)];
+    const TAIL = [V3(0, 0.82, -0.24), V3(0, 0.6, -0.45), V3(0.05, 0.3, -0.65), V3(0.15, 0.1, -0.85), V3(0.3, 0.05, -1.02), V3(0.42, 0.05, -1.12)];
     const NT = 24;
     const RAD = 10;
     const tailPos = new Float32Array((NT + 1) * (RAD + 1) * 3);
@@ -700,7 +645,7 @@ Pets.register({
         }
         if (a === "eat") {
           food.visible = ph.visible;
-          food.position.set(0, lerp(3.6, (HEAD.y + 0.1) * 1.3, ph.fall * ph.fall), lerp(0.9, HEAD.z + HR + 0.05, ph.fall));
+          food.position.set(0, lerp(3.4, HEAD.y - 0.1, ph.fall * ph.fall), lerp(0.9, HEAD.z + HR + 0.05, ph.fall));
           food.scale.setScalar((1 - 0.85 * ph.bite) * 0.9);
           headDown = lerp(headDown, -0.05, Math.sin(Math.min(1, ph.fall) * Math.PI * 0.5) * (1 - ph.bite));
           mouthOpen = p > 0.12 && p < 0.85 && (p < 0.3 || ph.chew > 0.35);
@@ -716,7 +661,7 @@ Pets.register({
         headPivot.rotation.z = 0.08 + Math.sin(t * 0.8) * 0.02 * motion;
 
         arms.forEach(({ sh, el, s: sd }) => {
-          sh.position.y = 1.5 + shoulder;
+          sh.position.y = 1.44 + shoulder;
           sh.rotation.x = lerp(sh.rotation.x, -armFwd + Math.sin(t * 1.2 + sd) * 0.02 * motion, 0.15);
           sh.rotation.z = sd * (0.14 + breath * 0.01) + shake;
           el.rotation.x = -0.35 - armFwd * 1.5 - Math.abs(shake) * 2;
