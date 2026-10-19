@@ -306,30 +306,6 @@ Pets.register({
         gr.addColorStop(1, "#5a9c6c");
         g.fillStyle = gr;
         g.fillRect(0, 0, 256, 256);
-        const branch = (x, y, a, w, depth) => {
-          if (depth <= 0 || w < 0.6) return;
-          const len = 22 + rnd() * 26;
-          const nx = x + Math.cos(a) * len;
-          const ny = y + Math.sin(a) * len;
-          g.strokeStyle = "#5a3a1e";
-          g.lineWidth = w;
-          g.lineCap = "round";
-          g.beginPath();
-          g.moveTo(x, y);
-          g.quadraticCurveTo((x + nx) / 2 + (rnd() - 0.5) * 10, (y + ny) / 2 + (rnd() - 0.5) * 10, nx, ny);
-          g.stroke();
-          g.strokeStyle = "rgba(150,110,70,0.6)";
-          g.lineWidth = w * 0.35;
-          g.beginPath();
-          g.moveTo(x - 1, y - 1);
-          g.lineTo(nx - 1, ny - 1);
-          g.stroke();
-          branch(nx, ny, a + (rnd() - 0.5) * 0.9, w * 0.8, depth - 1);
-          if (rnd() < 0.45) branch(nx, ny, a + (rnd() < 0.5 ? -1 : 1) * (0.5 + rnd() * 0.5), w * 0.55, depth - 1);
-        };
-        branch(14, 50, 0.45, 16, 4);
-        branch(242, 60, Math.PI - 0.45, 16, 4);
-        branch(128, 256, -Math.PI / 2 + 0.15, 14, 4);
       }, 1, 1);
       const bellyMask = canvasTex(256, 256, (g, rnd) => {
         g.fillStyle = "#000";
@@ -358,6 +334,36 @@ Pets.register({
       bellyGeo.computeVertexNormals();
       const belly = mesh(bellyGeo, new THREE.MeshStandardMaterial({ map: bellyTex, alphaMap: bellyMask, alphaTest: 0.5, roughness: 0.6, bumpMap: bellyTex, bumpScale: 0.01 }), false);
       torsoMesh.add(belly);
+      let sd = 21;
+      const rnd = () => {
+        sd = (sd * 16807) % 2147483647;
+        return sd / 2147483647;
+      };
+      const onBody = (phi, th, lift) => V3(-Math.cos(phi) * Math.sin(th) * TR.x * lift, Math.cos(th) * TR.y * lift, Math.sin(phi) * Math.sin(th) * TR.z * lift);
+      const grow = (phi, th, dir, w, depth) => {
+        const pts = [];
+        let p = phi;
+        let t = th;
+        let d = dir;
+        const steps = 5;
+        for (let i = 0; i <= steps; i++) {
+          pts.push(onBody(p, t, 1.018 + w * 0.15));
+          d += (rnd() - 0.5) * 0.35;
+          p += Math.cos(d) * 0.06;
+          t += Math.sin(d) * 0.06;
+        }
+        torsoMesh.add(mesh(taperTube(pts, w, w * 0.62, 20, 14), limbMat, false));
+        if (depth > 1) {
+          grow(p - Math.cos(d) * 0.07, t - Math.sin(d) * 0.07, d + (rnd() - 0.5) * 0.4, w * 0.7, depth - 1);
+          if (rnd() < 0.7) grow(p - Math.cos(d) * 0.07, t - Math.sin(d) * 0.07, d + (rnd() < 0.5 ? -1 : 1) * (0.6 + rnd() * 0.5), w * 0.55, depth - 1);
+        } else {
+          const tip = onBody(p, t, 1.022);
+          torsoMesh.add(mesh(taperTube([pts[pts.length - 1], tip], w * 0.62, 0.003, 4, 8), limbMat, false));
+        }
+      };
+      grow(Math.PI / 2 - 0.8, Math.PI * 0.44, 0.2, 0.07, 3);
+      grow(Math.PI / 2 + 0.8, Math.PI * 0.48, Math.PI - 0.15, 0.07, 3);
+      grow(Math.PI / 2 + 0.06, Math.PI * 0.88, -Math.PI / 2 - 0.1, 0.065, 3);
     }
     [[-1.0, 0.25, -1.3, -0.25], [-2.1, 0.3, -1.9, -0.2]].forEach(([t0, p0, t1, p1], k) => {
       const pts = [];
