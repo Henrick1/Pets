@@ -25,7 +25,7 @@ Pets.register({
 
     const skin = std(0xe6dcef, 0.5);
     const skinDark = std(0xb8a8cc, 0.55);
-    const slimeMat = std(0x7236b0, 0.15, { emissive: 0x3a1470, emissiveIntensity: 0.45, side: THREE.DoubleSide, transparent: true, opacity: 0.94 });
+    const slimeMat = std(0x7236b0, 0.15, { emissive: 0x3a1470, emissiveIntensity: 0.45, side: THREE.DoubleSide });
     const glowMat = std(0xb070ff, 0.3, { emissive: 0x8a30e0, emissiveIntensity: 0.8 });
     const dotMat = std(0x5a3a80, 0.4);
     const darkMat = std(0x120a1a, 0.2);
@@ -191,7 +191,7 @@ Pets.register({
       head.add(g);
       g.add(new THREE.Object3D());
       const ball = mesh(new THREE.SphereGeometry(0.062, 18, 14), darkMat, false);
-      ball.scale.set(1, 1.05, 0.55);
+      ball.scale.set(0.95, 1.0, 0.5);
       g.add(ball);
       const shine = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), new THREE.MeshBasicMaterial({ color: 0xc8b8e0 }));
       shine.position.set(0.02, -0.015, 0.05);
@@ -199,8 +199,8 @@ Pets.register({
       const lid = new THREE.Group();
       lid.position.z = 0.0;
       g.add(lid);
-      const lidMesh = mesh(new THREE.SphereGeometry(0.07, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), skin, false);
-      lidMesh.scale.set(1.12, 0.9, 0.8);
+      const lidMesh = mesh(new THREE.SphereGeometry(0.07, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), skin, false);
+      lidMesh.scale.set(1.35, 1.2, 0.9);
       lid.add(lidMesh);
       lid.rotation.set(-0.05, 0, s * 0.42);
       return { g, lid, s };
@@ -230,7 +230,7 @@ Pets.register({
     const openA = b => 0.62 + 0.26 * Math.pow(Math.abs(Math.sin(b * 0.5)), 1.2);
     const hoodPoint = (al, be, lift) => {
       const d = V3(Math.sin(al) * Math.sin(be), Math.sin(al) * Math.cos(be), Math.cos(al));
-      const back = smooth(0.25, 1, (al - openA(be)) / (Math.PI - openA(be))) * (1 - smooth(2.7, 3.1, al));
+      const back = smooth(0.25, 1, (al - openA(be)) / (Math.PI - openA(be))) * (1 - smooth(1.8, 2.3, al));
       let rr = HR * 1.2 * lift;
       rr *= 1 + 0.035 * Math.sin(be * 7 + al * 2) * back + 0.02 * Math.sin(al * 9) * back;
       rr += HR * 0.08 * Math.exp(-(be * be) / 0.25 - Math.pow(al - 2.35, 2) / 0.12);
@@ -256,21 +256,26 @@ Pets.register({
         if (ab <= B0) return openA(be);
         return lerp(openA(B0), 2.3, smooth(0, 1, (ab - B0) / (Math.PI - B0)));
       };
-      for (let ib = 0; ib <= NB; ib++) {
-        const be = -Math.PI + (ib / NB) * Math.PI * 2;
+      const sg = new THREE.SphereGeometry(1, 120, 80);
+      const sp = sg.attributes.position;
+      const inside = [];
+      for (let i = 0; i < sp.count; i++) {
+        const d = V3(sp.getX(i), sp.getY(i), sp.getZ(i)).normalize();
+        const al = Math.acos(Math.max(-1, Math.min(1, d.z)));
+        const be = Math.atan2(d.x, d.y);
         const a0 = startA(be);
-        for (let ia = 0; ia <= NA; ia++) {
-          const al = lerp(a0, Math.PI * 0.999, ia / NA);
-          const p = hoodPoint(al, be, 1);
-          pos.push(p.x, p.y, p.z);
-        }
+        inside.push(al < a0);
+        const p = hoodPoint(Math.max(al, a0), be, 1);
+        pos.push(p.x, p.y, p.z);
       }
-      for (let ib = 0; ib < NB; ib++) {
-        for (let ia = 0; ia < NA; ia++) {
-          const q = ib * (NA + 1) + ia;
-          const w = q + NA + 1;
-          idx.push(q, q + 1, w, q + 1, w + 1, w);
-        }
+      const src = sg.index.array;
+      for (let k = 0; k < src.length; k += 3) {
+        const i0 = src[k];
+        const i1 = src[k + 1];
+        const i2 = src[k + 2];
+        if (inside[i0] && inside[i1] && inside[i2]) continue;
+        if ((inside[i0] ? 1 : 0) + (inside[i1] ? 1 : 0) + (inside[i2] ? 1 : 0) >= 2) continue;
+        idx.push(i0, i1, i2);
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -278,12 +283,17 @@ Pets.register({
       g.computeVertexNormals();
       hood.add(mesh(g, slimeMat, false));
       const rimPts = [];
-      for (let i = 0; i <= 80; i++) {
-        const be = -Math.PI + (i / 80) * Math.PI * 2;
+      for (let i = 0; i <= 60; i++) {
+        const be = -B0 + (i / 60) * B0 * 2;
         rimPts.push(hoodPoint(startA(be) + 0.02, be, 1.0));
       }
-      const rim = new THREE.CatmullRomCurve3(rimPts, true);
-      hood.add(mesh(new THREE.TubeGeometry(rim, 160, 0.04, 10, true), slimeMat, false));
+      const rim = new THREE.CatmullRomCurve3(rimPts);
+      hood.add(mesh(new THREE.TubeGeometry(rim, 120, 0.04, 10, false), slimeMat, false));
+      [rimPts[0], rimPts[rimPts.length - 1]].forEach(pp => {
+        const c = mesh(new THREE.SphereGeometry(0.04, 10, 8), slimeMat, false);
+        c.position.copy(pp);
+        hood.add(c);
+      });
     }
     {
       const lockGeo = new THREE.SphereGeometry(1, 28, 20);
