@@ -24,9 +24,9 @@ Pets.register({
     const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, lavaRock } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 58, 54], lava: [255, 104, 20] });
+    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 58, 54], lava: [30, 24, 22] });
     const A = lavaRock({ seed: 29, cells: 40, crack: 1.3, rock: [84, 74, 70], lava: [150, 70, 40] });
-    const B = lavaRock({ seed: 5, stripes: 9, cols: 1, crack: 2.6, rock: [128, 74, 50], lava: [255, 140, 44] });
+    const B = lavaRock({ seed: 5, stripes: 9, cols: 1, crack: 2.6, rock: [128, 74, 50], lava: [60, 36, 26] });
     const rep = (t, x, y) => {
       const c = t.clone();
       c.needsUpdate = true;
@@ -39,7 +39,7 @@ Pets.register({
           {
             color: 0xffffff,
             map: rep(src.map, rx, ry),
-            emissive: 0xff4a0a,
+            emissive: 0x000000,
             emissiveMap: rep(src.emi, rx, ry),
             emissiveIntensity: 0.6,
             bumpMap: rep(src.bump, rx, ry),
@@ -684,7 +684,7 @@ Pets.register({
         chunk.rotation.z = i * 0.08 * s;
         g.add(chunk);
         if (i < 3) {
-          const seam = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.88, r * 0.88, 0.014, 6), lavaMat);
+          const seam = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.88, r * 0.88, 0.014, 6), basalt);
           seam.position.y = y + r * 1.9;
           seam.rotation.y = i * 0.7;
           g.add(seam);
@@ -884,9 +884,9 @@ Pets.register({
 
         const surge = (impact >= 0 && a === "wag" ? Math.max(0, 1 - impact * 2) * 1.2 : 0) + erupt * 1.4;
         const lavaK = (0.42 + Math.sin(t * 1.4) * 0.1 * motion + surge * 0.6) * heat;
-        rockMats.forEach(m => (m.emissiveIntensity = lavaK));
+        rockMats.forEach(m => (m.emissiveIntensity = 0));
         coneRock.emissiveIntensity = 0.12 + erupt * 0.8;
-        bellyMat.emissiveIntensity = lavaK * 1.4;
+        bellyMat.emissiveIntensity = 0;
         const flow = 0.75 + Math.sin(t * 2.2) * 0.15 * motion + erupt * 0.4;
         lavaMat.color.setRGB(1, 0.32 + flow * 0.12, 0.06);
         hotMat.color.setRGB(1, 0.72 + erupt * 0.2, 0.25 + erupt * 0.3);
