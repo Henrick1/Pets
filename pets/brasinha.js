@@ -243,27 +243,27 @@ Pets.register({
     };
     const bellyShape = (c, s) => [c, s > 0 ? s : s * 0.82];
     const spine = [
-      { o: anchor(front, 0, 1.36, 1.4), rx: 0.3, ry: 0.3 },
-      { o: anchor(front, 0, 1.24, 1.2), rx: 0.4, ry: 0.4 },
-      { o: anchor(front, 0, 1.1, 0.92), rx: 0.6, ry: 0.56 },
-      { o: anchor(front, 0, 1.04, 0.45), rx: 0.74, ry: 0.62 },
-      { o: anchor(front, 0, 1.0, -0.02), rx: 0.74, ry: 0.6 },
-      { o: anchor(body, 0, 0.95, -0.5), rx: 0.62, ry: 0.52 }
+      { o: anchor(front, 0, 1.0, 1.62), rx: 0.24, ry: 0.24 },
+      { o: anchor(front, 0, 0.94, 1.38), rx: 0.32, ry: 0.3 },
+      { o: anchor(front, 0, 0.86, 1.0), rx: 0.48, ry: 0.4 },
+      { o: anchor(front, 0, 0.82, 0.48), rx: 0.55, ry: 0.42 },
+      { o: anchor(front, 0, 0.8, -0.04), rx: 0.53, ry: 0.41 },
+      { o: anchor(body, 0, 0.78, -0.56), rx: 0.44, ry: 0.36 }
     ];
 
     const tail = [];
     {
       const base = new THREE.Group();
-      base.position.set(0, 0.92, -0.88);
-      base.rotation.x = -2.2;
+      base.position.set(0, 0.78, -0.86);
+      base.rotation.x = -1.72;
       body.add(base);
       let parent = base;
-      const n = 9;
+      const n = 13;
       for (let i = 0; i < n; i++) {
         const u = i / (n - 1);
         const g = new THREE.Group();
-        g.position.y = i === 0 ? 0 : 0.13;
-        const r = 0.38 * (1 - 0.86 * Math.pow(u, 0.85));
+        g.position.y = i === 0 ? 0 : 0.14;
+        const r = 0.33 * (1 - 0.88 * Math.pow(u, 0.8));
         g.userData.r = r;
         if (i < n - 1 && i > 0) {
           const sp = mesh(shard(0.035 * (1 - u * 0.5) + 0.015, 0.07 + r * 0.3, 100 + i), basalt, false);
@@ -301,9 +301,9 @@ Pets.register({
       uSpan: 3,
       uvK: 0.75,
       crack: (f, c, s) => {
-        const near = 1 - (f > 3.7 ? smooth(0.85, 1.95, f - 3.7) : smooth(0.6, 1.6, 3.7 - f));
-        const aroundVolcano = near * smooth(-0.45, 0.35, s);
-        const topNeck = f < 3.7 ? smooth(0.2, 0.8, s) : 0;
+        const near = 1 - smooth(0.25, 0.85, Math.abs(f - 3.6));
+        const aroundVolcano = near * smooth(0.35, 0.8, s);
+        const topNeck = f < 3.6 && f > 0.6 ? smooth(0.82, 0.98, s) : 0;
         return Math.max(aroundVolcano, topNeck);
       },
       shape: (c, s) => {
@@ -350,8 +350,7 @@ Pets.register({
       }
       return prof[prof.length - 1][0];
     };
-    const volcano = anchor(front, 0, 1.3, 0.16);
-    volcano.position.y -= 0.2;
+    const volcano = anchor(front, 0, 1.0, 0.26);
     volcano.rotation.x = -0.12;
     volcano.scale.set(0.5, 0.45, 0.55);
     {
@@ -506,12 +505,12 @@ Pets.register({
         s,
         front,
         [
-          [0.5, 0.98, 0.92],
-          [0.54, 0.72, 0.98],
-          [0.54, 0.5, 0.95],
-          [0.54, 0.34, 1.0]
+          [0.4, 0.8, 0.98],
+          [0.66, 0.6, 1.02],
+          [0.72, 0.38, 1.02],
+          [0.74, 0.24, 1.06]
         ],
-        [0.26, 0.24, 0.21, 0.16, 0.14, 0.12, 0.1],
+        [0.2, 0.18, 0.15, 0.12, 0.11, 0.09, 0.08],
         30 + s
       );
       return L;
@@ -521,22 +520,22 @@ Pets.register({
         s,
         body,
         [
-          [0.5, 0.9, -0.56],
-          [0.56, 0.58, -0.42],
-          [0.55, 0.32, -0.6],
-          [0.55, 0.16, -0.52]
+          [0.38, 0.76, -0.56],
+          [0.66, 0.56, -0.46],
+          [0.72, 0.32, -0.6],
+          [0.74, 0.16, -0.52]
         ],
-        [0.3, 0.29, 0.26, 0.18, 0.15, 0.12, 0.1],
+        [0.24, 0.22, 0.19, 0.13, 0.11, 0.09, 0.08],
         50 + s
       )
     );
     const legs = frontLegs.concat(backLegs);
 
-    const head = anchor(front, 0, 1.52, 1.62);
-    head.scale.set(1.55, 1.5, 1.2);
+    const head = anchor(front, 0, 1.12, 1.86);
+    head.scale.setScalar(1.18);
     const headLoft = makeLoft(9, 5, 20, headRock, {
       sym: true,
-      crack: (f, c, s, u) => smooth(0.2, 0.7, s) * (1 - smooth(0.45, 0.75, u)),
+      crack: (f, c, s, u) => smooth(0.65, 0.92, s) * (1 - smooth(0.25, 0.45, u)),
       seed: 11,
       rough: 0.05,
       uSpan: 1.6,
@@ -667,7 +666,7 @@ Pets.register({
       const g = new THREE.Group();
       g.position.set(0.2 * s, 0.24, -0.1);
       g.rotation.set(-0.55, 0.25 * s, -0.42 * s);
-      g.scale.setScalar(0.7);
+      g.scale.setScalar(0.4);
       let y = 0;
       [0.13, 0.105, 0.08, 0.055].forEach((r, i) => {
         const chunk = mesh(rocky(new THREE.CylinderGeometry(r * 0.85, r, r * 1.9, 6, 2), 0.012, 60 + i + s * 7), i === 3 ? basalt : hornRock);
@@ -690,6 +689,7 @@ Pets.register({
       hornSet.push(g);
       const side = new THREE.Group();
       side.position.set(0.31 * s, 0.04, -0.14);
+      side.visible = false;
       side.rotation.set(-1.2, 0, -1.1 * s);
       let y2 = 0;
       [0.07, 0.05].forEach((r, i) => {
@@ -814,7 +814,7 @@ Pets.register({
           const pre = smooth(0, 0.3, p) * (1 - smooth(0.3, 0.38, p));
           headPitch = -0.04 + pre * 0.25 - k * 0.2;
           rear = -pre * 0.03 + k * 0.08;
-          jawOpen = k * 0.4;
+          jawOpen = k * 0.22;
           roarK = p > 0.38 && p < 0.8 ? (p - 0.38) / 0.42 : -1;
           erupt = pre * 0.4;
           squint = pre > 0.3;
@@ -861,11 +861,11 @@ Pets.register({
 
         tail.forEach((g, i) => {
           if (i === 0) {
-            g.parent.rotation.x = -2.2 + tailLift * 0.55;
+            g.parent.rotation.x = -1.72 + tailLift * 0.55;
             return;
           }
           const u = i / tail.length;
-          g.rotation.x = 0.07 + tailLift * 0.12 * (1 - u);
+          g.rotation.x = 0.08 + 0.04 * u + tailLift * 0.12 * (1 - u);
           g.rotation.z = Math.sin(t * (1.3 + wagK * 10) - i * 0.45) * (0.07 + wagK * 0.3) * u * motion;
         });
         tail.flame.scale.set(heat * (1 + 0.12 * Math.sin(t * 11)), heat * (1 + 0.15 * Math.sin(t * 9) + wagK * 0.3), heat);
