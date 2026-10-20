@@ -303,7 +303,7 @@ Pets.register({
       crack: (f, c, s) => {
         const near = 1 - smooth(0.25, 0.85, Math.abs(f - 3.6));
         const aroundVolcano = near * smooth(0.35, 0.8, s);
-        const topNeck = f < 3.6 && f > 0.6 ? smooth(0.82, 0.98, s) : 0;
+        const topNeck = f < 3.6 && f > 0.6 ? smooth(0.5, 0.9, s) * smooth(0.6, 1.4, f) : 0;
         return Math.max(aroundVolcano, topNeck);
       },
       shape: (c, s) => {
@@ -353,6 +353,7 @@ Pets.register({
     const volcano = anchor(front, 0, 1.0, 0.26);
     volcano.rotation.x = -0.12;
     volcano.scale.set(0.5, 0.45, 0.55);
+    volcano.visible = false;
     {
       prof = [[0.56, -0.14], [0.6, 0.0], [0.58, 0.08], [0.5, 0.3], [0.4, 0.52], [0.32, 0.72], [0.29, 0.84], [0.25, 0.9], [0.18, 0.86], [0.12, 0.78], [0.02, 0.76]];
       const g = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 30, 0);
@@ -535,7 +536,7 @@ Pets.register({
     head.scale.setScalar(1.18);
     const headLoft = makeLoft(9, 5, 20, headRock, {
       sym: true,
-      crack: (f, c, s, u) => smooth(0.65, 0.92, s) * (1 - smooth(0.25, 0.45, u)),
+      crack: () => 0,
       seed: 11,
       rough: 0.05,
       uSpan: 1.6,
@@ -581,16 +582,24 @@ Pets.register({
     );
     jaw.add(jawLoft.mesh);
     const inner = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), gumMat);
-    inner.scale.set(0.2, 0.05, 0.36);
-    inner.position.set(0, -0.07, 0.26);
+    inner.material = new THREE.MeshStandardMaterial({ color: 0x5a1612, roughness: 0.6 });
+    inner.scale.set(0.22, 0.075, 0.4);
+    inner.position.set(0, -0.1, 0.3);
+    const tongue = mesh(new THREE.SphereGeometry(1, 16, 10), new THREE.MeshStandardMaterial({ color: 0xc8605a, roughness: 0.5 }), false);
+    tongue.scale.set(0.11, 0.035, 0.22);
+    tongue.position.set(0, 0.06, 0.32);
+    jaw.add(tongue);
     head.add(inner);
     const throat = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 12), lavaMat);
-    throat.scale.set(1.0, 0.45, 1.6);
-    throat.position.set(0, -0.08, 0.2);
+    throat.scale.set(0.45, 0.25, 0.4);
+    throat.position.set(0, -0.09, 0.02);
     head.add(throat);
+    const lips = [];
     const lipPts = s => [V3(0.27 * s, -0.02, -0.12), V3(0.3 * s, -0.035, 0.05), V3(0.26 * s, -0.05, 0.22), V3(0.2 * s, -0.06, 0.4), V3(0.16 * s, -0.065, 0.56), V3(0.09 * s, -0.065, 0.68), V3(0, -0.065, 0.735)];
     [-1, 1].forEach(s => {
-      head.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s)), 30, 0.012, 5, false), lavaMat));
+      const lip = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s)), 30, 0.012, 5, false), lavaMat);
+      head.add(lip);
+      lips.push(lip);
       lipPts(s)
         .slice(1, 5)
         .forEach((pt, k) => {
@@ -841,7 +850,8 @@ Pets.register({
         head.rotation.y = pointer.x * 0.06;
         jaw.rotation.x = jawOpen;
         throat.visible = jawOpen > 0.12;
-        inner.visible = jawOpen > 0.06;
+        inner.visible = jawOpen > 0.03;
+        lips.forEach(l => (l.visible = jawOpen < 0.03));
 
         frontLegs.forEach(({ hip, knee, ankle, foot, s: sd }) => {
           let lift = 0;
@@ -887,7 +897,7 @@ Pets.register({
           b.scale.setScalar(reduceMotion ? 0.5 : 0.4 + Math.sin(q * Math.PI) * 0.8);
         });
         glow.intensity = (0.4 + lavaK * 0.4 + surge * 1.0) * heat;
-        ventGlow.intensity = (0.5 + Math.sin(t * 3) * 0.1 * motion + erupt * 2.5) * heat;
+        ventGlow.intensity = 0;
 
         root.updateMatrixWorld(true);
 
@@ -896,7 +906,7 @@ Pets.register({
         smoke.forEach(sm => {
           const sp = 0.2 + erupt * 0.5;
           const u = (((t * sp + sm.ph) % 1) + 1) % 1;
-          sm.m.visible = !reduceMotion;
+          sm.m.visible = false;
           sm.m.position.set(craterW.x + Math.sin(sm.a + t * 0.5) * u * 0.25, craterW.y + u * (1.1 + erupt * 0.8), craterW.z - u * 0.3 + Math.cos(sm.a) * u * 0.1);
           sm.m.scale.setScalar(0.06 + u * (0.22 + erupt * 0.2));
           sm.m.material.opacity = Math.sin(u * Math.PI) * (0.4 + erupt * 0.2) * heat;
