@@ -152,7 +152,7 @@ Pets.register({
           const jj = closed ? j % R : j;
           const a0r = a0 + (jj / R) * (a1 - a0);
           const a = o.sym ? Math.atan2(Math.sin(a0r), Math.abs(Math.cos(a0r))) : a0r;
-          row.push(1 + (o.rough === undefined ? 0.06 : o.rough) * 0.35 * (o.roughK ? o.roughK(i / seg) : 1) * (Math.sin(a * 3 + i * 1.3 + sd) * Math.sin(i * 0.7 + a * 2 + sd) + 0.6 * Math.sin(a * 7 - i * 2.1 + sd)));
+          row.push(1 + (o.rough === undefined ? 0.06 : o.rough) * 0.35 * (o.roughK ? o.roughK(i / seg) : 1) * (o.roughA ? o.roughA(Math.cos(a0r), Math.sin(a0r)) : 1) * (Math.sin(a * 3 + i * 1.3 + sd) * Math.sin(i * 0.7 + a * 2 + sd) + 0.6 * Math.sin(a * 7 - i * 2.1 + sd)));
         }
         rough.push(row);
       }
@@ -296,6 +296,7 @@ Pets.register({
     const bodyLoft = makeLoft(bodyChain.length, 4, 22, skinRock, {
       upY: true,
       roughK: f => 1 - smooth(4.6, 6.2, f) * 0.85,
+      roughA: (c, sn) => smooth(-0.5, -0.2, sn),
       sym: true,
       seed: 3,
       uSpan: 3,
@@ -317,7 +318,7 @@ Pets.register({
       upY: true,
       a0: Math.PI * 1.18,
       a1: Math.PI * 1.82,
-      scale: 1.02,
+      scale: 1.03,
       rough: 0.02,
       seed: 7,
       uSpan: 1,
