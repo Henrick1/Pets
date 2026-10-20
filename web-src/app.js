@@ -1080,9 +1080,19 @@
     const draft = expDraft[kind];
     const title = document.createElement("p");
     title.className = "picker-title";
-    title.textContent = EXP_NAME[kind] + " · " + draft.length + "/" + Game.C.EXPEDITION_SIZE;
     list.append(title);
     const arts = [];
+    const rows = [];
+    let done;
+    const sync = () => {
+      title.textContent = EXP_NAME[kind] + " · " + draft.length + "/" + Game.C.EXPEDITION_SIZE;
+      rows.forEach(([el, p]) => {
+        const on = draft.includes(p.id);
+        el.setAttribute("aria-pressed", String(on));
+        el.disabled = !on && (!!p.away || p.dying || draft.length >= Game.C.EXPEDITION_SIZE);
+      });
+      done.textContent = "Pronto" + (draft.length ? " (" + draft.length + "/" + Game.C.EXPEDITION_SIZE + ")" : "");
+    };
     v.party.concat(v.box).forEach(p => {
       const el = itemNode(p, "button");
       el.type = "button";
@@ -1092,29 +1102,27 @@
       art.style.setProperty("--c", p.color);
       el.querySelector(".dot").replaceWith(art);
       arts.push([art, Game.speciesOf(state, p.id)]);
-      const on = draft.includes(p.id);
-      el.setAttribute("aria-pressed", String(on));
-      el.disabled = !on && (!!p.away || p.dying || draft.length >= Game.C.EXPEDITION_SIZE);
+      rows.push([el, p]);
       el.addEventListener("click", () => {
         const at = draft.indexOf(p.id);
         if (at >= 0) draft.splice(at, 1);
         else if (draft.length < Game.C.EXPEDITION_SIZE) draft.push(p.id);
-        render();
+        sync();
       });
       list.append(el);
     });
     const foot = document.createElement("div");
     foot.className = "pick-foot";
-    const done = document.createElement("button");
+    done = document.createElement("button");
     done.type = "button";
     done.className = "btn primary";
-    done.textContent = "Pronto" + (draft.length ? " (" + draft.length + "/" + Game.C.EXPEDITION_SIZE + ")" : "");
     done.addEventListener("click", () => {
       expPick = null;
       render();
     });
     foot.append(done);
     list.append(foot);
+    sync();
     const step = () => {
       const job = arts.shift();
       if (!job) return;
@@ -1375,7 +1383,7 @@
     if (tab === "party") {
       $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todos do grupo gastam fome, vida e felicidade, mesmo fora da tela, e rendem moedas enquanto estão alimentados e felizes.";
     } else if (tab === "exp" && expPick) {
-      $("sheet-hint").textContent = "Escolha até " + Game.C.EXPEDITION_SIZE + " criaturas do grupo ou da caixa.";
+      $("sheet-hint").textContent = "Escolha até " + Game.C.EXPEDITION_SIZE + " criaturas.";
     } else if (tab === "exp") {
       $("sheet-hint").textContent = "Até " + Game.C.EXPEDITION_SIZE + " criaturas por expedição, do grupo ou da caixa. Quem sai some da tela, não gasta nada e volta com moedas e itens do seu tipo.";
     } else if (swapIn) {
