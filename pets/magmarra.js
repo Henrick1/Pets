@@ -511,34 +511,35 @@ Pets.register({
     const jaw = new THREE.Group();
     jaw.position.set(0, -0.1, -0.12);
     head.add(jaw);
-    const jawLoft = makeLoft(7, 5, 16, headRock, {
+    const jawLoft = makeLoft(8, 5, 16, headRock, {
       sym: true,
       seed: 13,
       rough: 0.04,
       uSpan: 1.2,
-      shape: (c, s) => [c, s > 0 ? s * 0.35 : s]
+      shape: (c, s) => [c, s > 0 ? s * 0.15 : s]
     });
     jawLoft.update(
       [
-        [-0.08, -0.012, 0.02, 0.02],
-        [-0.04, -0.012, 0.26, 0.1],
-        [0.1, -0.025, 0.31, 0.1],
-        [0.3, -0.022, 0.28, 0.09],
-        [0.5, -0.026, 0.22, 0.075],
-        [0.66, -0.021, 0.16, 0.06],
-        [0.74, -0.008, 0.06, 0.03]
+        [-0.04, 0.065, 0.02, 0.02],
+        [0.0, 0.062, 0.27, 0.12],
+        [0.17, 0.044, 0.3, 0.14],
+        [0.34, 0.03, 0.26, 0.13],
+        [0.52, 0.023, 0.2, 0.11],
+        [0.68, 0.021, 0.16, 0.09],
+        [0.8, 0.024, 0.09, 0.07],
+        [0.85, 0.03, 0.02, 0.02]
       ].map(([z, y, rx, ry]) => ({ p: V3(0, y, z), rx, ry }))
     );
     jaw.add(jawLoft.mesh);
     const inner = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), gumMat);
     inner.scale.set(0.2, 0.05, 0.36);
-    inner.position.set(0, -0.12, 0.28);
+    inner.position.set(0, -0.07, 0.26);
     head.add(inner);
     const throat = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 12), lavaMat);
     throat.scale.set(1.0, 0.45, 1.6);
-    throat.position.set(0, -0.13, 0.22);
+    throat.position.set(0, -0.08, 0.2);
     head.add(throat);
-    const lipPts = s => [V3(0.22 * s, -0.115, 0.0), V3(0.24 * s, -0.12, 0.18), V3(0.2 * s, -0.12, 0.38), V3(0.15 * s, -0.115, 0.55), V3(0.07 * s, -0.11, 0.68), V3(0, -0.11, 0.72)];
+    const lipPts = s => [V3(0.27 * s, -0.02, -0.12), V3(0.3 * s, -0.035, 0.05), V3(0.26 * s, -0.05, 0.22), V3(0.2 * s, -0.06, 0.4), V3(0.16 * s, -0.065, 0.56), V3(0.09 * s, -0.065, 0.68), V3(0, -0.065, 0.735)];
     [-1, 1].forEach(s => {
       head.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s)), 30, 0.012, 5, false), lavaMat));
       lipPts(s)
@@ -549,13 +550,13 @@ Pets.register({
             const tp = pt.clone().lerp(nxt, h);
             const tooth = mesh(new THREE.ConeGeometry(0.018 + (k === 3 && !h ? 0.006 : 0), 0.055 + (k === 3 && !h ? 0.03 : 0), 5), toothMat, false);
             tooth.rotation.x = Math.PI;
-            tooth.position.set(tp.x * 1.04, tp.y - 0.03, tp.z);
+            tooth.position.set(tp.x * 1.05, tp.y - 0.022, tp.z);
             head.add(tooth);
           });
         });
       [0.3, 0.5].forEach((z, k) => {
         const lt = mesh(new THREE.ConeGeometry(0.016, 0.05, 5), toothMat, false);
-        lt.position.set((0.17 - k * 0.04) * s, -0.04, z + 0.12);
+        lt.position.set((0.21 - k * 0.05) * s, 0.06, z + 0.12);
         jaw.add(lt);
       });
       const n = new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 8), lavaMat);
@@ -884,7 +885,7 @@ Pets.register({
           shock.material.opacity = (1 - q) * 0.6;
         } else shock.material.opacity = 0;
 
-        head.localToWorld(mouthW.set(0, -0.12, 0.72));
+        head.localToWorld(mouthW.set(0, -0.07, 0.74));
         fx.worldToLocal(mouthW);
         head.localToWorld(tmp.set(0, -0.25, 1.7));
         fx.worldToLocal(tmp);
