@@ -264,8 +264,8 @@ Pets.register({
         const r = 0.44 * (1 - 0.86 * Math.pow(u, 0.85));
         g.userData.r = r;
         if (i < n - 1 && i > 0) {
-          const sp = mesh(shard(0.05 * (1 - u * 0.5) + 0.02, 0.12 + (1 - u) * 0.1, 100 + i), basalt, false);
-          sp.position.set(0, 0.06, -r * 0.85);
+          const sp = mesh(shard(0.05 * (1 - u * 0.5) + 0.02, 0.12 + (1 - u) * 0.1 + r * 0.3, 100 + i), basalt, false);
+          sp.position.set(0, 0.06, -r * 0.5);
           sp.rotation.x = -Math.PI / 2 - 0.4;
           g.add(sp);
         }
