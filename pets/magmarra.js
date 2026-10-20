@@ -617,7 +617,7 @@ Pets.register({
       rough: 0.05,
       uSpan: 1.6,
       ref: V3(1, 0, 0),
-      shape: (c, s, u) => [c * (1 + 0.08 * Math.pow(Math.abs(c), 4)), s > 0 ? s * (1 + 0.1 * Math.pow(s, 10) * (u < 0.5 ? 1 : 0)) : s * 0.5]
+      shape: (c, s, u) => [c * (1 + 0.08 * Math.pow(Math.abs(c), 4)), s > 0 ? s * (1 + 0.1 * Math.pow(s, 10) * (u < 0.5 ? 1 : 0)) : s * lerp(0.95, 0.5, smooth(0.36, 0.52, u))]
     });
     headLoft.update(
       [
@@ -667,11 +667,11 @@ Pets.register({
     head.add(throat);
     const lipPts = s => [V3(0.27 * s, -0.02, -0.12), V3(0.3 * s, -0.035, 0.05), V3(0.26 * s, -0.05, 0.22), V3(0.2 * s, -0.06, 0.4), V3(0.16 * s, -0.065, 0.56), V3(0.09 * s, -0.065, 0.68), V3(0, -0.065, 0.735)];
     [-1, 1].forEach(s => {
-      head.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s)), 30, 0.012, 5, false), lavaMat));
+      head.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s).slice(3)), 24, 0.012, 5, false), lavaMat));
       lipPts(s)
         .slice(1, 5)
         .forEach((pt, k) => {
-          [0, 0.5].forEach(h => {
+          [0, 0.5].filter(h => k + h >= 2.5).forEach(h => {
             const nxt = lipPts(s)[k + 2];
             const tp = pt.clone().lerp(nxt, h);
             const tooth = mesh(new THREE.ConeGeometry(0.018 + (k === 3 && !h ? 0.006 : 0), 0.055 + (k === 3 && !h ? 0.03 : 0), 5), toothMat, false);
