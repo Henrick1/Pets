@@ -460,7 +460,7 @@ Pets.register({
       midB.position.copy(ankle.position).multiplyScalar(0.5);
       knee.add(midB);
       const chain = [
-        { o: cap, rx: 0.03, ry: 0.03 },
+        { o: cap, rx: 0.004, ry: 0.004 },
         { o: top, rx: radii[0], ry: radii[0] },
         { o: hip, rx: radii[1], ry: radii[1] * 1.1 },
         { o: midA, rx: radii[2], ry: radii[2] * 1.12 },
@@ -469,16 +469,16 @@ Pets.register({
         { o: ankle, rx: radii[5], ry: radii[5] * 1.05 },
         { o: foot, rx: radii[6], ry: radii[6] },
         { o: pawMid, rx: 0.15 * PW, ry: 0.065 },
-        { o: pawEnd, rx: 0.16 * PW, ry: 0.05 },
-        { o: toe, rx: 0.04, ry: 0.03 }
+        { o: pawEnd, rx: 0.14 * PW, ry: 0.05 },
+        { o: toe, rx: 0.004, ry: 0.004 }
       ];
       const loft = makeLoft(chain.length, 4, 14, skinRock, { seed: sd, rough: 0.07, uSpan: 1.5, uvK: 0.9, ref: V3(1, 0, 0), shape: (c, sn, u) => [c, sn > 0 || u < 0.82 ? sn : sn * 0.6] });
       body.add(loft.mesh);
       const toes = isFront ? [-1.5, -0.5, 0.5, 1.5] : [-1, 0, 1];
       toes.forEach(j => {
         const t = new THREE.Group();
-        t.position.set(j * (isFront ? 0.13 : 0.12), -0.04, 0.17 * PW - Math.abs(j) * 0.05);
-        t.rotation.y = j * (isFront ? 0.36 : 0.45);
+        t.position.set(j * (isFront ? 0.075 : 0.075), -0.04, 0.2 * PW - Math.abs(j) * 0.035);
+        t.rotation.y = j * (isFront ? 0.2 : 0.26);
         const knuckle = mesh(rocky(new THREE.SphereGeometry(1, 10, 8), 0.06, sd + j), smallRock, false);
         knuckle.scale.set(isFront ? 0.045 : 0.04, 0.04, 0.055);
         const claw = mesh(talon(isFront ? 0.2 : 0.12, isFront ? 0.04 : 0.03), clawMat, false);
