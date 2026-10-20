@@ -1082,9 +1082,16 @@
     title.className = "picker-title";
     title.textContent = EXP_NAME[kind] + " · " + draft.length + "/" + Game.C.EXPEDITION_SIZE;
     list.append(title);
+    const arts = [];
     v.party.concat(v.box).forEach(p => {
       const el = itemNode(p, "button");
       el.type = "button";
+      el.classList.add("pick-item");
+      const art = document.createElement("span");
+      art.className = "pick-art";
+      art.style.setProperty("--c", p.color);
+      el.querySelector(".dot").replaceWith(art);
+      arts.push([art, Game.speciesOf(state, p.id)]);
       const on = draft.includes(p.id);
       el.setAttribute("aria-pressed", String(on));
       el.disabled = !on && (!!p.away || p.dying || draft.length >= Game.C.EXPEDITION_SIZE);
@@ -1096,15 +1103,32 @@
       });
       list.append(el);
     });
+    const foot = document.createElement("div");
+    foot.className = "pick-foot";
     const done = document.createElement("button");
     done.type = "button";
     done.className = "btn primary";
-    done.textContent = "Pronto";
+    done.textContent = "Pronto" + (draft.length ? " (" + draft.length + "/" + Game.C.EXPEDITION_SIZE + ")" : "");
     done.addEventListener("click", () => {
       expPick = null;
       render();
     });
-    list.append(done);
+    foot.append(done);
+    list.append(foot);
+    const step = () => {
+      const job = arts.shift();
+      if (!job) return;
+      const [art, sp] = job;
+      const url = art.isConnected && window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
+      if (url) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = "";
+        art.append(img);
+      }
+      if (art.isConnected) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   function renderExp(v) {
