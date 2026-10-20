@@ -1942,9 +1942,22 @@
       await loadScript("pets-list.js");
       for (const f of window.PET_FILES || []) await loadScriptSafe(f);
     } catch (err) {
+      let tries = 0;
+      try {
+        tries = Number(sessionStorage.getItem("pets.boot.retry") || 0);
+        sessionStorage.setItem("pets.boot.retry", String(tries + 1));
+      } catch (e) {}
+      if (tries < 2) {
+        $("loading-text").textContent = "Atualizando o app...";
+        setTimeout(() => location.reload(), 2500);
+        return;
+      }
       $("loading-text").textContent = "Não foi possível carregar o app. Verifique a conexão e recarregue.";
       return;
     }
+    try {
+      sessionStorage.removeItem("pets.boot.retry");
+    } catch (e) {}
 
     window.Pets.list.forEach(p => {
       meta[p.id] = { id: p.id, dex: p.dex || 999, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveBranches: p.evolveBranches || null, evolveLevel: p.evolveLevel || 0 };
