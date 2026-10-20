@@ -48,16 +48,78 @@ Pets.register({
           extra
         )
       );
-    const masked = m => {
+    const scaleTex = (() => {
+      const N = 256;
+      const mk = () => {
+        const c = document.createElement("canvas");
+        c.width = N;
+        c.height = N;
+        return c;
+      };
+      const cc = mk();
+      const ch = mk();
+      const gc = cc.getContext("2d");
+      const gh = ch.getContext("2d");
+      gc.fillStyle = "#23252d";
+      gc.fillRect(0, 0, N, N);
+      gh.fillStyle = "#000";
+      gh.fillRect(0, 0, N, N);
+      const W = N / 4;
+      const STEP = W * 0.42;
+      const rows = Math.round(N / STEP);
+      for (let r = rows + 1; r >= -1; r--) {
+        const y = r * STEP;
+        const off = (r % 2 ? W / 2 : 0);
+        for (let k = -1; k <= 4; k++) {
+          const x = k * W + off;
+          [0, N].forEach(dy => {
+            const cy = y - dy;
+            const tone = 0.9 + 0.2 * Math.sin(r * 2.3 + k * 1.7);
+            const g = gc.createRadialGradient(x, cy - W * 0.3, W * 0.05, x, cy - W * 0.1, W * 0.62);
+            g.addColorStop(0, "rgb(" + [104, 108, 122].map(v => Math.round(v * tone)).join(",") + ")");
+            g.addColorStop(0.7, "rgb(" + [66, 70, 82].map(v => Math.round(v * tone)).join(",") + ")");
+            g.addColorStop(1, "rgb(26,27,33)");
+            gc.fillStyle = g;
+            gc.beginPath();
+            gc.arc(x, cy - W * 0.2, W * 0.56, 0, Math.PI * 2);
+            gc.fill();
+            const h = gh.createRadialGradient(x, cy - W * 0.35, 0, x, cy - W * 0.2, W * 0.56);
+            h.addColorStop(0, "#fff");
+            h.addColorStop(0.75, "#999");
+            h.addColorStop(1, "#000");
+            gh.fillStyle = h;
+            gh.beginPath();
+            gh.arc(x, cy - W * 0.2, W * 0.56, 0, Math.PI * 2);
+            gh.fill();
+          });
+        }
+      }
+      const tex = c => {
+        const t = new THREE.CanvasTexture(c);
+        t.wrapS = THREE.RepeatWrapping;
+        t.wrapT = THREE.RepeatWrapping;
+        return t;
+      };
+      return { color: tex(cc), height: tex(ch) };
+    })();
+    const masked = (m, rep = 2.6) => {
       m.onBeforeCompile = sh => {
+        sh.uniforms.scaleMap = { value: scaleTex.color };
+        sh.uniforms.scaleH = { value: scaleTex.height };
+        sh.uniforms.scaleRep = { value: rep };
         sh.vertexShader = sh.vertexShader
           .replace("#include <common>", "#include <common>\nattribute float crack;\nvarying float vCrack;")
           .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCrack = crack;");
         sh.fragmentShader = sh.fragmentShader
-          .replace("#include <common>", "#include <common>\nvarying float vCrack;")
-          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(vec3(0.2, 0.21, 0.25), diffuseColor.rgb, vCrack);")
+          .replace("#include <common>", "#include <common>\nvarying float vCrack;\nuniform sampler2D scaleMap;\nuniform sampler2D scaleH;\nuniform float scaleRep;")
+          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(texture2D(scaleMap, vUv * scaleRep).rgb * 0.75, diffuseColor.rgb, vCrack);")
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= vCrack;")
-          .replace("#include <bumpmap_pars_fragment>", THREE.ShaderChunk.bumpmap_pars_fragment.replace(/bumpScale \*/g, "bumpScale * vCrack *"));
+          .replace(
+            "#include <bumpmap_pars_fragment>",
+            THREE.ShaderChunk.bumpmap_pars_fragment
+              .replace(/texture2D\( bumpMap, /g, "hmix( ")
+              .replace("uniform float bumpScale;", "uniform float bumpScale;\nvec4 hmix(vec2 uv) { return vec4(mix(texture2D(scaleH, uv * scaleRep).x * 0.6, texture2D(bumpMap, uv).x, vCrack)); }")
+          );
       };
       m.customProgramCacheKey = () => "magmarra-mask";
       return m;
