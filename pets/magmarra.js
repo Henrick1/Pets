@@ -441,8 +441,16 @@ Pets.register({
       const cap = new THREE.Group();
       cap.position.set(-0.16 * s, 0.4, 0);
       hip.add(cap);
+      const isFront = parent === front;
+      const PW = isFront ? 1.25 : 1;
+      const pawMid = new THREE.Group();
+      pawMid.position.set(0, -0.035, 0.09 * PW);
+      foot.add(pawMid);
+      const pawEnd = new THREE.Group();
+      pawEnd.position.set(0, -0.045, 0.2 * PW);
+      foot.add(pawEnd);
       const toe = new THREE.Group();
-      toe.position.set(0, -0.06, 0.04);
+      toe.position.set(0, -0.045, 0.235 * PW);
       foot.add(toe);
       const midA = new THREE.Group();
       midA.position.copy(knee.position).multiplyScalar(0.5);
@@ -460,35 +468,26 @@ Pets.register({
         { o: midB, rx: radii[4], ry: radii[4] * 1.1 },
         { o: ankle, rx: radii[5], ry: radii[5] * 1.05 },
         { o: foot, rx: radii[6], ry: radii[6] },
-        { o: toe, rx: 0.03, ry: 0.03 }
+        { o: pawMid, rx: 0.13 * PW, ry: 0.065 },
+        { o: pawEnd, rx: 0.12 * PW, ry: 0.05 },
+        { o: toe, rx: 0.04, ry: 0.03 }
       ];
-      const loft = makeLoft(chain.length, 4, 14, skinRock, { seed: sd, rough: 0.07, uSpan: 1.5, uvK: 0.9, ref: V3(0, 0, 1) });
+      const loft = makeLoft(chain.length, 4, 14, skinRock, { seed: sd, rough: 0.07, uSpan: 1.5, uvK: 0.9, ref: V3(1, 0, 0), shape: (c, sn, u) => [c, sn > 0 || u < 0.82 ? sn : sn * 0.6] });
       body.add(loft.mesh);
-      const isFront = parent === front;
-      const palm = mesh(rocky(new THREE.SphereGeometry(1, 16, 10), 0.06, sd + 1), smallRock);
-      palm.scale.set(isFront ? 0.14 : 0.12, 0.06, isFront ? 0.14 : 0.12);
-      palm.position.set(0, -0.03, 0.05);
-      foot.add(palm);
       const toes = isFront ? [-1.5, -0.5, 0.5, 1.5] : [-1, 0, 1];
       toes.forEach(j => {
-        const toe = new THREE.Group();
-        toe.position.set(j * (isFront ? 0.06 : 0.07), -0.035, 0.05 - Math.abs(j) * 0.02);
-        toe.rotation.y = -j * (isFront ? 0.38 : 0.45);
-        toe.rotation.x = 0.06;
-        const len = (isFront ? 0.21 : 0.15) - Math.abs(j) * 0.02;
-        const tg = rocky(new THREE.CylinderGeometry(isFront ? 0.034 : 0.028, isFront ? 0.05 : 0.04, len, 7, 2), 0.006, sd + j + 5);
-        tg.rotateX(Math.PI / 2);
-        tg.translate(0, 0, len / 2);
-        const tm = mesh(tg, smallRock, false);
-        tm.rotation.x = 0.1;
-        const knuckle = mesh(rocky(new THREE.SphereGeometry(isFront ? 0.052 : 0.042, 10, 8), 0.006, sd + j), smallRock, false);
-        const claw = mesh(talon(isFront ? 0.19 : 0.11, isFront ? 0.042 : 0.03), clawMat, false);
-        claw.position.set(0, -0.005, len - 0.005);
-        toe.add(knuckle, tm, claw);
-        foot.add(toe);
+        const t = new THREE.Group();
+        t.position.set(j * (isFront ? 0.075 : 0.075), -0.045, 0.2 * PW - Math.abs(j) * 0.03);
+        t.rotation.y = -j * (isFront ? 0.28 : 0.35);
+        const knuckle = mesh(rocky(new THREE.SphereGeometry(1, 10, 8), 0.06, sd + j), smallRock, false);
+        knuckle.scale.set(isFront ? 0.045 : 0.04, 0.04, 0.055);
+        const claw = mesh(talon(isFront ? 0.2 : 0.12, isFront ? 0.04 : 0.03), clawMat, false);
+        claw.position.set(0, 0.0, 0.03);
+        t.add(knuckle, claw);
+        foot.add(t);
       });
       const spur = mesh(shard(0.045, 0.15, sd), basalt, false);
-      spur.position.set(0, 0.02, -0.12);
+      spur.position.set(0, 0.01, -0.05);
       spur.rotation.x = -2.3;
       foot.add(spur);
       return { hip, knee, ankle, foot, s, chain, nodes: chainNodes(chain), loft };
