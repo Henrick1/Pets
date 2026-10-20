@@ -316,7 +316,7 @@ Pets.register({
     volcano.rotation.x = -0.18;
     volcano.scale.set(0.95, 1.25, 1.1);
     {
-      prof = [[0.8, -0.4], [0.72, -0.15], [0.62, 0.08], [0.5, 0.3], [0.4, 0.52], [0.32, 0.72], [0.29, 0.84], [0.25, 0.9], [0.18, 0.86], [0.12, 0.78], [0.02, 0.76]];
+      prof = [[0.56, -0.14], [0.6, 0.0], [0.58, 0.08], [0.5, 0.3], [0.4, 0.52], [0.32, 0.72], [0.29, 0.84], [0.25, 0.9], [0.18, 0.86], [0.12, 0.78], [0.02, 0.76]];
       const g = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 30, 0);
       const p = g.attributes.position;
       for (let i = 0; i < p.count; i++) {
@@ -330,14 +330,6 @@ Pets.register({
       }
       g.computeVertexNormals();
       volcano.add(mesh(g, coneRock));
-      for (let k = 0; k < 9; k++) {
-        const a = (k / 9) * Math.PI * 2 + 0.3;
-        const r = coneR(-0.02) + 0.04;
-        const chunk = mesh(shard(0.07 + (k % 3) * 0.02, 0.14 + (k % 2) * 0.06, k + 200), basalt, false);
-        chunk.position.set(Math.cos(a) * r, -0.06, Math.sin(a) * r);
-        chunk.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5);
-        volcano.add(chunk);
-      }
     }
     const crater = new THREE.Mesh(new THREE.CircleGeometry(0.17, 20), lavaMat);
     crater.rotation.x = -Math.PI / 2;
@@ -366,19 +358,28 @@ Pets.register({
       volcano.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.022, 6, false), lavaMat));
     });
 
-    [
-      [front, 0, 2.12, 1.46, 0.22, -0.5],
-      [front, 0, 2.02, 1.3, 0.2, -0.6],
-      [front, 0, 1.97, -0.08, 0.26, -0.5],
-      [front, 0, 1.95, -0.36, 0.24, -0.55],
-      [body, 0, 1.86, -0.66, 0.22, -0.6],
-      [body, 0, 1.78, -0.92, 0.2, -0.65]
-    ].forEach(([par, x, y, z, h, rx], i) => {
-      const a = anchor(par, x, y, z);
-      const sp = mesh(shard(0.075, h, i * 3), basalt, false);
-      sp.rotation.x = rx;
-      a.add(sp);
+    const dorsal = [1.25, 1.65, 2.05, 4.45, 4.8, 5.15].map((f, i) => {
+      const sp = mesh(shard(0.07, 0.22 - Math.abs(i - 2.5) * 0.01, i * 3), basalt, false);
+      body.add(sp);
+      return { sp, f };
     });
+    const dP = V3(0, 0, 0);
+    const dT = V3(0, 0, 0);
+    const dQ = V3(0, 0, 0);
+    const placeDorsal = () => {
+      const n = bodyN.length;
+      dorsal.forEach(({ sp, f }) => {
+        const k = Math.floor(f);
+        const t = f - k;
+        const q = i => bodyN[Math.max(0, Math.min(n - 1, i))].p;
+        catmull(q(k - 1), q(k), q(k + 1), q(k + 2), t, dP);
+        catmull(q(k - 1), q(k), q(k + 1), q(k + 2), Math.min(1, t + 0.05), dQ);
+        dT.subVectors(dQ, dP).normalize();
+        const ry = lerp(bodyN[k].ry, bodyN[Math.min(n - 1, k + 1)].ry, t) * 0.82;
+        sp.position.set(dP.x, dP.y + ry * 1.04, dP.z);
+        sp.rotation.set(-0.55 - Math.atan2(dT.y, Math.abs(dT.z) || 1e-3) * (dT.z < 0 ? -1 : 1), 0, 0);
+      });
+    };
 
     const makeLeg = (s, parent, J, radii, sd) => {
       const hip = anchor(parent, J[0][0] * s, J[0][1], J[0][2]);
@@ -460,12 +461,6 @@ Pets.register({
         [0.3, 0.27, 0.24, 0.16, 0.14, 0.12, 0.12],
         30 + s
       );
-      [0, 1, 2].forEach(k => {
-        const plate = mesh(shard(0.09 - k * 0.015, 0.26 - k * 0.05, 40 + s * 3 + k), basalt, false);
-        plate.position.set(0.2 * s, 0.14 - k * 0.1, -0.06 - k * 0.04);
-        plate.rotation.set(-1.9, 0, -0.55 * s);
-        L.hip.add(plate);
-      });
       return L;
     });
     const backLegs = [-1, 1].map(s =>
@@ -521,12 +516,12 @@ Pets.register({
     jawLoft.update(
       [
         [-0.04, 0.065, 0.02, 0.02],
-        [0.0, 0.062, 0.27, 0.12],
-        [0.17, 0.044, 0.3, 0.14],
-        [0.34, 0.03, 0.26, 0.13],
-        [0.52, 0.023, 0.2, 0.11],
-        [0.68, 0.021, 0.16, 0.09],
-        [0.8, 0.024, 0.09, 0.07],
+        [0.0, 0.062, 0.27, 0.2],
+        [0.17, 0.044, 0.3, 0.22],
+        [0.34, 0.03, 0.26, 0.2],
+        [0.52, 0.023, 0.2, 0.17],
+        [0.68, 0.021, 0.16, 0.13],
+        [0.8, 0.024, 0.09, 0.09],
         [0.85, 0.03, 0.02, 0.02]
       ].map(([z, y, rx, ry]) => ({ p: V3(0, y, z), rx, ry }))
     );
@@ -581,19 +576,19 @@ Pets.register({
     const eyes = [-1, 1].map(s => {
       const socket = new THREE.Mesh(new THREE.SphereGeometry(0.085, 14, 10), gumMat);
       socket.scale.set(1, 0.75, 0.5);
-      socket.position.set(0.27 * s, 0.1, 0.17);
-      socket.rotation.y = 0.75 * s;
+      socket.position.set(0.3 * s, 0.11, 0.15);
+      socket.rotation.y = 0.95 * s;
       head.add(socket);
       const e = eye({ size: 0.42, whiteColor: 0xffc23a, pupilColor: 0x1a0604 });
-      e.g.position.set(0.275 * s, 0.1, 0.18);
-      e.g.rotation.y = 0.75 * s;
+      e.g.position.set(0.315 * s, 0.11, 0.16);
+      e.g.rotation.y = 0.95 * s;
       e.pupil.scale.x = 0.4;
       head.add(e.g);
       return e;
     });
     const brows = [-1, 1].map(s => {
       const b = mesh(shard(0.07, 0.3, 60 + s), basalt);
-      b.position.set(0.2 * s, 0.2, 0.3);
+      b.position.set(0.25 * s, 0.22, 0.26);
       b.rotation.set(-1.75, 0.2 * s, -0.55 * s);
       head.add(b);
       return b;
@@ -710,6 +705,7 @@ Pets.register({
       bodyLoft.update(bodyN);
       readChain(bellyChain, bellyN);
       bellyLoft.update(bellyN);
+      placeDorsal();
       legs.forEach(L => {
         readChain(L.chain, L.nodes);
         L.loft.update(L.nodes);
