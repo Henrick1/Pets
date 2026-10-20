@@ -233,6 +233,126 @@ async function eco(p) {
   if (msg) bagSay(msg);
 }
 
+const shopBagBtn = document.getElementById("shop-bag");
+const bagNewEl = document.getElementById("bag-new");
+const bought = {};
+let bagNew = 0;
+let shownCoins = null;
+let coinAnim = 0;
+
+function setCoins(value, animate) {
+  if (!bagCoins.firstChild || bagCoins.firstChild.nodeType !== 3) bagCoins.prepend(document.createTextNode(""));
+  const txt = bagCoins.firstChild;
+  cancelAnimationFrame(coinAnim);
+  coinAnim = 0;
+  if (!animate || shownCoins === null || shownCoins === value) {
+    shownCoins = value;
+    txt.nodeValue = value + " moedas";
+    return;
+  }
+  const from = shownCoins;
+  const t0 = performance.now();
+  const step = now => {
+    const k = Math.max(0, Math.min(1, (now - t0) / 600));
+    shownCoins = Math.round(from + (value - from) * (1 - Math.pow(1 - k, 3)));
+    txt.nodeValue = shownCoins + " moedas";
+    coinAnim = k < 1 ? requestAnimationFrame(step) : 0;
+  };
+  coinAnim = requestAnimationFrame(step);
+  bagCoins.classList.remove("got");
+  void bagCoins.offsetWidth;
+  bagCoins.classList.add("got");
+  const d = el("span", "coin-delta", (value < from ? "-" : "+") + Math.abs(value - from));
+  bagCoins.appendChild(d);
+  setTimeout(() => d.remove(), 1000);
+}
+
+function relRect(r) {
+  const c = cardEl.getBoundingClientRect();
+  return { x: r.left - c.left, y: r.top - c.top, w: r.width, h: r.height };
+}
+
+function flyIcon(html, fromRect, toEl, onDone) {
+  const node = el("span", "fly");
+  node.innerHTML = html;
+  cardEl.appendChild(node);
+  const a = relRect(fromRect);
+  const b = relRect(toEl.getBoundingClientRect());
+  const x0 = a.x + a.w / 2 - 15;
+  const y0 = a.y + a.h / 2 - 15;
+  const x1 = b.x + b.w / 2 - 15;
+  const y1 = b.y + b.h / 2 - 15;
+  const lift = Math.min(y0, y1) - 50;
+  const frames = [];
+  for (let i = 0; i <= 12; i++) {
+    const k = i / 12;
+    const y = (1 - k) * (1 - k) * y0 + 2 * (1 - k) * k * lift + k * k * y1;
+    frames.push({ transform: "translate(" + (x0 + (x1 - x0) * k) + "px," + y + "px) scale(" + (1.15 - k * 0.6) + ")", opacity: k > 0.9 ? 0.3 : 1 });
+  }
+  let done = false;
+  const fin = () => {
+    if (done) return;
+    done = true;
+    node.remove();
+    toEl.classList.remove("got");
+    void toEl.offsetWidth;
+    toEl.classList.add("got");
+    if (onDone) onDone();
+  };
+  const an = node.animate(frames, { duration: 650, easing: "cubic-bezier(0.4, 0, 0.6, 1)", fill: "forwards" });
+  an.onfinish = fin;
+  setTimeout(fin, 750);
+}
+
+function sparkle(rect) {
+  const r = relRect(rect);
+  for (let i = 0; i < 12; i++) {
+    const p = el("span", "spark");
+    p.style.left = r.x + r.w / 2 + "px";
+    p.style.top = r.y + r.h / 2 + "px";
+    const a = (i / 12) * Math.PI * 2;
+    const d = 26 + (i % 3) * 12;
+    p.style.setProperty("--dx", Math.cos(a) * d + "px");
+    p.style.setProperty("--dy", Math.sin(a) * d + "px");
+    cardEl.appendChild(p);
+    setTimeout(() => p.remove(), 750);
+  }
+}
+
+function showBagNew() {
+  bagNewEl.textContent = "+" + bagNew;
+  bagNewEl.hidden = bagNew <= 0;
+}
+
+async function buy(op, id, row) {
+  if (bought[id] && bought[id] > Date.now()) return;
+  const before = lastState ? lastState.coins : null;
+  const icoRect = row.querySelector(".it-ico").getBoundingClientRect();
+  const html = row.querySelector(".it-ico").innerHTML;
+  const msg = await window.pet.eco(op === "egg" ? { op: "egg" } : { op: "buy", item: id });
+  if (!msg) return;
+  bought[id] = Date.now() + (op === "egg" ? 1600 : 900);
+  setTimeout(() => lastState && bagMode === "shop" && renderBag(lastState), op === "egg" ? 1650 : 950);
+  if (before !== null && lastState && lastState.coins !== before) {
+    shownCoins = before;
+    setCoins(lastState.coins, true);
+  }
+  if (lastState) renderBag(lastState);
+  const fresh = bagScroll.querySelector('[data-item="' + id + '"]');
+  if (fresh) {
+    fresh.classList.add("bought");
+    if (op === "egg") fresh.querySelector(".it-ico").classList.add("hop");
+  }
+  if (op === "egg") {
+    sparkle(icoRect);
+  } else {
+    flyIcon(html, icoRect, shopBagBtn, () => {
+      bagNew += 1;
+      showBagNew();
+    });
+  }
+}
+
 function btn(text, cls, onClick, disabled) {
   const b = el("button", cls || "", text);
   b.type = "button";
@@ -270,7 +390,12 @@ function itemLine(it, extra) {
 
 function renderBag(s) {
   bagTitle.textContent = MODE_TITLE[bagMode] || "";
-  bagCoins.textContent = bagMode === "shop" ? s.coins + " moedas" : "";
+  shopBagBtn.hidden = bagMode !== "shop";
+  showBagNew();
+  if (bagMode !== "shop") {
+    bagCoins.textContent = "";
+    shownCoins = null;
+  } else if (!coinAnim) setCoins(s.coins, shownCoins !== null);
   bagScroll.textContent = "";
   if (bagMode === "shop") renderShopPart(s);
   else if (bagMode === "exp") renderExpPart(s);
@@ -280,15 +405,20 @@ function renderBag(s) {
 function renderShopPart(s) {
   bagScroll.appendChild(el("p", "", "O que você compra vai para a mochila. O grupo rende moedas toda hora enquanto está alimentado e feliz."));
   const egg = itemLine({ id: "ovo", name: "Ovo misterioso" }, "");
-  egg.querySelector(".eff").textContent = "Nasce uma criatura aleatória";
+  egg.querySelector(".eff").textContent = bought.ovo && bought.ovo > Date.now() ? "Foi para o inventário de ovos" : "Nasce uma criatura aleatória";
   const eggBox = el("span", "it-btns");
-  eggBox.appendChild(btn(String(s.eggPrice), "price", () => eco({ op: "egg" }), s.coins < s.eggPrice || !s.eggPool));
+  const eggDone = bought.ovo && bought.ovo > Date.now();
+  const eggBtn = btn(eggDone ? "Comprado!" : String(s.eggPrice), "price" + (eggDone ? " done" : ""), () => buy("egg", "ovo", egg), !eggDone && (s.coins < s.eggPrice || !s.eggPool));
+  eggBox.appendChild(eggBtn);
+  egg.dataset.item = "ovo";
   egg.appendChild(eggBox);
   bagScroll.appendChild(egg);
   s.items.filter(it => it.price).forEach(it => {
     const row = itemLine(it, it.count ? "tem " + it.count : "");
     const box = el("span", "it-btns");
-    box.appendChild(btn(String(it.price), "price", () => eco({ op: "buy", item: it.id }), s.coins < it.price));
+    const done = bought[it.id] && bought[it.id] > Date.now();
+    box.appendChild(btn(done ? "Comprado!" : String(it.price), "price" + (done ? " done" : ""), () => buy("buy", it.id, row), !done && s.coins < it.price));
+    row.dataset.item = it.id;
     row.appendChild(box);
     bagScroll.appendChild(row);
   });
@@ -479,6 +609,8 @@ accountBtn.addEventListener("click", async () => {
 });
 
 function setMode(m) {
+  if (m === "bag") bagNew = 0;
+  if (m === "shop") shownCoins = null;
   bagMode = m;
   boxMode = false;
   expPick = null;
@@ -487,6 +619,7 @@ function setMode(m) {
 }
 openShopBtn.addEventListener("click", () => setMode("shop"));
 openBagBtn.addEventListener("click", () => setMode("bag"));
+shopBagBtn.addEventListener("click", () => setMode("bag"));
 openExpBtn.addEventListener("click", () => setMode("exp"));
 bagClose.addEventListener("click", () => setMode(null));
 dailyBtn.addEventListener("click", async () => {

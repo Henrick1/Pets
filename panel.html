@@ -144,6 +144,146 @@ html, body {
   border-radius: 10px;
   background: #ffffff;
 }
+.head-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.shop-bag {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: #f1f6f3;
+  color: #2e5f4a;
+}
+.shop-bag:hover {
+  background: #e1f1e8;
+}
+.bag-new {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #2e7d54;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+.got {
+  animation: got 0.45s ease;
+}
+@keyframes got {
+  40% {
+    transform: scale(1.3);
+  }
+}
+.coin-chip {
+  position: relative;
+}
+.coin-delta {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #c0392b;
+  pointer-events: none;
+  animation: coin-float 1s ease-out both;
+}
+@keyframes coin-float {
+  from {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -26px);
+    opacity: 0;
+  }
+}
+.it.bought {
+  animation: row-flash 0.9s ease;
+}
+@keyframes row-flash {
+  0% {
+    background: #c9ecd7;
+  }
+  100% {
+    background: #f3f7f5;
+  }
+}
+.it-btns button.price.done,
+.it-btns button.price.done:disabled {
+  background: #5fbf8c;
+  color: #0b1a12;
+  opacity: 1;
+  animation: got 0.45s ease;
+}
+.it-btns button.price.done::before {
+  display: none;
+}
+.fly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  pointer-events: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(30, 35, 64, 0.25);
+}
+.spark {
+  position: absolute;
+  z-index: 20;
+  width: 7px;
+  height: 7px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: #c9a8ff;
+  pointer-events: none;
+  animation: spark-out 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes spark-out {
+  from {
+    transform: translate(0, 0) scale(1.2);
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--dx), var(--dy)) scale(0.2);
+    opacity: 0;
+  }
+}
+.it-ico.hop {
+  animation: hop 0.6s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+@keyframes hop {
+  30% {
+    transform: translateY(3px) scale(1.15, 0.85);
+  }
+  55% {
+    transform: translateY(-12px) scale(0.92, 1.1) rotate(-8deg);
+  }
+  80% {
+    transform: translateY(0) scale(1.05, 0.95);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fly, .spark, .coin-delta { display: none; }
+  .it-ico.hop, .got, .it.bought { animation: none; }
+}
 .tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -576,6 +716,7 @@ html, body {
   color: #243029;
 }
 #card {
+  position: relative;
   box-sizing: border-box;
   margin: 8px;
   height: calc(100% - 16px);
@@ -772,7 +913,10 @@ button:focus-visible {
   <section id="bag" aria-labelledby="bag-title">
     <header>
       <div class="title"><h1 id="bag-title">Mochila</h1><span id="bag-coins" class="coin-chip"></span></div>
-      <button id="bag-close" type="button" aria-label="Voltar">&times;</button>
+      <span class="head-btns">
+        <button id="shop-bag" class="shop-bag" type="button" aria-label="Abrir a mochila" hidden><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="bag-new" class="bag-new" hidden></span></button>
+        <button id="bag-close" type="button" aria-label="Voltar">&times;</button>
+      </span>
     </header>
     <p id="bag-toast" role="status" hidden></p>
     <div id="bag-scroll"></div>
