@@ -561,7 +561,7 @@ Pets.register({
     const jaw = new THREE.Group();
     jaw.position.set(0, -0.1, -0.12);
     head.add(jaw);
-    const jawLoft = makeLoft(8, 5, 16, headRock, {
+    const jawLoft = makeLoft(6, 5, 16, headRock, {
       sym: true,
       seed: 13,
       rough: 0.04,
@@ -570,11 +570,9 @@ Pets.register({
     });
     jawLoft.update(
       [
-        [-0.04, 0.065, 0.02, 0.02],
-        [0.0, 0.062, 0.27, 0.2],
-        [0.17, 0.044, 0.3, 0.22],
-        [0.34, 0.03, 0.26, 0.2],
-        [0.52, 0.023, 0.2, 0.17],
+        [0.3, 0.06, 0.02, 0.02],
+        [0.36, 0.045, 0.2, 0.15],
+        [0.5, 0.028, 0.21, 0.17],
         [0.68, 0.021, 0.16, 0.13],
         [0.8, 0.024, 0.09, 0.09],
         [0.85, 0.03, 0.02, 0.02]
@@ -598,7 +596,7 @@ Pets.register({
     const lipMat = new THREE.MeshBasicMaterial({ color: 0x1e120c });
     const lipPts = s => [V3(0.27 * s, -0.02, -0.12), V3(0.3 * s, -0.035, 0.05), V3(0.26 * s, -0.05, 0.22), V3(0.2 * s, -0.06, 0.4), V3(0.16 * s, -0.065, 0.56), V3(0.09 * s, -0.065, 0.68), V3(0, -0.065, 0.735)];
     [-1, 1].forEach(s => {
-      const lip = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s).slice(2)), 24, 0.01, 5, false), lipMat);
+      const lip = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s).slice(3)), 24, 0.012, 5, false), lavaMat);
       head.add(lip);
       lips.push(lip);
       lipPts(s)
