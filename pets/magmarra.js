@@ -520,13 +520,13 @@ Pets.register({
     });
     jawLoft.update(
       [
-        [-0.08, -0.05, 0.02, 0.02],
-        [-0.04, -0.05, 0.22, 0.1],
-        [0.1, -0.07, 0.25, 0.1],
-        [0.3, -0.08, 0.22, 0.09],
-        [0.5, -0.08, 0.16, 0.075],
-        [0.66, -0.07, 0.1, 0.06],
-        [0.74, -0.065, 0.03, 0.03]
+        [-0.08, -0.012, 0.02, 0.02],
+        [-0.04, -0.012, 0.26, 0.1],
+        [0.1, -0.025, 0.31, 0.1],
+        [0.3, -0.022, 0.28, 0.09],
+        [0.5, -0.026, 0.22, 0.075],
+        [0.66, -0.021, 0.16, 0.06],
+        [0.74, -0.008, 0.06, 0.03]
       ].map(([z, y, rx, ry]) => ({ p: V3(0, y, z), rx, ry }))
     );
     jaw.add(jawLoft.mesh);
@@ -549,7 +549,7 @@ Pets.register({
             const tp = pt.clone().lerp(nxt, h);
             const tooth = mesh(new THREE.ConeGeometry(0.018 + (k === 3 && !h ? 0.006 : 0), 0.055 + (k === 3 && !h ? 0.03 : 0), 5), toothMat, false);
             tooth.rotation.x = Math.PI;
-            tooth.position.set(tp.x * 0.93, tp.y - 0.025, tp.z);
+            tooth.position.set(tp.x * 1.04, tp.y - 0.03, tp.z);
             head.add(tooth);
           });
         });
@@ -728,7 +728,7 @@ Pets.register({
         const breathe = Math.sin(t * 1.4) * motion;
         let rear = breathe * 0.01;
         let headPitch = -0.04;
-        let jawOpen = 0.03;
+        let jawOpen = 0;
         let tailLift = 0;
         let impact = -1;
         let shake = 0;
@@ -746,7 +746,7 @@ Pets.register({
           crouch = down * (1 - smooth(0.55, 0.9, p)) * 0.06;
           impact = p >= 0.5 ? (p - 0.5) / 0.5 : -1;
           shake = impact >= 0 ? Math.max(0, 1 - impact * 3) : 0;
-          jawOpen = 0.03 + up * (1 - down) * 0.18;
+          jawOpen = up * (1 - down) * 0.18;
           squint = p > 0.45 && p < 0.7;
         }
         if (a === "roar") {
@@ -754,7 +754,7 @@ Pets.register({
           const pre = smooth(0, 0.2, p) * (1 - smooth(0.2, 0.3, p));
           headPitch = -0.04 + pre * 0.3 - k * 0.45;
           rear = -pre * 0.04 + k * 0.3;
-          jawOpen = 0.03 + k * 0.55;
+          jawOpen = k * 0.55;
           roarK = p > 0.3 && p < 0.9 ? (p - 0.3) / 0.6 : -1;
           erupt = p > 0.25 ? smooth(0.25, 0.35, p) * (1 - smooth(0.8, 1, p)) : 0;
           shake = k * 0.3;
@@ -769,7 +769,7 @@ Pets.register({
         }
         if (a === "eat") {
           headPitch = -0.04 + (1 - ph.fall) * -0.25 + ph.chew * 0.1;
-          jawOpen = p > 0.12 && p < 0.85 ? (p < 0.3 ? 0.35 : 0.06 + ph.chew * 0.3) : 0.03;
+          jawOpen = p > 0.12 && p < 0.85 ? (p < 0.3 ? 0.35 : 0.06 + ph.chew * 0.3) : 0;
           squint = p > 0.3;
         }
 
