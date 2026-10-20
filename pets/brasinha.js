@@ -595,9 +595,10 @@ Pets.register({
     throat.position.set(0, -0.09, 0.02);
     head.add(throat);
     const lips = [];
+    const lipMat = new THREE.MeshBasicMaterial({ color: 0x1e120c });
     const lipPts = s => [V3(0.27 * s, -0.02, -0.12), V3(0.3 * s, -0.035, 0.05), V3(0.26 * s, -0.05, 0.22), V3(0.2 * s, -0.06, 0.4), V3(0.16 * s, -0.065, 0.56), V3(0.09 * s, -0.065, 0.68), V3(0, -0.065, 0.735)];
     [-1, 1].forEach(s => {
-      const lip = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s)), 30, 0.012, 5, false), lavaMat);
+      const lip = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lipPts(s).slice(2)), 24, 0.01, 5, false), lipMat);
       head.add(lip);
       lips.push(lip);
       lipPts(s)
