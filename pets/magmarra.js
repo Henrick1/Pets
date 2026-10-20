@@ -102,23 +102,25 @@ Pets.register({
       };
       return { color: tex(cc), height: tex(ch) };
     })();
-    const masked = (m, rep = 2.6) => {
+    const masked = (m, rep = 2.4) => {
       m.onBeforeCompile = sh => {
         sh.uniforms.scaleMap = { value: scaleTex.color };
         sh.uniforms.scaleH = { value: scaleTex.height };
         sh.uniforms.scaleRep = { value: rep };
         sh.vertexShader = sh.vertexShader
-          .replace("#include <common>", "#include <common>\nattribute float crack;\nattribute float scaly;\nvarying float vCrack;\nvarying float vScaly;")
-          .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCrack = crack;\nvScaly = scaly;");
+          .replace("#include <common>", "#include <common>\nattribute float crack;\nattribute float scaly;\nvarying float vCrack;\nvarying float vScaly;\nvarying vec3 vSP;\nvarying vec3 vSN;")
+          .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCrack = crack;\nvScaly = scaly;\nvSP = position;\nvSN = objectNormal;");
         sh.fragmentShader = sh.fragmentShader
-          .replace("#include <common>", "#include <common>\nvarying float vCrack;\nvarying float vScaly;\nuniform sampler2D scaleMap;\nuniform sampler2D scaleH;\nuniform float scaleRep;")
-          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(mix(vec3(0.2, 0.21, 0.25), texture2D(scaleMap, vUv * scaleRep).rgb * 0.75, vScaly), diffuseColor.rgb, vCrack);")
+          .replace("#include <common>", "#include <common>\nvarying float vCrack;\nvarying float vScaly;\nuniform sampler2D scaleMap;\nuniform sampler2D scaleH;\nuniform float scaleRep;\nvarying vec3 vSP;\nvarying vec3 vSN;\nvec3 triW() { vec3 w = pow(abs(normalize(vSN)), vec3(4.0)); return w / (w.x + w.y + w.z); }\nvec4 tri(sampler2D t, vec3 p) { vec3 w = triW(); p *= scaleRep; return texture2D(t, p.zy) * w.x + texture2D(t, p.xz) * w.y + texture2D(t, p.xy) * w.z; }")
+          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(mix(vec3(0.2, 0.21, 0.25), tri(scaleMap, vSP).rgb * 0.75, vScaly), diffuseColor.rgb, vCrack);")
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= vCrack;")
           .replace(
             "#include <bumpmap_pars_fragment>",
             THREE.ShaderChunk.bumpmap_pars_fragment
-              .replace(/texture2D\( bumpMap, /g, "hmix( ")
-              .replace("uniform float bumpScale;", "uniform float bumpScale;\nvec4 hmix(vec2 uv) { return vec4(mix(texture2D(scaleH, uv * scaleRep).x * 0.6 * vScaly, texture2D(bumpMap, uv).x, vCrack)); }")
+              .replace("texture2D( bumpMap, vUv ).x", "hmix(vUv, vSP)")
+              .replace("texture2D( bumpMap, vUv + dSTdx ).x", "hmix(vUv + dSTdx, vSP + dFdx(vSP))")
+              .replace("texture2D( bumpMap, vUv + dSTdy ).x", "hmix(vUv + dSTdy, vSP + dFdy(vSP))")
+              .replace("uniform float bumpScale;", "uniform float bumpScale;\nfloat hmix(vec2 uv, vec3 p) { return mix(tri(scaleH, p).x * 0.6 * vScaly, texture2D(bumpMap, uv).x, vCrack); }")
           );
       };
       m.customProgramCacheKey = () => "magmarra-mask";
