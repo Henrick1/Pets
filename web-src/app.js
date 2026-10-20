@@ -1065,8 +1065,16 @@
     const c = document.createElement("span");
     c.className = "exp-chip";
     const d = document.createElement("span");
-    d.className = "dot";
-    d.style.background = p.color;
+    d.className = "exp-chip-art";
+    d.style.setProperty("--c", p.color);
+    const sp = Game.speciesOf(state, p.id);
+    const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      d.append(img);
+    }
     const n = document.createElement("span");
     n.className = "exp-chip-name";
     n.textContent = p.name;
