@@ -131,9 +131,9 @@ Pets.register({
       return prof[6][0];
     };
     const volcano = new THREE.Group();
-    volcano.position.set(0, 0.6, 0.62);
-    volcano.rotation.x = -0.12;
-    volcano.scale.set(1.35, 1.45, 1.35);
+    volcano.position.set(0, 0.46, 0.66);
+    volcano.rotation.x = -0.1;
+    volcano.scale.set(1.0, 1.55, 1.15);
     front.add(volcano);
     {
       const pts = [];
@@ -376,11 +376,8 @@ Pets.register({
         const u = i / (n - 1);
         const g = new THREE.Group();
         g.position.y = i === 0 ? 0 : 0.16;
-        const r = 0.34 * (1 - 0.78 * u);
-        const seg = mesh(blob(0.07, 90 + i, 18, 12), tailRock);
-        seg.scale.set(r, 0.14, r);
-        seg.position.y = 0.06;
-        g.add(seg);
+        const r = 0.34 * (1 - 0.8 * Math.pow(u, 0.9));
+        g.userData.r = r;
         if (i < n - 1) {
           const sp = mesh(shard(0.05 * (1 - u * 0.5) + 0.02, 0.12 + (1 - u) * 0.08, 100 + i), basalt, false);
           sp.position.set(0, 0.06, -r * 0.85);
@@ -401,6 +398,97 @@ Pets.register({
       parent.add(tipG);
       tail.tip = tipG;
     }
+    const TS = 3;
+    const TR = 14;
+    const tailRings = (tail.length - 1) * TS + 2;
+    const tailGeo = new THREE.BufferGeometry();
+    {
+      const pos = new Float32Array(tailRings * (TR + 1) * 3);
+      const uv = [];
+      const idx = [];
+      for (let i = 0; i < tailRings; i++) {
+        for (let j = 0; j <= TR; j++) uv.push(j / TR, i / (tailRings - 1));
+      }
+      for (let i = 0; i < tailRings - 1; i++) {
+        for (let j = 0; j < TR; j++) {
+          const a = i * (TR + 1) + j;
+          const b = a + TR + 1;
+          idx.push(a, b, a + 1, a + 1, b, b + 1);
+        }
+      }
+      tailGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      tailGeo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+      tailGeo.setIndex(idx);
+    }
+    const tailRough = [];
+    for (let i = 0; i < tailRings; i++) {
+      const row = [];
+      for (let j = 0; j <= TR; j++) {
+        const a = ((j % TR) / TR) * Math.PI * 2;
+        row.push(1 + 0.07 * Math.sin(a * 3 + i * 1.7) * Math.sin(i * 0.9 + a) + 0.05 * Math.sin(a * 7 - i * 2.3) + (Math.sin(a) < -0.6 ? -0.08 : 0));
+      }
+      tailRough.push(row);
+    }
+    const tailMesh = mesh(tailGeo, tailRock);
+    tailMesh.frustumCulled = false;
+    body.add(tailMesh);
+    const tailM = new THREE.Matrix4();
+    const tailInv = new THREE.Matrix4();
+    const bP = [];
+    const bX = [];
+    const bZ = [];
+    tail.forEach(() => {
+      bP.push(V3(0, 0, 0));
+      bX.push(V3(0, 0, 0));
+      bZ.push(V3(0, 0, 0));
+    });
+    const tP = V3(0, 0, 0);
+    const tX = V3(0, 0, 0);
+    const tZ = V3(0, 0, 0);
+    const updateTailMesh = () => {
+      body.updateMatrixWorld(true);
+      tailInv.copy(body.matrixWorld).invert();
+      tail.forEach((g, i) => {
+        tailM.multiplyMatrices(tailInv, g.matrixWorld);
+        bP[i].set(0, 0.06, 0).applyMatrix4(tailM);
+        const e = tailM.elements;
+        bX[i].set(e[0], e[1], e[2]).normalize();
+        bZ[i].set(e[8], e[9], e[10]).normalize();
+      });
+      const arr = tailGeo.attributes.position.array;
+      const last = tail.length - 1;
+      for (let ri = 0; ri < tailRings; ri++) {
+        let r;
+        if (ri === tailRings - 1) {
+          tail.tip.getWorldPosition(tP);
+          tP.applyMatrix4(tailInv);
+          tX.copy(bX[last]);
+          tZ.copy(bZ[last]);
+          r = 0.012;
+        } else {
+          const f = ri / TS;
+          const i0 = Math.min(last, Math.floor(f));
+          const i1 = Math.min(last, i0 + 1);
+          const k = f - i0;
+          tP.lerpVectors(bP[i0], bP[i1], k);
+          tX.lerpVectors(bX[i0], bX[i1], k).normalize();
+          tZ.lerpVectors(bZ[i0], bZ[i1], k).normalize();
+          r = lerp(tail[i0].userData.r, tail[i1].userData.r, k);
+        }
+        for (let j = 0; j <= TR; j++) {
+          const a = ((j % TR) / TR) * Math.PI * 2;
+          const rr = r * tailRough[ri][j];
+          const o = (ri * (TR + 1) + j) * 3;
+          const cx = Math.cos(a) * rr;
+          const cz = Math.sin(a) * rr;
+          arr[o] = tP.x + tX.x * cx + tZ.x * cz;
+          arr[o + 1] = tP.y + tX.y * cx + tZ.y * cz;
+          arr[o + 2] = tP.z + tX.z * cx + tZ.z * cz;
+        }
+      }
+      tailGeo.attributes.position.needsUpdate = true;
+      tailGeo.computeVertexNormals();
+    };
 
     const fx = new THREE.Group();
     root.add(fx);
@@ -559,6 +647,7 @@ Pets.register({
           g.rotation.x = 0.06 + tailLift * 0.12 * (1 - u);
           g.rotation.z = Math.sin(t * 1.3 - i * 0.45) * 0.07 * u * motion * (tailLift > 0.2 ? 0.2 : 1);
         });
+        updateTailMesh();
 
         const surge = (impact >= 0 && a === "slam" ? Math.max(0, 1 - impact * 2) * 1.2 : 0) + erupt * 1.4;
         const lavaK = (0.42 + Math.sin(t * 1.4) * 0.1 * motion + surge * 0.6) * heat;
