@@ -22,7 +22,7 @@ Pets.register({
     const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, lavaRock } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 58, 54], lava: [255, 104, 20], patches: 5 });
+    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 58, 54], lava: [255, 104, 20] });
     const A = lavaRock({ seed: 29, cells: 40, crack: 1.3, rock: [84, 74, 70], lava: [150, 70, 40] });
     const B = lavaRock({ seed: 5, stripes: 9, cols: 1, crack: 2.6, rock: [128, 74, 50], lava: [255, 140, 44] });
     const rep = (t, x, y) => {
@@ -48,12 +48,27 @@ Pets.register({
           extra
         )
       );
-    const skinRock = rockMat(T, 1, 1);
-    const headRock = rockMat(T, 1.4, 1.4);
-    const smallRock = rockMat(T, 1.2, 1);
+    const masked = m => {
+      m.onBeforeCompile = sh => {
+        sh.vertexShader = sh.vertexShader
+          .replace("#include <common>", "#include <common>\nattribute float crack;\nvarying float vCrack;")
+          .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCrack = crack;");
+        sh.fragmentShader = sh.fragmentShader
+          .replace("#include <common>", "#include <common>\nvarying float vCrack;")
+          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(vec3(0.15, 0.125, 0.115), diffuseColor.rgb, vCrack);")
+          .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= vCrack;")
+          .replace("#include <bumpmap_pars_fragment>", THREE.ShaderChunk.bumpmap_pars_fragment.replace(/bumpScale \*/g, "bumpScale * vCrack *"));
+      };
+      m.customProgramCacheKey = () => "magmarra-mask";
+      return m;
+    };
+    const skinRock = masked(rockMat(T, 1, 1));
+    const headRock = masked(rockMat(T, 1.4, 1.4));
+    const smallRock = masked(rockMat(T, 1.2, 1));
+    const hornRock = rockMat(T, 1.4, 1.4);
     const coneRock = rockMat(A, 3, 1.2, { emissiveIntensity: 0.15 });
     const bellyMat = rockMat(B, 1, 1, { flatShading: false, bumpScale: 0.025, roughness: 0.8 });
-    const rockMats = [skinRock, headRock, smallRock];
+    const rockMats = [skinRock, headRock, smallRock, hornRock];
     const basalt = new THREE.MeshStandardMaterial({ color: 0x2c2422, roughness: 0.8, flatShading: true });
     const clawMat = mat(0x1a1210, 0.35);
     const toothMat = mat(0xe6d8c0, 0.45);
@@ -118,6 +133,15 @@ Pets.register({
       geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
       geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
       geo.setIndex(idx);
+      const crackArr = new Float32Array(rings * (R + 1));
+      for (let i = 0; i < rings; i++) {
+        for (let j = 0; j <= R; j++) {
+          const jj = closed ? j % R : j;
+          const a = a0 + (jj / R) * (a1 - a0);
+          crackArr[i * (R + 1) + j] = o.crack ? Math.max(0, Math.min(1, o.crack(i / seg, Math.cos(a), Math.sin(a), i / (rings - 1)))) : 0;
+        }
+      }
+      geo.setAttribute("crack", new THREE.BufferAttribute(crackArr, 1));
       const rough = [];
       const sd = o.seed || 1;
       for (let i = 0; i < rings; i++) {
@@ -268,6 +292,12 @@ Pets.register({
       seed: 3,
       uSpan: 3,
       uvK: 0.75,
+      crack: (f, c, s) => {
+        const near = 1 - smooth(0.6, 1.6, Math.abs(f - 3.7));
+        const aroundVolcano = near * smooth(-0.45, 0.35, s);
+        const topNeck = f < 3.7 ? smooth(0.2, 0.8, s) : 0;
+        return Math.max(aroundVolcano, topNeck);
+      },
       shape: (c, s) => {
         const b = bellyShape(c, s);
         return [b[0] * (1 + 0.04 * Math.pow(Math.abs(c), 6)), b[1] + 0.12 * Math.pow(Math.max(0, s), 14)];
@@ -482,6 +512,7 @@ Pets.register({
     const head = anchor(front, 0, 2.02, 1.8);
     const headLoft = makeLoft(9, 5, 20, headRock, {
       sym: true,
+      crack: (f, c, s, u) => smooth(0.2, 0.7, s) * (1 - smooth(0.45, 0.75, u)),
       seed: 11,
       rough: 0.05,
       uSpan: 1.6,
@@ -602,7 +633,7 @@ Pets.register({
       g.scale.setScalar(1.4);
       let y = 0;
       [0.13, 0.105, 0.08, 0.055].forEach((r, i) => {
-        const chunk = mesh(rocky(new THREE.CylinderGeometry(r * 0.85, r, r * 1.9, 6, 2), 0.012, 60 + i + s * 7), i === 3 ? basalt : headRock);
+        const chunk = mesh(rocky(new THREE.CylinderGeometry(r * 0.85, r, r * 1.9, 6, 2), 0.012, 60 + i + s * 7), i === 3 ? basalt : hornRock);
         chunk.position.y = y + r * 0.95;
         chunk.rotation.y = i * 0.7;
         chunk.rotation.z = i * 0.08 * s;
@@ -625,7 +656,7 @@ Pets.register({
       side.rotation.set(-1.2, 0, -1.1 * s);
       let y2 = 0;
       [0.07, 0.05].forEach((r, i) => {
-        const c = mesh(rocky(new THREE.CylinderGeometry(r * 0.8, r, r * 1.8, 6, 1), 0.01, 70 + i + s), headRock, false);
+        const c = mesh(rocky(new THREE.CylinderGeometry(r * 0.8, r, r * 1.8, 6, 1), 0.01, 70 + i + s), hornRock, false);
         c.position.y = y2 + r * 0.9;
         side.add(c);
         y2 += r * 1.7;
