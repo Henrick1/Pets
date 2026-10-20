@@ -99,22 +99,26 @@ Pets.register({
     root.add(body);
 
     const pelvis = mesh(blob(0.06, 2), bodyRock);
-    pelvis.scale.set(0.6, 0.45, 0.55);
-    pelvis.position.set(0, 1.6, -0.08);
+    pelvis.scale.set(0.64, 0.56, 0.6);
+    pelvis.position.set(0, 1.22, -0.72);
     body.add(pelvis);
 
-    const upper = new THREE.Group();
-    upper.position.set(0, 1.62, 0);
-    body.add(upper);
+    const front = new THREE.Group();
+    front.position.set(0, 1.15, -0.7);
+    body.add(front);
 
-    const torso = mesh(blob(0.05, 3, 36, 26), bodyRock);
-    torso.scale.set(0.6, 0.84, 0.52);
-    torso.position.set(0, 0.55, 0);
-    upper.add(torso);
+    const torso = mesh(blob(0.05, 3, 40, 28), bodyRock);
+    torso.scale.set(0.74, 0.62, 1.1);
+    torso.position.set(0, 0.17, 0.72);
+    front.add(torso);
+    const chest = mesh(blob(0.05, 4, 30, 22), bodyRock);
+    chest.scale.set(0.66, 0.6, 0.5);
+    chest.position.set(0, 0.24, 1.42);
+    front.add(chest);
     const belly = mesh(rocky(new THREE.SphereGeometry(1, 32, 26), 0.02, 4), bellyMat);
-    belly.scale.set(0.4, 0.68, 0.3);
-    belly.position.set(0, 0.42, 0.28);
-    upper.add(belly);
+    belly.scale.set(0.56, 0.36, 1.0);
+    belly.position.set(0, -0.12, 0.85);
+    front.add(belly);
 
     let prof = [];
     const coneK = (a, y) => 1 + 0.09 * Math.sin(a * 5 + y * 6) + 0.05 * Math.sin(a * 11 - y * 13) + (y > 0.78 ? 0.08 * Math.sin(a * 7) : 0);
@@ -127,10 +131,10 @@ Pets.register({
       return prof[6][0];
     };
     const volcano = new THREE.Group();
-    volcano.position.set(0, 0.98, -0.3);
-    volcano.rotation.x = -0.5;
-    volcano.scale.set(1.15, 1.35, 1.15);
-    upper.add(volcano);
+    volcano.position.set(0, 0.6, 0.62);
+    volcano.rotation.x = -0.12;
+    volcano.scale.set(1.35, 1.45, 1.35);
+    front.add(volcano);
     {
       const pts = [];
       prof = [
@@ -191,110 +195,73 @@ Pets.register({
       rivulets.push(m);
     });
 
-    const plates = [];
-    [[0.6, -0.5, 0.42], [0.95, -0.42, 0.36], [0.25, -0.55, 0.3]].forEach(([y, z, h], i) => {
-      [-1, 1].forEach(s => {
-        const sp = mesh(shard(0.08, h, i * 3 + s), basalt, false);
-        sp.position.set(0.32 * s, y, z);
-        sp.rotation.set(-1.2, 0, -0.5 * s);
-        upper.add(sp);
-        plates.push(sp);
-      });
+    [[0.82, 1.62, 0.3], [0.8, 1.42, 0.24], [0.72, 1.98, 0.26]].forEach(([y, z, h], i) => {
+      const sp = mesh(shard(0.075, h, i * 3), basalt, false);
+      sp.position.set(0, y, z);
+      sp.rotation.x = -0.35;
+      front.add(sp);
+    });
+    [[1.55, -0.62, 0.28], [1.5, -0.86, 0.24], [1.42, -1.08, 0.2]].forEach(([y, z, h], i) => {
+      const sp = mesh(shard(0.07, h, 20 + i), basalt, false);
+      sp.position.set(0, y, z);
+      sp.rotation.x = -0.6;
+      body.add(sp);
     });
 
-    const arms = [-1, 1].map(s => {
-      const pivot = new THREE.Group();
-      pivot.position.set(0.58 * s, 0.92, 0.12);
-      const pad = mesh(blob(0.12, 5 + s, 14, 10), basalt);
-      pad.scale.set(0.24, 0.2, 0.24);
-      pad.position.set(0.04 * s, 0.04, 0);
-      const up = mesh(blob(0.06, 6 + s, 20, 14), limbRock);
-      up.scale.set(0.16, 0.27, 0.17);
-      up.position.set(0.06 * s, -0.2, 0);
-      const elbow = new THREE.Group();
-      elbow.position.set(0.08 * s, -0.42, 0.02);
-      const fore = mesh(blob(0.06, 7 + s, 20, 14), limbRock);
-      fore.scale.set(0.14, 0.22, 0.15);
-      fore.position.set(0, -0.12, 0.06);
-      const hand = mesh(blob(0.08, 8 + s, 16, 12), limbRock);
-      hand.scale.set(0.14, 0.11, 0.14);
-      hand.position.set(0, -0.3, 0.12);
-      elbow.add(fore, hand);
-      [-1, 0, 1].forEach(j => {
-        const c = mesh(new THREE.ConeGeometry(0.03, 0.12, 6), clawMat, false);
-        c.position.set(j * 0.065, -0.36, 0.22);
-        c.rotation.x = 1.9;
-        elbow.add(c);
-      });
-      elbow.rotation.x = -0.9;
-      pivot.add(pad, up, elbow);
-      upper.add(pivot);
-      return { pivot, elbow, s };
-    });
-
-    const HIP = 1.62;
-    const legs = [-1, 1].map(s => {
+    const makeLeg = (s, parent, x, y, z, big, sd) => {
       const hip = new THREE.Group();
-      hip.position.set(0.36 * s, HIP, -0.02);
-      const thigh = mesh(blob(0.05, 10 + s, 28, 20), limbRock);
-      thigh.scale.set(0.31, 0.5, 0.36);
-      thigh.position.set(0.04 * s, -0.28, 0.1);
-      thigh.rotation.x = -0.45;
+      hip.position.set(x * s, y, z);
+      const upperLeg = mesh(blob(0.06, sd + s, 26, 18), limbRock);
+      upperLeg.scale.set(0.24 * big, 0.42 * big, 0.28 * big);
+      upperLeg.position.set(0.03 * s, -0.24, 0.02);
       const knee = new THREE.Group();
-      knee.position.set(0.04 * s, -0.6, 0.26);
-      const kneeCap = mesh(new THREE.DodecahedronGeometry(0.12, 0), basalt, false);
-      kneeCap.position.set(0, 0.02, 0.08);
-      const shin = mesh(blob(0.06, 12 + s, 22, 16), limbRock);
-      shin.scale.set(0.15, 0.32, 0.17);
-      shin.position.set(0, -0.25, -0.14);
-      shin.rotation.x = 0.55;
-      const ankle = new THREE.Group();
-      ankle.position.set(0, -0.5, -0.3);
-      const meta = mesh(blob(0.06, 14 + s, 18, 14), limbRock);
-      meta.scale.set(0.11, 0.25, 0.13);
-      meta.position.set(0, -0.2, 0.05);
-      meta.rotation.x = -0.25;
+      knee.position.set(0.03 * s, -0.55, 0.06);
+      const lower = mesh(blob(0.06, sd + 2 + s, 22, 16), limbRock);
+      lower.scale.set(0.18 * big, 0.3, 0.2 * big);
+      lower.position.set(0, -0.22, -0.02);
       const foot = new THREE.Group();
-      foot.position.set(0, -0.42, 0.1);
-      const pad = mesh(blob(0.07, 16 + s, 22, 14), limbRock);
-      pad.scale.set(0.2, 0.09, 0.3);
-      pad.position.set(0, -0.01, 0.14);
+      foot.position.set(0, -0.5, 0.02);
+      const pad = mesh(blob(0.07, sd + 4 + s, 22, 14), limbRock);
+      pad.scale.set(0.23 * big, 0.11, 0.3 * big);
+      pad.position.set(0, 0, 0.08);
       foot.add(pad);
       [-1, 0, 1].forEach(j => {
-        const toe = mesh(blob(0.05, 18 + j, 12, 10), limbRock, false);
-        toe.scale.set(0.06, 0.06, 0.12);
-        toe.position.set(j * 0.1, -0.02, 0.36 - Math.abs(j) * 0.05);
-        toe.rotation.y = -j * 0.25;
-        const c = mesh(new THREE.ConeGeometry(0.04, 0.13, 6), clawMat, false);
-        c.rotation.x = Math.PI / 2 + 0.3;
-        c.position.set(j * 0.12, -0.04, 0.5 - Math.abs(j) * 0.06);
-        foot.add(toe, c);
+        const c = mesh(new THREE.ConeGeometry(0.042, 0.13, 6), clawMat, false);
+        c.rotation.x = Math.PI / 2 + 0.35;
+        c.position.set(j * 0.11 * big, -0.03, 0.35 * big - Math.abs(j) * 0.05);
+        foot.add(c);
       });
-      const spur = mesh(shard(0.05, 0.18, s), basalt, false);
-      spur.position.set(0, 0, -0.08);
-      spur.rotation.x = -2.4;
-      ankle.add(meta, foot, spur);
-      knee.add(kneeCap, shin, ankle);
-      hip.add(thigh, knee);
-      body.add(hip);
-      return { hip, knee, ankle, foot, s };
+      knee.add(lower, foot);
+      hip.add(upperLeg, knee);
+      parent.add(hip);
+      return { hip, knee, foot, s };
+    };
+    const frontLegs = [-1, 1].map(s => {
+      const L = makeLeg(s, front, 0.56, 0.05, 1.42, 1, 30);
+      const pad = mesh(blob(0.12, 40 + s, 14, 10), basalt);
+      pad.scale.set(0.26, 0.2, 0.3);
+      pad.position.set(0.08 * s, 0.08, 0);
+      L.hip.add(pad);
+      return L;
     });
+    const backLegs = [-1, 1].map(s => makeLeg(s, body, 0.58, 1.12, -0.72, 1.15, 50));
 
     const neck = mesh(blob(0.05, 20, 24, 18), bodyRock);
-    neck.scale.set(0.32, 0.38, 0.34);
-    neck.position.set(0, 1.26, 0.3);
-    neck.rotation.x = 0.5;
-    upper.add(neck);
-    for (let i = 0; i < 4; i++) {
+    neck.scale.set(0.36, 0.42, 0.48);
+    neck.position.set(0, 0.55, 1.78);
+    neck.rotation.x = -0.7;
+    front.add(neck);
+    for (let i = 0; i < 3; i++) {
       const sp = mesh(shard(0.06 - i * 0.008, 0.2 - i * 0.03, 30 + i), basalt, false);
-      sp.position.set(0, 1.35 - i * 0.16, 0.12 - i * 0.12);
-      sp.rotation.x = -0.9 - i * 0.12;
-      upper.add(sp);
+      sp.position.set(0, 0.95 - i * 0.14, 1.72 - i * 0.14);
+      sp.rotation.x = -0.6 - i * 0.12;
+      front.add(sp);
     }
 
     const head = new THREE.Group();
-    head.position.set(0, 1.62, 0.5);
-    upper.add(head);
+    head.position.set(0, 0.86, 2.12);
+    front.add(head);
+    head.scale.setScalar(1.15);
     const skull = mesh(blob(0.05, 40, 32, 24), headRock);
     skull.scale.set(0.38, 0.33, 0.44);
     head.add(skull);
@@ -400,8 +367,8 @@ Pets.register({
     const tail = [];
     {
       const base = new THREE.Group();
-      base.position.set(0, 1.5, -0.44);
-      base.rotation.x = -2.35;
+      base.position.set(0, 1.2, -1.12);
+      base.rotation.x = -2.2;
       body.add(base);
       let parent = base;
       const n = 12;
@@ -479,7 +446,7 @@ Pets.register({
     }
 
     const glow = new THREE.PointLight(0xff6a1a, 0.6, 6);
-    glow.position.set(0, 1.4, 1.1);
+    glow.position.set(0, 1.9, 2.3);
     body.add(glow);
     const ventGlow = new THREE.PointLight(0xff7a2a, 0.6, 3);
     ventGlow.position.set(0, 1.1, 0);
@@ -506,8 +473,8 @@ Pets.register({
         const heat = s.dying ? 0.25 : 0.55 + 0.45 * Math.max(0, Math.min(1, hunger / 100));
 
         const breathe = Math.sin(t * 1.4) * motion;
-        let lean = 0.35 + breathe * 0.015;
-        let headPitch = -0.3;
+        let rear = breathe * 0.01;
+        let headPitch = 0.1;
         let jawOpen = 0.04;
         let tailLift = 0;
         let impact = -1;
@@ -517,13 +484,12 @@ Pets.register({
         let stompSide = 0;
         let crouch = 0;
         let squint = false;
-        let armsUp = 0;
 
         if (a === "slam") {
           const up = smooth(0.05, 0.4, p);
           const down = smooth(0.4, 0.5, p);
           tailLift = up * (1 - down) * 1.5 - down * (1 - smooth(0.6, 1, p)) * 0.12;
-          lean = 0.35 - up * (1 - down) * 0.12 + down * (1 - smooth(0.55, 0.9, p)) * 0.12;
+          rear = up * (1 - down) * 0.06 - down * (1 - smooth(0.55, 0.9, p)) * 0.05;
           crouch = down * (1 - smooth(0.55, 0.9, p)) * 0.08;
           impact = p >= 0.5 ? (p - 0.5) / 0.5 : -1;
           shake = impact >= 0 ? Math.max(0, 1 - impact * 3) : 0;
@@ -533,10 +499,9 @@ Pets.register({
         if (a === "roar") {
           const k = smooth(0.1, 0.3, p) * (1 - smooth(0.85, 1, p));
           const pre = smooth(0, 0.2, p) * (1 - smooth(0.2, 0.3, p));
-          headPitch = -0.3 + pre * 0.3 - k * 0.35;
-          lean = 0.35 + pre * 0.08 - k * 0.22;
+          headPitch = 0.1 + pre * 0.3 - k * 0.45;
+          rear = -pre * 0.04 + k * 0.32;
           jawOpen = 0.04 + k * 0.55;
-          armsUp = k;
           roarK = p > 0.3 && p < 0.9 ? (p - 0.3) / 0.6 : -1;
           erupt = p > 0.25 ? smooth(0.25, 0.35, p) * (1 - smooth(0.8, 1, p)) : 0;
           shake = k * 0.3;
@@ -550,7 +515,7 @@ Pets.register({
           shake = impact >= 0 ? Math.max(0, 1 - impact * 4) * 0.6 : 0;
         }
         if (a === "eat") {
-          headPitch = -0.3 + (1 - ph.fall) * -0.25 + ph.chew * 0.08;
+          headPitch = 0.1 + (1 - ph.fall) * -0.25 + ph.chew * 0.1;
           jawOpen = p > 0.12 && p < 0.85 ? (p < 0.3 ? 0.35 : 0.06 + ph.chew * 0.3) : 0.04;
           squint = p > 0.3;
         }
@@ -559,36 +524,35 @@ Pets.register({
         root.rotation.y = lookYaw;
         root.rotation.x = lookPitch;
         body.position.set(Math.sin(t * 61) * 0.025 * sh, -crouch + Math.abs(Math.sin(t * 47)) * 0.015 * sh, 0);
-        upper.rotation.x = lean;
-        upper.rotation.z = Math.sin(t * 0.9) * 0.02 * motion;
+        front.rotation.x = -rear;
+        front.rotation.z = Math.sin(t * 0.9) * 0.012 * motion;
         head.rotation.x = headPitch + Math.sin(t * 1.4 + 1) * 0.02 * motion;
         head.rotation.y = pointer.x * 0.2;
         jaw.rotation.x = jawOpen;
         throat.visible = jawOpen > 0.12;
 
-        legs.forEach(({ hip, knee, ankle, foot, s: sd }) => {
+        frontLegs.forEach(({ hip, knee, foot, s: sd }) => {
           let lift = 0;
           if (a === "stomp" && sd === stompSide) {
             const q = (p % 0.5) / 0.5;
-            lift = Math.sin(Math.min(1, q / 0.6) * Math.PI) * 0.6;
+            lift = Math.sin(Math.min(1, q / 0.6) * Math.PI) * 0.7;
           }
-          hip.rotation.x = -lift * 0.8 - crouch * 2.2;
-          knee.rotation.x = lift * 0.6 + crouch * 3;
-          ankle.rotation.x = -crouch * 1.2 + lift * 0.3;
-          foot.rotation.x = -lift * 0.3;
-          hip.position.y = HIP - crouch;
+          const rearK = Math.max(0, rear) * 3;
+          hip.rotation.x = -lift * 0.9 - rearK * 0.5 + rear;
+          knee.rotation.x = lift * 1.3 + rearK * 0.9;
+          foot.rotation.x = -lift * 0.4 + rearK * 0.3;
+          hip.position.y = 0.05 - crouch;
         });
-
-        arms.forEach(({ pivot, elbow, s: sd }) => {
-          const swing = Math.sin(t * 1.4 + sd) * 0.05 * motion;
-          pivot.rotation.x = -0.35 + swing - armsUp * 0.6;
-          pivot.rotation.z = (0.2 + armsUp * 0.55) * sd;
-          elbow.rotation.x = -0.9 - armsUp * 0.3;
+        backLegs.forEach(({ hip, knee, foot }) => {
+          hip.rotation.x = crouch * 1.5;
+          knee.rotation.x = -crouch * 2.5;
+          foot.rotation.x = crouch;
+          hip.position.y = 1.12 - crouch;
         });
 
         tail.forEach((g, i) => {
           if (i === 0) {
-            g.parent.rotation.x = -2.35 + tailLift * 0.55;
+            g.parent.rotation.x = -2.2 + tailLift * 0.55;
             return;
           }
           const u = i / tail.length;
@@ -643,7 +607,13 @@ Pets.register({
         tail.tip.getWorldPosition(tipW);
         fx.worldToLocal(tipW);
         if (a === "slam") hitPos.set(tipW.x, 0.05, tipW.z);
-        else if (a === "stomp") legs.forEach(({ hip, s: sd }) => sd === stompSide && hitPos.set(hip.position.x * 0.86, 0.05, 0.3));
+        else if (a === "stomp")
+          frontLegs.forEach(({ foot, s: sd }) => {
+            if (sd !== stompSide) return;
+            foot.getWorldPosition(hitPos);
+            fx.worldToLocal(hitPos);
+            hitPos.y = 0.05;
+          });
         const showSparks = impact >= 0 && !reduceMotion;
         sparks.forEach((spk, i) => {
           const q = a === "slam" ? impact * 1.1 : impact * 0.8;
