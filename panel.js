@@ -241,8 +241,24 @@ function btn(text, cls, onClick, disabled) {
   return b;
 }
 
+const ITEM_ICONS = {
+  fruta: '<circle cx="12" cy="14" r="7" fill="#e5484d"/><path d="M12 7c0-2 1-3 3-4" stroke="#6b4423" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M13 6c2-1 4 0 5 1-2 1-4 1-5-1z" fill="#4caf50"/>',
+  doce: '<path d="M3 9l4 3-4 3zM21 9l-4 3 4 3z" fill="#f48fb1"/><circle cx="12" cy="12" r="5.5" fill="#ec407a"/><path d="M9 10c2 1 4 3 6 4" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/>',
+  petisco: '<path d="M6 8a2.5 2.5 0 1 1 3-3l6 6a2.5 2.5 0 1 1 3 3 2.5 2.5 0 1 1-3 3l-6-6a2.5 2.5 0 1 1-3-3z" fill="#d7a86e"/>',
+  peixe: '<path d="M3 12c3-5 10-6 14 0-4 6-11 5-14 0z" fill="#4fa3e0"/><path d="M17 12l4-4v8z" fill="#3a86c0"/><circle cx="8" cy="11" r="1.2" fill="#123"/>',
+  pocao: '<path d="M10 3h4v4l3 5a5 5 0 1 1-10 0l3-5z" fill="#f06363"/><rect x="9.5" y="2" width="5" height="2" rx="1" fill="#8d6e63"/>',
+  "pocao-grande": '<path d="M9 2h6v4l4 6a7 7 0 1 1-14 0l4-6z" fill="#d32f2f"/><rect x="8.5" y="1" width="7" height="2.4" rx="1" fill="#8d6e63"/><path d="M9 14h6M12 11v6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>',
+  reviver: '<path d="M12 2l2.6 6.3 6.4.4-5 4.2 1.7 6.6L12 16l-5.7 3.5L8 12.9 3 8.7l6.4-.4z" fill="#ffca28"/><path d="M12 8v6M9 11h6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>',
+  dourada: '<circle cx="12" cy="14" r="7" fill="#f6c343"/><circle cx="9.5" cy="11.5" r="1.8" fill="#fff6c8"/><path d="M12 7c0-2 1-3 3-4" stroke="#6b4423" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M13 6c2-1 4 0 5 1-2 1-4 1-5-1z" fill="#4caf50"/>',
+  cristal: '<path d="M12 2l6 7-6 13-6-13z" fill="#9c7cf4"/><path d="M6 9h12M12 2l-2 7 2 13 2-13z" stroke="#e6dcff" stroke-width="1" fill="none"/>',
+  ovo: '<path d="M12 2.5c3.8 0 7 6 7 11a7 7 0 0 1-14 0c0-5 3.2-11 7-11z" fill="#fff3df" stroke="#d9c7a8" stroke-width="1"/><circle cx="9.5" cy="12" r="2" fill="#b9a7d6"/><circle cx="14.5" cy="16" r="1.6" fill="#b9a7d6"/>'
+};
+
 function itemLine(it, extra) {
   const row = el("div", "it");
+  const ico = el("span", "it-ico");
+  ico.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' + (ITEM_ICONS[it.id] || "") + "</svg>";
+  row.appendChild(ico);
   const info = el("span", "info");
   const line = el("span", "name-line");
   line.appendChild(el("span", "", it.name));
@@ -263,16 +279,16 @@ function renderBag(s) {
 
 function renderShopPart(s) {
   bagScroll.appendChild(el("p", "", "O que você compra vai para a mochila. O grupo rende moedas toda hora enquanto está alimentado e feliz."));
-  const egg = itemLine({ name: "Ovo misterioso" }, "");
+  const egg = itemLine({ id: "ovo", name: "Ovo misterioso" }, "");
   egg.querySelector(".eff").textContent = "Nasce uma criatura aleatória";
   const eggBox = el("span", "it-btns");
-  eggBox.appendChild(btn(s.eggPrice + " moedas", "", () => eco({ op: "egg" }), s.coins < s.eggPrice || !s.eggPool));
+  eggBox.appendChild(btn(String(s.eggPrice), "price", () => eco({ op: "egg" }), s.coins < s.eggPrice || !s.eggPool));
   egg.appendChild(eggBox);
   bagScroll.appendChild(egg);
   s.items.filter(it => it.price).forEach(it => {
     const row = itemLine(it, it.count ? "tem " + it.count : "");
     const box = el("span", "it-btns");
-    box.appendChild(btn(it.price + " moedas", "", () => eco({ op: "buy", item: it.id }), s.coins < it.price));
+    box.appendChild(btn(String(it.price), "price", () => eco({ op: "buy", item: it.id }), s.coins < it.price));
     row.appendChild(box);
     bagScroll.appendChild(row);
   });
