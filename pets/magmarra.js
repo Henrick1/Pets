@@ -412,6 +412,18 @@ Pets.register({
       });
     };
 
+    const talon = (len, r) => {
+      const g = new THREE.ConeGeometry(r, len, 8, 6);
+      g.translate(0, len / 2, 0);
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const y = p.getY(i) / len;
+        p.setZ(i, p.getZ(i) + y * y * len * 0.5);
+      }
+      g.rotateX(Math.PI / 2);
+      g.computeVertexNormals();
+      return g;
+    };
     const makeLeg = (s, parent, J, radii, sd) => {
       const hip = anchor(parent, J[0][0] * s, J[0][1], J[0][2]);
       const knee = new THREE.Group();
@@ -452,24 +464,26 @@ Pets.register({
       ];
       const loft = makeLoft(chain.length, 4, 14, skinRock, { seed: sd, rough: 0.07, uSpan: 1.5, uvK: 0.9, ref: V3(0, 0, 1) });
       body.add(loft.mesh);
-      const palm = mesh(rocky(new THREE.SphereGeometry(1, 16, 10), 0.08, sd + 1), smallRock);
-      palm.scale.set(0.2, 0.085, 0.22);
-      palm.position.set(0, -0.03, 0.06);
+      const isFront = parent === front;
+      const palm = mesh(rocky(new THREE.SphereGeometry(1, 16, 10), 0.06, sd + 1), smallRock);
+      palm.scale.set(isFront ? 0.14 : 0.12, 0.06, isFront ? 0.14 : 0.12);
+      palm.position.set(0, -0.03, 0.05);
       foot.add(palm);
-      [-1, 0, 1].forEach(j => {
+      const toes = isFront ? [-1.5, -0.5, 0.5, 1.5] : [-1, 0, 1];
+      toes.forEach(j => {
         const toe = new THREE.Group();
-        toe.position.set(j * 0.1, -0.05, 0.16);
-        toe.rotation.y = -j * 0.32;
-        const tg = rocky(new THREE.CylinderGeometry(0.04, 0.06, 0.18, 7, 2), 0.01, sd + j + 5);
+        toe.position.set(j * (isFront ? 0.06 : 0.07), -0.035, 0.05 - Math.abs(j) * 0.02);
+        toe.rotation.y = -j * (isFront ? 0.38 : 0.45);
+        toe.rotation.x = 0.06;
+        const len = (isFront ? 0.21 : 0.15) - Math.abs(j) * 0.02;
+        const tg = rocky(new THREE.CylinderGeometry(isFront ? 0.034 : 0.028, isFront ? 0.05 : 0.04, len, 7, 2), 0.006, sd + j + 5);
         tg.rotateX(Math.PI / 2);
-        tg.translate(0, 0, 0.07);
+        tg.translate(0, 0, len / 2);
         const tm = mesh(tg, smallRock, false);
-        tm.rotation.x = 0.12;
-        const knuckle = mesh(rocky(new THREE.SphereGeometry(0.058, 10, 8), 0.008, sd + j), smallRock, false);
-        knuckle.position.z = -0.01;
-        const claw = mesh(new THREE.ConeGeometry(0.035, 0.12, 6), clawMat, false);
-        claw.rotation.x = Math.PI / 2 + 0.55;
-        claw.position.set(0, -0.025, 0.2);
+        tm.rotation.x = 0.1;
+        const knuckle = mesh(rocky(new THREE.SphereGeometry(isFront ? 0.052 : 0.042, 10, 8), 0.006, sd + j), smallRock, false);
+        const claw = mesh(talon(isFront ? 0.19 : 0.11, isFront ? 0.042 : 0.03), clawMat, false);
+        claw.position.set(0, -0.005, len - 0.005);
         toe.add(knuckle, tm, claw);
         foot.add(toe);
       });
@@ -489,7 +503,7 @@ Pets.register({
           [0.54, 0.544, 1.017],
           [0.54, 0.34, 1.068]
         ],
-        [0.3, 0.27, 0.24, 0.16, 0.14, 0.12, 0.12],
+        [0.28, 0.25, 0.21, 0.13, 0.115, 0.09, 0.07],
         30 + s
       );
       return L;
@@ -504,7 +518,7 @@ Pets.register({
           [0.55, 0.38, -0.7],
           [0.55, 0.16, -0.6]
         ],
-        [0.36, 0.34, 0.31, 0.18, 0.15, 0.12, 0.12],
+        [0.33, 0.31, 0.27, 0.15, 0.125, 0.095, 0.075],
         50 + s
       )
     );
