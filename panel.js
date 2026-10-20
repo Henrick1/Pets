@@ -48,7 +48,19 @@ function chip(p) {
   c.append(dotFor(p), el("span", "", p.name));
   return c;
 }
-let bagMode = false;
+let bagMode = null;
+const openShopBtn = document.getElementById("open-shop");
+const openExpBtn = document.getElementById("open-exp");
+const dailyBtn = document.getElementById("daily-btn");
+const bagTitle = document.getElementById("bag-title");
+const MODE_TITLE = { shop: "Loja", bag: "Mochila", exp: "Expedições" };
+const sub = id => document.getElementById(id + "-sub");
+const setTile = (btn, text, hot, disabled) => {
+  sub(btn.id).textContent = text;
+  btn.classList.toggle("hot", !!hot);
+  btn.querySelector(".tile-dot").hidden = !hot;
+  btn.disabled = !!disabled;
+};
 let bagToastTimer = 0;
 let lastState = null;
 let boxMode = false;
@@ -147,8 +159,6 @@ function renderParty(s) {
     btn.addEventListener("click", () => window.pet.selectPet(p.id));
     listEl.appendChild(btn);
   });
-  openBoxBtn.textContent = s.box.length ? "Abrir a caixa (" + s.box.length + ")" : "Caixa vazia";
-  openBoxBtn.disabled = s.box.length === 0;
 }
 
 function renderBox(s) {
@@ -243,19 +253,50 @@ function itemLine(it, extra) {
 }
 
 function renderBag(s) {
-  bagCoins.textContent = s.coins + " moedas";
+  bagTitle.textContent = MODE_TITLE[bagMode] || "";
+  bagCoins.textContent = bagMode === "shop" ? s.coins + " moedas" : "";
   bagScroll.textContent = "";
-  if (s.daily && s.daily.available) {
-    bagScroll.appendChild(el("h2", "", "Presente do dia"));
-    const row = el("div", "it");
-    const info = el("span", "info");
-    info.append(el("span", "name-line", "Dia " + s.daily.step + " de " + s.dailyRewards.length), el("span", "eff", s.daily.streak > 1 ? s.daily.streak + " dias seguidos" : "Volte todo dia para ganhar mais"));
+  if (bagMode === "shop") renderShopPart(s);
+  else if (bagMode === "exp") renderExpPart(s);
+  else renderItemsPart(s);
+}
+
+function renderShopPart(s) {
+  bagScroll.appendChild(el("p", "", "O que você compra vai para a mochila. O grupo rende moedas toda hora enquanto está alimentado e feliz."));
+  const egg = itemLine({ name: "Ovo misterioso" }, "");
+  egg.querySelector(".eff").textContent = "Nasce uma criatura aleatória";
+  const eggBox = el("span", "it-btns");
+  eggBox.appendChild(btn(s.eggPrice + " moedas", "", () => eco({ op: "egg" }), s.coins < s.eggPrice || !s.eggPool));
+  egg.appendChild(eggBox);
+  bagScroll.appendChild(egg);
+  s.items.filter(it => it.price).forEach(it => {
+    const row = itemLine(it, it.count ? "tem " + it.count : "");
     const box = el("span", "it-btns");
-    box.appendChild(btn("Pegar " + s.daily.coins + " moedas", "", () => eco({ op: "daily" })));
-    row.append(info, box);
+    box.appendChild(btn(it.price + " moedas", "", () => eco({ op: "buy", item: it.id }), s.coins < it.price));
+    row.appendChild(box);
     bagScroll.appendChild(row);
+  });
+}
+
+function renderItemsPart(s) {
+  const cur = s.party.find(p => p.id === s.pet);
+  const have = s.items.filter(it => it.count > 0);
+  if (!have.length) {
+    bagScroll.appendChild(el("p", "", "A mochila está vazia. Compre itens na loja ou mande bichinhos em expedições."));
+    bagScroll.appendChild(btn("Ir para a loja", "solid", () => setMode("shop")));
   }
-  bagScroll.appendChild(el("h2", "", "Expedições"));
+  else bagScroll.appendChild(el("p", "", "Os itens são usados em " + (cur ? cur.name : "") + "."));
+  have.forEach(it => {
+    const row = itemLine(it, "x" + it.count);
+    const box = el("span", "it-btns");
+    if (it.hunger || it.life || it.joy || it.xp || it.revive) box.appendChild(btn("Usar", "", () => eco({ op: "use", item: it.id }), !it.canUse));
+    if (it.sell) box.appendChild(btn("Vender " + it.sell, "ghost", () => eco({ op: "sell", item: it.id })));
+    row.appendChild(box);
+    bagScroll.appendChild(row);
+  });
+}
+
+function renderExpPart(s) {
   bagScroll.appendChild(el("p", "", "Até " + s.expeditionSize + " criaturas por expedição, do grupo ou da caixa. Quem sai não gasta nada e volta com moedas e itens do seu tipo."));
   const rows = {};
   s.party.concat(s.box).forEach(p => (rows[p.id] = p));
@@ -323,33 +364,6 @@ function renderBag(s) {
     }
     bagScroll.appendChild(card);
   });
-  const cur = s.party.find(p => p.id === s.pet);
-  const have = s.items.filter(it => it.count > 0);
-  bagScroll.appendChild(el("h2", "", "Itens"));
-  if (!have.length) bagScroll.appendChild(el("p", "", "A mochila está vazia."));
-  else bagScroll.appendChild(el("p", "", "Os itens são usados em " + (cur ? cur.name : "") + "."));
-  have.forEach(it => {
-    const row = itemLine(it, "x" + it.count);
-    const box = el("span", "it-btns");
-    if (it.hunger || it.life || it.joy || it.xp || it.revive) box.appendChild(btn("Usar", "", () => eco({ op: "use", item: it.id }), !it.canUse));
-    if (it.sell) box.appendChild(btn("Vender " + it.sell, "ghost", () => eco({ op: "sell", item: it.id })));
-    row.appendChild(box);
-    bagScroll.appendChild(row);
-  });
-  bagScroll.appendChild(el("h2", "", "Loja"));
-  const egg = itemLine({ name: "Ovo misterioso" }, "");
-  egg.querySelector(".eff").textContent = "Nasce uma criatura aleatória";
-  const eggBox = el("span", "it-btns");
-  eggBox.appendChild(btn(s.eggPrice + " moedas", "", () => eco({ op: "egg" }), s.coins < s.eggPrice || !s.eggPool));
-  egg.appendChild(eggBox);
-  bagScroll.appendChild(egg);
-  s.items.filter(it => it.price).forEach(it => {
-    const row = itemLine(it, it.count ? "tem " + it.count : "");
-    const box = el("span", "it-btns");
-    box.appendChild(btn(it.price + " moedas", "", () => eco({ op: "buy", item: it.id }), s.coins < it.price));
-    row.appendChild(box);
-    bagScroll.appendChild(row);
-  });
 }
 
 function renderAccount(acc) {
@@ -376,12 +390,19 @@ function render(s) {
   renderAccount(s.account);
   if (pickFor && !s.box.some(p => p.id === pickFor)) pickFor = null;
   if (boxMode && s.box.length === 0) boxMode = false;
-  if (s.needsStarter) bagMode = false;
+  if (s.needsStarter) bagMode = null;
   if (!cardEl.classList.contains("auth-mode")) {
     cardEl.classList.toggle("box-mode", boxMode);
     cardEl.classList.toggle("bag-mode", bagMode && !boxMode);
   }
-  openBagBtn.textContent = "Mochila e expedições · " + s.coins + " moedas" + (s.daily && s.daily.available ? " · presente do dia!" : s.expeditions.some(x => x.endsAt <= s.now) ? " · expedição voltou!" : "");
+  const itemCount = s.items.reduce((n, it) => n + it.count, 0);
+  const ready = s.expeditions.filter(x => x.endsAt <= s.now).length;
+  setTile(openShopBtn, s.coins + " moedas", false);
+  setTile(openBagBtn, itemCount ? itemCount + (itemCount === 1 ? " item" : " itens") : "Vazia", false);
+  setTile(openExpBtn, ready ? (ready === 1 ? "1 voltou!" : ready + " voltaram!") : s.expeditions.length ? s.expeditions.length + " em andamento" : "Nenhuma", ready > 0);
+  setTile(openBoxBtn, s.box.length ? s.box.length + (s.box.length === 1 ? " bichinho" : " bichinhos") : "Vazia", false, s.box.length === 0);
+  dailyBtn.hidden = !(s.daily && s.daily.available);
+  if (s.daily && s.daily.available) dailyBtn.textContent = "Presente do dia: pegar " + s.daily.coins + " moedas" + (s.daily.streak > 1 ? " (" + s.daily.streak + " dias seguidos)" : "");
   if (bagMode) renderBag(s);
   renderParty(s);
   renderBox(s);
@@ -441,21 +462,36 @@ accountBtn.addEventListener("click", async () => {
   }
 });
 
-openBagBtn.addEventListener("click", () => {
-  bagMode = true;
+function setMode(m) {
+  bagMode = m;
   boxMode = false;
+  expPick = null;
+  bagScroll.scrollTop = 0;
   if (lastState) render(lastState);
+}
+openShopBtn.addEventListener("click", () => setMode("shop"));
+openBagBtn.addEventListener("click", () => setMode("bag"));
+openExpBtn.addEventListener("click", () => setMode("exp"));
+bagClose.addEventListener("click", () => setMode(null));
+dailyBtn.addEventListener("click", async () => {
+  const msg = await window.pet.eco({ op: "daily" });
+  if (msg) {
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.hidden = true;
+    }, 4000);
+  }
 });
-bagClose.addEventListener("click", () => {
-  bagMode = false;
-  if (lastState) render(lastState);
-});
+document.getElementById("site-btn").addEventListener("click", () => window.pet.openSite());
 setInterval(() => {
   if (!bagMode || !lastState) return;
   if (lastState.expeditions.some(x => x.endsAt <= Date.now() && x.endsAt > lastState.now)) window.pet.getState().then(render);
   else bagScroll.querySelectorAll("[data-ends]").forEach(t => (t.textContent = "Volta em " + fmtTime(Number(t.dataset.ends) - Date.now())));
 }, 1000);
 openBoxBtn.addEventListener("click", () => {
+  bagMode = null;
   boxMode = true;
   pickFor = null;
   if (lastState) render(lastState);
@@ -473,7 +509,7 @@ closeBtn.addEventListener("click", () => window.pet.closePanel());
 window.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (bagMode) {
-    bagMode = false;
+    bagMode = null;
     if (lastState) render(lastState);
   } else if (boxMode) {
     boxMode = false;

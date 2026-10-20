@@ -109,11 +109,119 @@ html, body {
   opacity: 0.6;
   cursor: default;
 }
-.links {
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  flex: none;
+}
+.tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: #f3f7f5;
+  text-align: left;
+}
+.tile:hover:not(:disabled) {
+  background: #e9f0ec;
+}
+.tile:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.tile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.tile.hot {
+  border-color: #2e7d54;
+  background: #e1f1e8;
+}
+.tile-ico {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #2e5f4a;
+}
+.tile-txt {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  min-width: 0;
+}
+.tile-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.tile-sub {
+  font-size: 11px;
+  color: #5b6b63;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile.hot .tile-sub {
+  color: #1b5e3b;
+  font-weight: 700;
+}
+.tile-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  border: 2px solid #ffffff;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e5645a;
+}
+.daily-btn {
+  flex: none;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #f6c343;
+  color: #3a2a05;
+}
+.daily-btn:hover {
+  background: #f2b92a;
+}
+.site-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #c9d6cf;
+  border-radius: 12px;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #ffffff;
+  color: #2e5f4a;
+}
+.site-btn:hover {
+  background: #f1f6f3;
+}
+.coin-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff3c4;
+  color: #6b4d00;
+  font-size: 12px;
+  font-weight: 700;
+}
+.coin-chip:empty {
+  display: none;
 }
 .exp {
   display: flex;
@@ -625,7 +733,7 @@ button:focus-visible {
   </section>
   <section id="bag" aria-labelledby="bag-title">
     <header>
-      <div class="title"><h1 id="bag-title">Mochila</h1><span id="bag-coins"></span></div>
+      <div class="title"><h1 id="bag-title">Mochila</h1><span id="bag-coins" class="coin-chip"></span></div>
       <button id="bag-close" type="button" aria-label="Voltar">&times;</button>
     </header>
     <p id="bag-toast" role="status" hidden></p>
@@ -663,10 +771,30 @@ button:focus-visible {
   </div>
   <h2>Seu grupo</h2>
   <div id="pets"></div>
-  <div class="links">
-    <button id="open-bag" class="link" type="button">Mochila e expedições</button>
-    <button id="open-box" class="link" type="button"></button>
+  <button id="daily-btn" class="daily-btn" type="button" hidden></button>
+  <div class="tiles">
+    <button id="open-shop" class="tile" type="button">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="#f6c343" stroke="#c98a12" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#c98a12" stroke-width="1.6"/></svg></span>
+      <span class="tile-txt"><span class="tile-title">Loja</span><span id="open-shop-sub" class="tile-sub"></span></span>
+      <span class="tile-dot" hidden></span>
+    </button>
+    <button id="open-bag" class="tile" type="button">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span class="tile-txt"><span class="tile-title">Mochila</span><span id="open-bag-sub" class="tile-sub"></span></span>
+      <span class="tile-dot" hidden></span>
+    </button>
+    <button id="open-exp" class="tile" type="button">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 21V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 5h11l-2.5 4L17 13H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+      <span class="tile-txt"><span class="tile-title">Expedições</span><span id="open-exp-sub" class="tile-sub"></span></span>
+      <span class="tile-dot" hidden></span>
+    </button>
+    <button id="open-box" class="tile" type="button">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 8l8-4 8 4v9l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 8l8 4 8-4M12 12v9" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+      <span class="tile-txt"><span class="tile-title">Caixa</span><span id="open-box-sub" class="tile-sub"></span></span>
+      <span class="tile-dot" hidden></span>
+    </button>
   </div>
+  <button id="site-btn" class="site-btn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Abrir o site</span></button>
   <footer id="account" hidden>
     <div id="account-info"><span id="acc-email"></span><span id="acc-status"></span></div>
     <button id="account-btn" class="link" type="button">Sair</button>
