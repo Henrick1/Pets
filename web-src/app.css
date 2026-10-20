@@ -2203,3 +2203,58 @@ a.btn.soft {
   height: 100%;
   object-fit: contain;
 }
+
+.heal-timer {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+  animation: heal-pop 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+.heal-timer[hidden] {
+  display: none;
+}
+
+.heal-timer svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.heal-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--text) 14%, transparent);
+  stroke-width: 4;
+}
+
+.heal-ring {
+  fill: none;
+  stroke: #5ad18a;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  transform: rotate(-90deg) scaleX(-1);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.pill-a {
+  fill: #f2f2f2;
+}
+
+.pill-b {
+  fill: #e5534b;
+}
+
+@keyframes heal-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}

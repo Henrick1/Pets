@@ -1337,6 +1337,26 @@
     }
   }
 
+  let healUntil = 0;
+  let healTicker = null;
+  function tickHeal() {
+    const box = $("heal-timer");
+    const left = healUntil - Date.now();
+    if (left <= 0) {
+      box.hidden = true;
+      clearInterval(healTicker);
+      healTicker = null;
+      return;
+    }
+    box.hidden = false;
+    const total = Game.C.TREAT_HEAL_MIN * 60000;
+    $("heal-ring").style.strokeDashoffset = String(100 - Math.max(0, Math.min(100, (left / total) * 100)));
+    const m = Math.ceil(left / 60000);
+    box.setAttribute("aria-label", "Em tratamento, faltam " + (m >= 60 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : m + " min"));
+    box.title = box.getAttribute("aria-label");
+    if (!healTicker) healTicker = setInterval(tickHeal, 5000);
+  }
+
   function itemNode(p, tag) {
     const el = document.createElement(tag || "div");
     el.className = "item";
@@ -1543,7 +1563,8 @@
     });
     $("feed").disabled = v.hunger >= 100;
     $("treat").disabled = !v.treat.can;
-    $("treat").textContent = v.treat.healing ? "Tratando…" : "Tratar";
+    healUntil = v.treat.healing ? v.treat.healUntil : 0;
+    tickHeal();
     $("treat").title = v.treat.healing ? "Recuperando a vida" : v.treat.used ? "Já tratada hoje" : v.dying ? "" : "Só quando estiver morrendo";
     $("party-alert").hidden = !(state.expeditions.some(x => x.endsAt <= Date.now()) || v.party.some(p => !p.away && (p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25)));
     $("shop-btn").setAttribute("aria-label", "Loja · " + v.coins + " moedas");
