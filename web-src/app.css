@@ -2207,7 +2207,7 @@ a.btn.soft {
 .heal-timer {
   position: absolute;
   top: 12px;
-  right: 12px;
+  left: 12px;
   width: 44px;
   height: 44px;
   border-radius: 50%;
