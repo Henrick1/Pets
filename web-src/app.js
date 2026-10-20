@@ -1542,7 +1542,9 @@
       $("tags").append(t);
     });
     $("feed").disabled = v.hunger >= 100;
-    $("treat").disabled = v.life >= 100;
+    $("treat").disabled = !v.treat.can;
+    $("treat").textContent = v.treat.healing ? "Tratando…" : "Tratar";
+    $("treat").title = v.treat.healing ? "Recuperando a vida" : v.treat.used ? "Já tratada hoje" : v.dying ? "" : "Só quando estiver morrendo";
     $("party-alert").hidden = !(state.expeditions.some(x => x.endsAt <= Date.now()) || v.party.some(p => !p.away && (p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25)));
     $("shop-btn").setAttribute("aria-label", "Loja · " + v.coins + " moedas");
     if ($("shop-sheet").open) renderShop();

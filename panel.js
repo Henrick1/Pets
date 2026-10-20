@@ -596,7 +596,9 @@ function render(s) {
   statusEl.textContent = s.needsStarter
     ? ""
     : [s.hunger <= 25 && "Fome", s.joy <= 25 && "Triste", s.dying && "Morrendo"].filter(Boolean).join(" ");
-  treatBtn.disabled = s.life >= 100;
+  treatBtn.disabled = !(s.treat && s.treat.can);
+  treatBtn.textContent = s.treat && s.treat.healing ? "Tratando…" : "Tratar";
+  treatBtn.title = !s.treat ? "" : s.treat.healing ? "Recuperando a vida" : s.treat.used ? "Já tratada hoje" : s.dying ? "" : "Só quando estiver morrendo";
   evolveBtn.hidden = !s.evolveTo;
 
   feedBtn.disabled = Math.round(s.hunger) >= 100;
