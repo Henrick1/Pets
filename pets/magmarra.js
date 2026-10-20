@@ -108,17 +108,17 @@ Pets.register({
         sh.uniforms.scaleH = { value: scaleTex.height };
         sh.uniforms.scaleRep = { value: rep };
         sh.vertexShader = sh.vertexShader
-          .replace("#include <common>", "#include <common>\nattribute float crack;\nvarying float vCrack;")
-          .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCrack = crack;");
+          .replace("#include <common>", "#include <common>\nattribute float crack;\nattribute float scaly;\nvarying float vCrack;\nvarying float vScaly;")
+          .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCrack = crack;\nvScaly = scaly;");
         sh.fragmentShader = sh.fragmentShader
-          .replace("#include <common>", "#include <common>\nvarying float vCrack;\nuniform sampler2D scaleMap;\nuniform sampler2D scaleH;\nuniform float scaleRep;")
-          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(texture2D(scaleMap, vUv * scaleRep).rgb * 0.75, diffuseColor.rgb, vCrack);")
+          .replace("#include <common>", "#include <common>\nvarying float vCrack;\nvarying float vScaly;\nuniform sampler2D scaleMap;\nuniform sampler2D scaleH;\nuniform float scaleRep;")
+          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(mix(vec3(0.2, 0.21, 0.25), texture2D(scaleMap, vUv * scaleRep).rgb * 0.75, vScaly), diffuseColor.rgb, vCrack);")
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= vCrack;")
           .replace(
             "#include <bumpmap_pars_fragment>",
             THREE.ShaderChunk.bumpmap_pars_fragment
               .replace(/texture2D\( bumpMap, /g, "hmix( ")
-              .replace("uniform float bumpScale;", "uniform float bumpScale;\nvec4 hmix(vec2 uv) { return vec4(mix(texture2D(scaleH, uv * scaleRep).x * 0.6, texture2D(bumpMap, uv).x, vCrack)); }")
+              .replace("uniform float bumpScale;", "uniform float bumpScale;\nvec4 hmix(vec2 uv) { return vec4(mix(texture2D(scaleH, uv * scaleRep).x * 0.6 * vScaly, texture2D(bumpMap, uv).x, vCrack)); }")
           );
       };
       m.customProgramCacheKey = () => "magmarra-mask";
@@ -204,6 +204,17 @@ Pets.register({
         }
       }
       geo.setAttribute("crack", new THREE.BufferAttribute(crackArr, 1));
+      const scalyArr = new Float32Array(rings * (R + 1));
+      if (o.scaly) {
+        for (let i = 0; i < rings; i++) {
+          for (let j = 0; j <= R; j++) {
+            const jj = closed ? j % R : j;
+            const a = a0 + (jj / R) * (a1 - a0);
+            scalyArr[i * (R + 1) + j] = Math.max(0, Math.min(1, o.scaly(i / seg, Math.cos(a), Math.sin(a), i / (rings - 1))));
+          }
+        }
+      }
+      geo.setAttribute("scaly", new THREE.BufferAttribute(scalyArr, 1));
       const rough = [];
       const sd = o.seed || 1;
       for (let i = 0; i < rings; i++) {
@@ -361,6 +372,14 @@ Pets.register({
         const aroundVolcano = near * smooth(-0.45, 0.35, s);
         const topNeck = f < 3.7 ? smooth(0.2, 0.8, s) : 0;
         return Math.max(aroundVolcano, topNeck);
+      },
+      scaly: (f, c, s, u) => {
+        const near = 1 - (f > 3.7 ? smooth(0.85, 1.95, f - 3.7) : smooth(0.6, 1.6, 3.7 - f));
+        const wide = 1 - (f > 3.7 ? smooth(1.3, 2.7, f - 3.7) : smooth(0.9, 2.2, 3.7 - f));
+        const crack = Math.max(near * smooth(-0.45, 0.35, s), f < 3.7 ? smooth(0.2, 0.8, s) : 0);
+        const ring = Math.max(0, wide * smooth(-0.8, 0.05, s) - crack);
+        const tailTop = smooth(5.6, 6.6, f) * smooth(0.4, 0.85, s) * (1 - smooth(0.7, 0.9, u));
+        return Math.max(Math.min(1, ring * 1.6), tailTop);
       },
       shape: (c, s) => {
         const b = bellyShape(c, s);
@@ -535,7 +554,7 @@ Pets.register({
         { o: pawEnd, rx: 0.14 * PW, ry: 0.05 },
         { o: toe, rx: 0.004, ry: 0.004 }
       ];
-      const loft = makeLoft(chain.length, 4, 14, skinRock, { seed: sd, rough: 0.07, uSpan: 1.5, uvK: 0.9, ref: V3(1, 0, 0), shape: (c, sn, u) => [c, sn > 0 || u < 0.82 ? sn : sn * 0.6] });
+      const loft = makeLoft(chain.length, 4, 14, skinRock, { seed: sd, rough: 0.07, uSpan: 1.5, uvK: 0.9, ref: V3(1, 0, 0), scaly: (f, c, sn, u) => 1 - smooth(0.12, 0.38, u), shape: (c, sn, u) => [c, sn > 0 || u < 0.82 ? sn : sn * 0.6] });
       body.add(loft.mesh);
       const toes = isFront ? [-1.5, -0.5, 0.5, 1.5] : [-1, 0, 1];
       toes.forEach(j => {
@@ -591,6 +610,7 @@ Pets.register({
     const headLoft = makeLoft(9, 5, 20, headRock, {
       sym: true,
       crack: (f, c, s, u) => smooth(0.2, 0.7, s) * (1 - smooth(0.45, 0.75, u)),
+      scaly: (f, c, s, u) => Math.max(0, smooth(-0.15, 0.25, s) * (1 - smooth(0.55, 0.85, u)) - smooth(0.2, 0.7, s) * (1 - smooth(0.45, 0.75, u))) * 1.5,
       seed: 11,
       rough: 0.05,
       uSpan: 1.6,
