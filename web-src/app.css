@@ -1913,3 +1913,229 @@ a.btn.soft {
 }
 
 .menu-pop .icon-btn:nth-child(5) { animation-delay: 0.16s; }
+.chest-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  animation: chest-fade 0.2s ease both;
+}
+.chest-overlay.closing {
+  animation: chest-fade 0.2s ease reverse both;
+}
+.chest-card {
+  width: min(100%, 380px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 16px;
+  border-radius: 22px;
+  background: var(--surface, #ffffff);
+  color: var(--text, #243029);
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: chest-pop 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+.chest-title {
+  margin: 0;
+  font-size: 20px;
+}
+.chest-who {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted, #5b6b63);
+}
+.chest-who:empty,
+.chest-notes:empty,
+.chest-hint:empty {
+  display: none;
+}
+.chest-stage {
+  width: 180px;
+  height: 155px;
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.chest-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: chest-idle 1.6s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+.chest-stage.shake .chest-svg {
+  animation: chest-shake 0.5s ease both;
+}
+.chest-stage.open .chest-svg {
+  animation: none;
+}
+.chest-lid {
+  transform-box: view-box;
+  transform-origin: 14px 40px;
+  transition: transform 0.45s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.chest-stage.open .chest-lid {
+  transform: translate(-2px, -12px) rotate(-16deg);
+}
+.chest-lock {
+  transform-box: view-box;
+  transform-origin: 70px 61px;
+  transition: transform 0.5s ease-in, opacity 0.5s ease;
+}
+.chest-stage.open .chest-lock {
+  transform: translate(26px, 46px) rotate(70deg);
+  opacity: 0;
+}
+.chest-glow,
+.chest-rays {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 70px 58px;
+  transition: opacity 0.4s ease;
+}
+.chest-stage.open .chest-glow {
+  opacity: 1;
+}
+.chest-stage.open .chest-rays {
+  opacity: 0.8;
+  animation: chest-spin 6s linear infinite;
+}
+.chest-hint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted, #5b6b63);
+}
+.chest-loot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+}
+.chest-item {
+  position: relative;
+  width: 74px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px 6px;
+  border-radius: 14px;
+  background: var(--surface-2, #f3f7f5);
+}
+.chest-item.coin {
+  background: #fff3c4;
+  color: #6b4d00;
+}
+.chest-item-ico {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.chest-item-ico svg {
+  width: 28px;
+  height: 28px;
+}
+.chest-item-count {
+  font-size: 14px;
+  font-weight: 800;
+}
+.chest-item-name {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--muted, #5b6b63);
+}
+.chest-item.coin .chest-item-name {
+  color: #6b4d00;
+}
+.chest-notes {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--soft-text, #1b5e3b);
+}
+.chest-take {
+  min-width: 140px;
+  margin-top: 4px;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent, #2e7d54);
+  color: var(--accent-text, #ffffff);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+@keyframes chest-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes chest-pop {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+}
+@keyframes chest-idle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-2deg) translateY(-2px);
+  }
+}
+@keyframes chest-shake {
+  20% {
+    transform: rotate(-7deg);
+  }
+  40% {
+    transform: rotate(7deg) scale(1.05);
+  }
+  60% {
+    transform: rotate(-5deg);
+  }
+  80% {
+    transform: rotate(4deg) scale(1.08, 0.94);
+  }
+}
+@keyframes chest-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chest-svg,
+  .chest-stage.open .chest-rays,
+  .chest-overlay,
+  .chest-card {
+    animation: none;
+  }
+}
+
+.tab:disabled {
+  opacity: 0.5;
+}
+
+.lock-ico {
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+
+#tab-exp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

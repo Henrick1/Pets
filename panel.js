@@ -228,6 +228,27 @@ function bagSay(text) {
   }, 4000);
 }
 
+async function collect(kind) {
+  const r = await window.pet.eco({ op: "collect", kind });
+  if (!r || !r.chest) return;
+  if (!window.PetChest) {
+    bagSay("Voltaram com " + r.coins + " moedas");
+    return;
+  }
+  window.PetChest.open({
+    host: document.body,
+    title: (EXP_NAME[r.kind] || "Expedição") + " voltou!",
+    subtitle: r.pets.join(", "),
+    coins: r.coins,
+    items: r.items.map(it => ({
+      html: '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">' + (ITEM_ICONS[it.id] || "") + "</svg>",
+      name: it.name,
+      count: it.count
+    })),
+    notes: r.ups
+  });
+}
+
 async function eco(p) {
   const msg = await window.pet.eco(p);
   if (msg) bagSay(msg);
@@ -461,7 +482,7 @@ function renderExpPart(s) {
         t.dataset.ends = String(run.endsAt);
         card.appendChild(t);
       } else {
-        card.appendChild(btn("Receber", "solid", () => eco({ op: "collect", kind })));
+        card.appendChild(btn("Abrir o baú", "solid", () => collect(kind)));
       }
     } else {
       const draft = (expDraft[kind] = (expDraft[kind] || []).filter(id => rows[id] && rows[id].canExplore));
@@ -545,7 +566,12 @@ function render(s) {
   const ready = s.expeditions.filter(x => x.endsAt <= s.now).length;
   setTile(openShopBtn, s.coins + " moedas", false);
   setTile(openBagBtn, itemCount ? itemCount + (itemCount === 1 ? " item" : " itens") : "Vazia", false);
-  setTile(openExpBtn, ready ? (ready === 1 ? "1 voltou!" : ready + " voltaram!") : s.expeditions.length ? s.expeditions.length + " em andamento" : "Nenhuma", ready > 0);
+  const expLocked = s.owned.length < 2 && !s.expeditions.length;
+  if (expLocked) setTile(openExpBtn, "Bloqueado", false, true);
+  else setTile(openExpBtn, ready ? (ready === 1 ? "1 voltou!" : ready + " voltaram!") : s.expeditions.length ? s.expeditions.length + " em andamento" : "Nenhuma", ready > 0);
+  openExpBtn.classList.toggle("locked", expLocked);
+  openExpBtn.title = expLocked ? "Precisa de pelo menos 2 criaturas" : "";
+  if (expLocked && bagMode === "exp") bagMode = null;
   setTile(openBoxBtn, s.box.length ? s.box.length + (s.box.length === 1 ? " bichinho" : " bichinhos") : "Vazia", false, s.box.length === 0);
   dailyBtn.hidden = !(s.daily && s.daily.available);
   if (s.daily && s.daily.available) dailyBtn.textContent = "Presente do dia: pegar " + s.daily.coins + " moedas" + (s.daily.streak > 1 ? " (" + s.daily.streak + " dias seguidos)" : "");

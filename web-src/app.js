@@ -1155,8 +1155,25 @@
             if (!r.changed) return;
             saveState();
             scheduleSync();
-            const ups = r.levels.map(l => (rows[l.id] ? rows[l.id].name : "") + " subiu para o nível " + l.level).join(". ");
-            showToast("Voltaram com " + lootText(r) + (ups ? ". " + ups + "!" : ""));
+            const ups = r.levels.map(l => (rows[l.id] ? rows[l.id].name : "") + " subiu para o nível " + l.level + "!");
+            const names = r.pets.map(id => (rows[id] ? rows[id].name : "")).filter(Boolean);
+            if (window.PetChest) {
+              window.PetChest.open({
+                host: $("party-sheet"),
+                title: EXP_NAME[kind] + " voltou!",
+                subtitle: names.join(", "),
+                coins: r.coins,
+                items: Object.keys(r.items || {}).map(k => ({
+                  html: '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">' + (ITEM_ICONS[k] || "") + "</svg>",
+                  name: Game.ITEMS[k].name,
+                  count: r.items[k]
+                })),
+                notes: ups,
+                onOpen: () => buzz([20, 40, 30])
+              });
+            } else {
+              showToast("Voltaram com " + lootText(r) + (ups.length ? ". " + ups.join(" ") : ""));
+            }
             render();
           });
           card.append(c);
@@ -1316,6 +1333,11 @@
   function renderSheet(v) {
     const partyList = $("party-list");
     const boxList = $("box-list");
+    const expLocked = state.owned.length < 2 && !state.expeditions.length;
+    $("tab-exp").disabled = expLocked;
+    $("exp-lock").hidden = !expLocked;
+    $("tab-exp").title = expLocked ? "Precisa de pelo menos 2 criaturas" : "";
+    if (expLocked && tab === "exp") tab = "party";
     $("tab-party").setAttribute("aria-selected", String(tab === "party"));
     $("tab-box").setAttribute("aria-selected", String(tab === "box"));
     $("tab-exp").setAttribute("aria-selected", String(tab === "exp"));
@@ -1938,6 +1960,7 @@
       await loadScript("lib/types.js");
       await loadScript("lib/pet-kit.js");
       await loadScript("lib/egg.js");
+      await loadScriptSafe("lib/chest.js");
       await loadScript("lib/stage.js");
       await loadScript("pets-list.js");
       for (const f of window.PET_FILES || []) await loadScriptSafe(f);

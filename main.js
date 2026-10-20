@@ -451,8 +451,14 @@ ipcMain.handle("eco", (_e, p) => {
     };
     r = Game.collectExpedition(state, p.kind, typesOf);
     if (r.changed) {
-      const ups = r.levels.map(l => name(l.id) + " subiu para o nível " + l.level).join(". ");
-      msg = "Voltaram com " + lootText(r) + (ups ? ". " + ups + "!" : "");
+      msg = {
+        chest: true,
+        kind: p.kind,
+        coins: r.coins,
+        items: Object.keys(r.items || {}).map(k => ({ id: k, name: Game.ITEMS[k].name, count: r.items[k] })),
+        pets: r.pets.map(name),
+        ups: r.levels.map(l => name(l.id) + " subiu para o nível " + l.level + "!")
+      };
     }
   }
   if (!r.changed) return null;
