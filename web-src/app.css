@@ -1955,9 +1955,14 @@ a.btn.soft {
 .chest-hint:empty {
   display: none;
 }
+.chest-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .chest-stage {
-  width: 180px;
-  height: 155px;
+  width: 220px;
+  height: 190px;
   margin-top: 14px;
   padding: 0;
   border: 0;
