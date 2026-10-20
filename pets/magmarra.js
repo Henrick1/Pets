@@ -22,9 +22,9 @@ Pets.register({
     const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, lavaRock } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 58, 54], lava: [255, 104, 20] });
-    const A = lavaRock({ seed: 29, cells: 40, crack: 1.3, rock: [84, 74, 70], lava: [150, 70, 40] });
-    const B = lavaRock({ seed: 5, stripes: 9, cols: 1, crack: 2.6, rock: [128, 74, 50], lava: [255, 140, 44] });
+    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 74, 88], lava: [255, 104, 20] });
+    const A = lavaRock({ seed: 29, cells: 40, crack: 1.3, rock: [92, 94, 104], lava: [150, 70, 40] });
+    const B = lavaRock({ seed: 5, stripes: 9, cols: 1, crack: 2.6, rock: [222, 112, 52], lava: [255, 190, 90] });
     const rep = (t, x, y) => {
       const c = t.clone();
       c.needsUpdate = true;
@@ -43,7 +43,7 @@ Pets.register({
             bumpMap: rep(src.bump, rx, ry),
             bumpScale: 0.04,
             roughness: 0.92,
-            flatShading: true
+            flatShading: false
           },
           extra
         )
@@ -55,7 +55,7 @@ Pets.register({
           .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCrack = crack;");
         sh.fragmentShader = sh.fragmentShader
           .replace("#include <common>", "#include <common>\nvarying float vCrack;")
-          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(vec3(0.15, 0.125, 0.115), diffuseColor.rgb, vCrack);")
+          .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(vec3(0.2, 0.21, 0.25), diffuseColor.rgb, vCrack);")
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= vCrack;")
           .replace("#include <bumpmap_pars_fragment>", THREE.ShaderChunk.bumpmap_pars_fragment.replace(/bumpScale \*/g, "bumpScale * vCrack *"));
       };
@@ -69,7 +69,7 @@ Pets.register({
     const coneRock = rockMat(A, 3, 1.2, { emissiveIntensity: 0.15 });
     const bellyMat = rockMat(B, 1, 1, { flatShading: false, bumpScale: 0.025, roughness: 0.8 });
     const rockMats = [skinRock, headRock, smallRock, hornRock];
-    const basalt = new THREE.MeshStandardMaterial({ color: 0x2c2422, roughness: 0.8, flatShading: true });
+    const basalt = new THREE.MeshStandardMaterial({ color: 0x2a2c34, roughness: 0.7, flatShading: true });
     const clawMat = mat(0x1a1210, 0.35);
     const toothMat = mat(0xe6d8c0, 0.45);
     const gumMat = new THREE.MeshBasicMaterial({ color: 0x3a0a06 });
@@ -150,7 +150,7 @@ Pets.register({
           const jj = closed ? j % R : j;
           const a0r = a0 + (jj / R) * (a1 - a0);
           const a = o.sym ? Math.atan2(Math.sin(a0r), Math.abs(Math.cos(a0r))) : a0r;
-          row.push(1 + (o.rough === undefined ? 0.06 : o.rough) * (o.roughK ? o.roughK(i / seg) : 1) * (Math.sin(a * 3 + i * 1.3 + sd) * Math.sin(i * 0.7 + a * 2 + sd) + 0.6 * Math.sin(a * 7 - i * 2.1 + sd)));
+          row.push(1 + (o.rough === undefined ? 0.06 : o.rough) * 0.6 * (o.roughK ? o.roughK(i / seg) : 1) * (Math.sin(a * 3 + i * 1.3 + sd) * Math.sin(i * 0.7 + a * 2 + sd) + 0.6 * Math.sin(a * 7 - i * 2.1 + sd)));
         }
         rough.push(row);
       }
@@ -628,7 +628,7 @@ Pets.register({
       head.add(e.g);
       return e;
     });
-    const browMat = new THREE.MeshStandardMaterial({ color: 0x2c2422, roughness: 0.85 });
+    const browMat = new THREE.MeshStandardMaterial({ color: 0x2a2c34, roughness: 0.85 });
     const brows = [-1, 1].map(s => {
       const g = new THREE.Group();
       g.position.set(0.28 * s, 0.19, 0.17);
