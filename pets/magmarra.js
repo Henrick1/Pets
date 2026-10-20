@@ -124,7 +124,8 @@ Pets.register({
         const row = [];
         for (let j = 0; j <= R; j++) {
           const jj = closed ? j % R : j;
-          const a = a0 + (jj / R) * (a1 - a0);
+          const a0r = a0 + (jj / R) * (a1 - a0);
+          const a = o.sym ? Math.atan2(Math.sin(a0r), Math.abs(Math.cos(a0r))) : a0r;
           row.push(1 + (o.rough === undefined ? 0.06 : o.rough) * (Math.sin(a * 3 + i * 1.3 + sd) * Math.sin(i * 0.7 + a * 2 + sd) + 0.6 * Math.sin(a * 7 - i * 2.1 + sd)));
         }
         rough.push(row);
@@ -202,6 +203,7 @@ Pets.register({
     body.scale.setScalar(0.82);
     root.add(body);
     const F0 = V3(0, 1.25, -0.7);
+    const FT = 0.1;
     const front = new THREE.Group();
     front.position.copy(F0);
     body.add(front);
@@ -262,6 +264,7 @@ Pets.register({
     const bodyChain = spine.concat(tailNodes);
     const bodyLoft = makeLoft(bodyChain.length, 4, 22, skinRock, {
       upY: true,
+      sym: true,
       seed: 3,
       uSpan: 3,
       uvK: 0.75,
@@ -310,7 +313,7 @@ Pets.register({
       return prof[prof.length - 1][0];
     };
     const volcano = anchor(front, 0, 1.68, 0.36);
-    volcano.rotation.x = -0.08;
+    volcano.rotation.x = -0.18;
     volcano.scale.set(0.95, 1.25, 1.1);
     {
       prof = [[0.8, -0.4], [0.72, -0.15], [0.62, 0.08], [0.5, 0.3], [0.4, 0.52], [0.32, 0.72], [0.29, 0.84], [0.25, 0.9], [0.18, 0.86], [0.12, 0.78], [0.02, 0.76]];
@@ -391,6 +394,12 @@ Pets.register({
       const top = new THREE.Group();
       top.position.set(-0.12 * s, 0.28, 0);
       hip.add(top);
+      const cap = new THREE.Group();
+      cap.position.set(-0.16 * s, 0.4, 0);
+      hip.add(cap);
+      const toe = new THREE.Group();
+      toe.position.set(0, -0.06, 0.04);
+      foot.add(toe);
       const midA = new THREE.Group();
       midA.position.copy(knee.position).multiplyScalar(0.5);
       midA.position.z += 0.04;
@@ -399,13 +408,15 @@ Pets.register({
       midB.position.copy(ankle.position).multiplyScalar(0.5);
       knee.add(midB);
       const chain = [
+        { o: cap, rx: 0.03, ry: 0.03 },
         { o: top, rx: radii[0], ry: radii[0] },
         { o: hip, rx: radii[1], ry: radii[1] * 1.1 },
         { o: midA, rx: radii[2], ry: radii[2] * 1.12 },
         { o: knee, rx: radii[3], ry: radii[3] * 1.1 },
         { o: midB, rx: radii[4], ry: radii[4] * 1.1 },
         { o: ankle, rx: radii[5], ry: radii[5] * 1.05 },
-        { o: foot, rx: radii[6], ry: radii[6] }
+        { o: foot, rx: radii[6], ry: radii[6] },
+        { o: toe, rx: 0.03, ry: 0.03 }
       ];
       const loft = makeLoft(chain.length, 4, 14, skinRock, { seed: sd, rough: 0.07, uSpan: 1.5, uvK: 0.9, ref: V3(0, 0, 1) });
       body.add(loft.mesh);
@@ -442,9 +453,9 @@ Pets.register({
         front,
         [
           [0.5, 1.36, 1.0],
-          [0.55, 0.84, 1.06],
-          [0.55, 0.4, 1.02],
-          [0.55, 0.16, 1.08]
+          [0.54, 0.918, 1.05],
+          [0.54, 0.544, 1.017],
+          [0.54, 0.34, 1.068]
         ],
         [0.3, 0.27, 0.24, 0.16, 0.14, 0.12, 0.12],
         30 + s
@@ -474,7 +485,8 @@ Pets.register({
     const legs = frontLegs.concat(backLegs);
 
     const head = anchor(front, 0, 2.02, 1.8);
-    const headLoft = makeLoft(8, 5, 20, headRock, {
+    const headLoft = makeLoft(9, 5, 20, headRock, {
+      sym: true,
       seed: 11,
       rough: 0.05,
       uSpan: 1.6,
@@ -483,14 +495,15 @@ Pets.register({
     });
     headLoft.update(
       [
-        [-0.3, 0.05, 0.12, 0.12],
+        [-0.34, 0.05, 0.02, 0.02],
+        [-0.3, 0.05, 0.14, 0.13],
         [-0.18, 0.06, 0.3, 0.27],
         [0.0, 0.06, 0.36, 0.3],
         [0.18, 0.03, 0.31, 0.24],
         [0.38, -0.01, 0.24, 0.18],
         [0.56, -0.03, 0.19, 0.14],
-        [0.68, -0.04, 0.12, 0.1],
-        [0.73, -0.05, 0.03, 0.03]
+        [0.69, -0.04, 0.12, 0.095],
+        [0.735, -0.05, 0.02, 0.02]
       ].map(([z, y, rx, ry]) => ({ p: V3(0, y, z), rx, ry }))
     );
     head.add(headLoft.mesh);
@@ -498,7 +511,8 @@ Pets.register({
     const jaw = new THREE.Group();
     jaw.position.set(0, -0.1, -0.12);
     head.add(jaw);
-    const jawLoft = makeLoft(6, 5, 16, headRock, {
+    const jawLoft = makeLoft(7, 5, 16, headRock, {
+      sym: true,
       seed: 13,
       rough: 0.04,
       uSpan: 1.2,
@@ -506,6 +520,7 @@ Pets.register({
     });
     jawLoft.update(
       [
+        [-0.08, -0.05, 0.02, 0.02],
         [-0.04, -0.05, 0.22, 0.1],
         [0.1, -0.07, 0.25, 0.1],
         [0.3, -0.08, 0.22, 0.09],
@@ -712,7 +727,7 @@ Pets.register({
 
         const breathe = Math.sin(t * 1.4) * motion;
         let rear = breathe * 0.01;
-        let headPitch = 0.08;
+        let headPitch = -0.04;
         let jawOpen = 0.03;
         let tailLift = 0;
         let impact = -1;
@@ -737,7 +752,7 @@ Pets.register({
         if (a === "roar") {
           const k = smooth(0.1, 0.3, p) * (1 - smooth(0.85, 1, p));
           const pre = smooth(0, 0.2, p) * (1 - smooth(0.2, 0.3, p));
-          headPitch = 0.08 + pre * 0.3 - k * 0.45;
+          headPitch = -0.04 + pre * 0.3 - k * 0.45;
           rear = -pre * 0.04 + k * 0.3;
           jawOpen = 0.03 + k * 0.55;
           roarK = p > 0.3 && p < 0.9 ? (p - 0.3) / 0.6 : -1;
@@ -753,7 +768,7 @@ Pets.register({
           shake = impact >= 0 ? Math.max(0, 1 - impact * 4) * 0.6 : 0;
         }
         if (a === "eat") {
-          headPitch = 0.08 + (1 - ph.fall) * -0.25 + ph.chew * 0.1;
+          headPitch = -0.04 + (1 - ph.fall) * -0.25 + ph.chew * 0.1;
           jawOpen = p > 0.12 && p < 0.85 ? (p < 0.3 ? 0.35 : 0.06 + ph.chew * 0.3) : 0.03;
           squint = p > 0.3;
         }
@@ -762,10 +777,10 @@ Pets.register({
         root.rotation.y = lookYaw;
         root.rotation.x = lookPitch;
         body.position.set(Math.sin(t * 61) * 0.025 * sh, -crouch + Math.abs(Math.sin(t * 47)) * 0.015 * sh, 0);
-        front.rotation.x = -rear;
+        front.rotation.x = FT - rear;
         front.rotation.z = Math.sin(t * 0.9) * 0.012 * motion;
         head.rotation.x = headPitch + Math.sin(t * 1.4 + 1) * 0.02 * motion;
-        head.rotation.y = pointer.x * 0.2;
+        head.rotation.y = pointer.x * 0.06;
         jaw.rotation.x = jawOpen;
         throat.visible = jawOpen > 0.12;
         inner.visible = jawOpen > 0.06;
@@ -777,7 +792,7 @@ Pets.register({
             lift = Math.sin(Math.min(1, q / 0.6) * Math.PI) * 0.7;
           }
           const rearK = Math.max(0, rear) * 3;
-          hip.rotation.x = -lift * 0.9 - rearK * 0.5 + rear;
+          hip.rotation.x = -FT - lift * 0.9 - rearK * 0.5 + rear;
           knee.rotation.x = lift * 1.3 + rearK * 0.9;
           ankle.rotation.x = -lift * 0.3;
           foot.rotation.x = -lift * 0.3 + rearK * 0.3;
