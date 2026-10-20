@@ -243,8 +243,8 @@ Pets.register({
     };
     const bellyShape = (c, s) => [c, s > 0 ? s : s * 0.82];
     const spine = [
-      { o: anchor(front, 0, 1.0, 1.62), rx: 0.24, ry: 0.24 },
-      { o: anchor(front, 0, 0.94, 1.38), rx: 0.32, ry: 0.3 },
+      { o: anchor(front, 0, 1.06, 1.94), rx: 0.2, ry: 0.18 },
+      { o: anchor(front, 0, 0.98, 1.56), rx: 0.33, ry: 0.3 },
       { o: anchor(front, 0, 0.86, 1.0), rx: 0.48, ry: 0.4 },
       { o: anchor(front, 0, 0.82, 0.48), rx: 0.55, ry: 0.42 },
       { o: anchor(front, 0, 0.8, -0.04), rx: 0.53, ry: 0.41 },
