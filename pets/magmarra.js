@@ -22,7 +22,7 @@ Pets.register({
     const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, lavaRock } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 58, 54], lava: [255, 104, 20] });
+    const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 58, 54], lava: [255, 104, 20], patches: 5 });
     const A = lavaRock({ seed: 29, cells: 40, crack: 1.3, rock: [84, 74, 70], lava: [150, 70, 40] });
     const B = lavaRock({ seed: 5, stripes: 9, cols: 1, crack: 2.6, rock: [128, 74, 50], lava: [255, 140, 44] });
     const rep = (t, x, y) => {
@@ -312,7 +312,7 @@ Pets.register({
       }
       return prof[prof.length - 1][0];
     };
-    const volcano = anchor(front, 0, 1.68, 0.36);
+    const volcano = anchor(front, 0, 1.68, 0.16);
     volcano.rotation.x = -0.18;
     volcano.scale.set(0.95, 1.25, 1.1);
     {
