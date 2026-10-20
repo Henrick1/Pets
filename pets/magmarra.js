@@ -591,10 +591,6 @@ Pets.register({
       n.position.set(0.07 * s, 0.05, 0.67);
       n.rotation.y = 0.4 * s;
       head.add(n);
-      const ridge = mesh(shard(0.035, 0.1, 50 + s), basalt, false);
-      ridge.position.set(0.08 * s, 0.1, 0.56);
-      ridge.rotation.set(-0.6, 0, 0.3 * s);
-      head.add(ridge);
       const cheek = mesh(shard(0.045, 0.2, 55 + s), basalt, false);
       cheek.position.set(0.28 * s, -0.08, -0.08);
       cheek.rotation.set(-1.9, 0, -0.8 * s);
@@ -618,12 +614,28 @@ Pets.register({
       head.add(e.g);
       return e;
     });
+    const browMat = new THREE.MeshStandardMaterial({ color: 0x2c2422, roughness: 0.85 });
     const brows = [-1, 1].map(s => {
-      const b = mesh(shard(0.07, 0.3, 60 + s), basalt);
-      b.position.set(0.25 * s, 0.22, 0.26);
-      b.rotation.set(-1.75, 0.2 * s, -0.55 * s);
-      head.add(b);
-      return b;
+      const g = new THREE.Group();
+      g.position.set(0.28 * s, 0.19, 0.17);
+      const curve = new THREE.CatmullRomCurve3([V3(-0.13 * s, 0.035, 0.12), V3(-0.04 * s, 0.03, 0.06), V3(0.03 * s, 0.01, -0.02), V3(0.06 * s, -0.03, -0.1)]);
+      const seg = 20;
+      const geo = new THREE.TubeGeometry(curve, seg, 1, 10, false);
+      const p = geo.attributes.position;
+      const tmpC = V3(0, 0, 0);
+      for (let i = 0; i <= seg; i++) {
+        const u = i / seg;
+        curve.getPointAt(u, tmpC);
+        const r = 0.012 + 0.032 * Math.sin(Math.PI * Math.pow(u, 0.7));
+        for (let j = 0; j <= 10; j++) {
+          const k = i * 11 + j;
+          p.setXYZ(k, tmpC.x + (p.getX(k) - tmpC.x) * r, tmpC.y + (p.getY(k) - tmpC.y) * r * 0.75, tmpC.z + (p.getZ(k) - tmpC.z) * r);
+        }
+      }
+      geo.computeVertexNormals();
+      g.add(mesh(geo, browMat, false));
+      head.add(g);
+      return g;
     });
 
     const hornSet = [];
@@ -943,7 +955,7 @@ Pets.register({
           g.scale.y = squint ? 0.45 : blink;
         });
         followPupils(eyes, pointer, 0.5);
-        brows.forEach((b, i) => (b.rotation.z = (i ? -0.55 : 0.55) + (a === "roar" ? 0.15 * (i ? -1 : 1) * Math.max(0, roarK) : 0)));
+        brows.forEach((b, i) => (b.rotation.z = (a === "roar" ? 0.18 * (i ? -1 : 1) * Math.max(0, roarK) : 0) + (squint ? 0.1 * (i ? 1 : -1) : 0)));
         hornSet.forEach((g, i) => (g.rotation.y = (i ? 0.25 : -0.25) + Math.sin(t * 0.7) * 0.01 * motion));
         tmpA.set(0, 0, 0);
       }
