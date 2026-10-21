@@ -1208,7 +1208,7 @@
                   name: Game.ITEMS[k].name,
                   count: r.items[k]
                 })),
-                notes: ups,
+                notes: (r.effects || []).map(fx => (rows[fx.id] ? rows[fx.id].name + ": " : "") + Game.effectText(fx)).concat(ups),
                 onOpen: () => buzz([20, 40, 30])
               });
             } else {

@@ -457,7 +457,7 @@ ipcMain.handle("eco", (_e, p) => {
         coins: r.coins,
         items: Object.keys(r.items || {}).map(k => ({ id: k, name: Game.ITEMS[k].name, count: r.items[k] })),
         pets: r.pets.map(name),
-        ups: r.levels.map(l => name(l.id) + " subiu para o nível " + l.level + "!")
+        ups: (r.effects || []).map(fx => name(fx.id) + ": " + Game.effectText(fx)).concat(r.levels.map(l => name(l.id) + " subiu para o nível " + l.level + "!"))
       };
     }
   }
