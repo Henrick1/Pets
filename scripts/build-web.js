@@ -47,7 +47,6 @@ copyDir(path.join(root, "web-src"), out, n => n !== "sw.js");
 copyDir(path.join(root, "lib"), path.join(out, "lib"));
 copyDir(path.join(root, "pets"), path.join(out, "pets"), n => n.endsWith(".js"));
 copyDir(path.join(root, "assets"), path.join(out, "assets"), n => n.endsWith(".png"));
-copyDir(path.join(root, "assets", "sprites"), path.join(out, "assets", "sprites"), n => n.endsWith(".png"));
 copy(path.join(root, "config.js"), path.join(out, "config.js"));
 
 const threeSources = [

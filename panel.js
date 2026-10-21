@@ -142,17 +142,8 @@ function describe(p) {
 }
 
 function dotFor(p) {
-  const d = el("span", "sprite");
-  d.style.setProperty("--c", p.color);
-  const img = document.createElement("img");
-  img.alt = "";
-  img.src = "assets/sprites/" + p.species + ".png";
-  img.addEventListener("error", () => {
-    d.className = "dot";
-    d.style.background = p.color;
-    img.remove();
-  });
-  d.appendChild(img);
+  const d = el("span", "dot");
+  d.style.background = p.color;
   return d;
 }
 

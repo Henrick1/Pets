@@ -2261,7 +2261,3 @@ a.btn.soft {
     opacity: 0;
   }
 }
-
-.sprite-img {
-  image-rendering: pixelated;
-}

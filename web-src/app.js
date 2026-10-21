@@ -1064,7 +1064,17 @@
   function expChip(p) {
     const c = document.createElement("span");
     c.className = "exp-chip";
-    const d = spriteNode(p, "exp-chip-art");
+    const d = document.createElement("span");
+    d.className = "exp-chip-art";
+    d.style.setProperty("--c", p.color);
+    const sp = Game.speciesOf(state, p.id);
+    const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      d.append(img);
+    }
     const n = document.createElement("span");
     n.className = "exp-chip-name";
     n.textContent = p.name;
@@ -1327,30 +1337,28 @@
     if (!healTicker) healTicker = setInterval(tickHeal, 5000);
   }
 
-  function spriteNode(p, cls) {
-    const d = document.createElement("span");
-    d.className = cls;
-    d.style.setProperty("--c", p.color);
-    const img = document.createElement("img");
-    img.alt = "";
-    img.className = "sprite-img";
-    img.src = "assets/sprites/" + Game.speciesOf(state, p.id) + ".png";
-    img.addEventListener("error", () => {
-      const sp = Game.speciesOf(state, p.id);
-      const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
-      if (url) {
-        img.className = "";
-        img.src = url;
-      } else img.remove();
-    }, { once: true });
-    d.append(img);
-    return d;
+  const artQueue = [];
+  function pumpArt() {
+    const job = artQueue.shift();
+    if (!job) return;
+    const [art, sp] = job;
+    const url = art.isConnected && window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      art.append(img);
+    }
+    requestAnimationFrame(pumpArt);
   }
 
   function itemNode(p, tag) {
     const el = document.createElement(tag || "div");
     el.className = "item";
-    const dot = spriteNode(p, "pick-art");
+    const dot = document.createElement("span");
+    dot.className = "pick-art";
+    dot.style.setProperty("--c", p.color);
+    if (artQueue.push([dot, Game.speciesOf(state, p.id)]) === 1) requestAnimationFrame(pumpArt);
     const info = document.createElement("span");
     info.className = "info";
     const line = document.createElement("span");
