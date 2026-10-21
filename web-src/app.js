@@ -1064,17 +1064,7 @@
   function expChip(p) {
     const c = document.createElement("span");
     c.className = "exp-chip";
-    const d = document.createElement("span");
-    d.className = "exp-chip-art";
-    d.style.setProperty("--c", p.color);
-    const sp = Game.speciesOf(state, p.id);
-    const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
-    if (url) {
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = "";
-      d.append(img);
-    }
+    const d = spriteNode(p, "exp-chip-art");
     const n = document.createElement("span");
     n.className = "exp-chip-name";
     n.textContent = p.name;
@@ -1089,7 +1079,6 @@
     const title = document.createElement("p");
     title.className = "picker-title";
     list.append(title);
-    const arts = [];
     const rows = [];
     let done;
     const sync = () => {
@@ -1105,11 +1094,6 @@
       const el = itemNode(p, "button");
       el.type = "button";
       el.classList.add("pick-item");
-      const art = document.createElement("span");
-      art.className = "pick-art";
-      art.style.setProperty("--c", p.color);
-      el.querySelector(".dot").replaceWith(art);
-      arts.push([art, Game.speciesOf(state, p.id)]);
       rows.push([el, p]);
       el.addEventListener("click", () => {
         const at = draft.indexOf(p.id);
@@ -1131,20 +1115,6 @@
     foot.append(done);
     list.append(foot);
     sync();
-    const step = () => {
-      const job = arts.shift();
-      if (!job) return;
-      const [art, sp] = job;
-      const url = art.isConnected && window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
-      if (url) {
-        const img = document.createElement("img");
-        img.src = url;
-        img.alt = "";
-        art.append(img);
-      }
-      if (art.isConnected) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
   }
 
   function renderExp(v) {
@@ -1357,12 +1327,30 @@
     if (!healTicker) healTicker = setInterval(tickHeal, 5000);
   }
 
+  function spriteNode(p, cls) {
+    const d = document.createElement("span");
+    d.className = cls;
+    d.style.setProperty("--c", p.color);
+    const img = document.createElement("img");
+    img.alt = "";
+    img.className = "sprite-img";
+    img.src = "assets/sprites/" + Game.speciesOf(state, p.id) + ".png";
+    img.addEventListener("error", () => {
+      const sp = Game.speciesOf(state, p.id);
+      const url = window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
+      if (url) {
+        img.className = "";
+        img.src = url;
+      } else img.remove();
+    }, { once: true });
+    d.append(img);
+    return d;
+  }
+
   function itemNode(p, tag) {
     const el = document.createElement(tag || "div");
     el.className = "item";
-    const dot = document.createElement("span");
-    dot.className = "dot";
-    dot.style.background = p.color;
+    const dot = spriteNode(p, "pick-art");
     const info = document.createElement("span");
     info.className = "info";
     const line = document.createElement("span");
