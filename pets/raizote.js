@@ -412,10 +412,10 @@ Pets.register({
       return m;
     });
 
-    const HEAD = V3(0, 1.56, 0.12);
+    const HEAD = V3(0, 1.52, 0.12);
     const headPivot = new THREE.Group();
     headPivot.position.copy(HEAD);
-    headPivot.scale.setScalar(0.86);
+    headPivot.scale.setScalar(0.76);
     torso.add(headPivot);
     const headR = 0.57;
     const headGeo = new THREE.SphereGeometry(headR, 64, 48);
@@ -482,7 +482,8 @@ Pets.register({
     }
 
     const capG = new THREE.Group();
-    capG.position.set(0, 0.1, -0.05);
+    capG.position.set(0, 0.05, -0.04);
+    capG.scale.setScalar(0.86 / 0.76);
     capG.rotation.x = -0.18;
     headPivot.add(capG);
     const CAP_T = Math.PI * 0.42;
@@ -584,7 +585,7 @@ Pets.register({
     });
     const brows = [-1, 1].map(s => {
       const b = mesh(taperTube([V3(0.06 * s, -0.012, 0.01), V3(0.16 * s, 0.018, -0.005), V3(0.26 * s, 0.012, -0.05)], 0.05, 0.03, 12, 10), darkBark, false);
-      b.position.set(0, 0.155, headR * 0.9);
+      b.position.set(0, 0.13, headR * 0.9);
       headPivot.add(b);
       return b;
     });
