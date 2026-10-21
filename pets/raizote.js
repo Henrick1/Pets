@@ -412,9 +412,10 @@ Pets.register({
       return m;
     });
 
-    const HEAD = V3(0, 1.62, 0.12);
+    const HEAD = V3(0, 1.56, 0.12);
     const headPivot = new THREE.Group();
     headPivot.position.copy(HEAD);
+    headPivot.scale.setScalar(0.86);
     torso.add(headPivot);
     const headR = 0.57;
     const headGeo = new THREE.SphereGeometry(headR, 64, 48);
@@ -481,7 +482,7 @@ Pets.register({
     }
 
     const capG = new THREE.Group();
-    capG.position.set(0, 0.13, -0.05);
+    capG.position.set(0, 0.1, -0.05);
     capG.rotation.x = -0.18;
     headPivot.add(capG);
     const CAP_T = Math.PI * 0.42;
@@ -571,16 +572,19 @@ Pets.register({
     }
 
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.52 });
-      e.g.position.set(0.15 * s, 0.04, headR * 0.95);
-      e.g.rotation.y = 0.3 * s;
+      const e = eye({ size: 0.5 });
+      e.g.position.set(0.16 * s, 0.01, headR * 0.95);
+      e.g.rotation.y = 0.28 * s;
+      const lid = mesh(new THREE.SphereGeometry(0.22 * 0.5 * 1.08, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.3), new THREE.MeshStandardMaterial({ color: 0x8fcf9a, roughness: 0.55 }), false);
+      lid.scale.set(1, 1.1, 0.62);
+      lid.rotation.x = 0.12;
+      e.g.add(lid);
       headPivot.add(e.g);
       return e;
     });
     const brows = [-1, 1].map(s => {
-      const b = mesh(taperTube([V3(0.08 * s, 0, 0), V3(0.2 * s, 0.025, -0.02), V3(0.33 * s, -0.01, -0.09)], 0.06, 0.04, 12, 10), darkBark, false);
-      b.position.set(0, 0.17, headR * 0.8);
-      b.scale.setScalar(0.75);
+      const b = mesh(taperTube([V3(0.06 * s, -0.012, 0.01), V3(0.16 * s, 0.018, -0.005), V3(0.26 * s, 0.012, -0.05)], 0.05, 0.03, 12, 10), darkBark, false);
+      b.position.set(0, 0.155, headR * 0.9);
       headPivot.add(b);
       return b;
     });
@@ -593,9 +597,10 @@ Pets.register({
       headPivot.add(c);
     });
     const mouthMat = new THREE.MeshStandardMaterial({ color: 0x3a1a10, roughness: 0.5 });
-    const smile = mesh(new THREE.TorusGeometry(0.075, 0.02, 10, 20, Math.PI), mouthMat, false);
-    smile.rotation.z = Math.PI;
-    smile.position.set(0, -0.15, headR * 0.92);
+    const smile = mesh(new THREE.TorusGeometry(0.085, 0.019, 10, 20, Math.PI), mouthMat, false);
+    smile.rotation.z = Math.PI + 0.14;
+    smile.scale.y = 0.8;
+    smile.position.set(0.02, -0.12, headR * 0.93);
     headPivot.add(smile);
     const openMouth = mesh(new THREE.SphereGeometry(0.085, 20, 14), mouthMat, false);
     openMouth.scale.set(1, 0.9, 0.4);
