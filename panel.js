@@ -475,10 +475,210 @@ function renderBag(s) {
     bagCoins.textContent = "";
     shownCoins = null;
   } else if (!coinAnim) setCoins(s.coins, shownCoins !== null);
+  if (bagMode === "bag" && bagTab === "eggs" && hatching) return;
   bagScroll.textContent = "";
   if (bagMode === "shop") renderShopPart(s);
   else if (bagMode === "exp") renderExpPart(s);
-  else renderItemsPart(s);
+  else {
+    const tabs = el("div", "bag-tabs");
+    const eggCount = s.eggs.length;
+    const readyEggs = s.eggs.filter(e => e.slot !== null && eggNow(s, e).left <= 0).length;
+    [["items", "Itens"], ["eggs", "Ovos" + (eggCount ? " (" + eggCount + ")" : "")]].forEach(([k, label]) => {
+      const t = btn(label, "bag-tab" + (bagTab === k ? " on" : ""), () => {
+        bagTab = k;
+        renderBag(lastState);
+      });
+      t.setAttribute("aria-pressed", String(bagTab === k));
+      if (k === "eggs" && readyEggs) t.appendChild(el("span", "tab-dot"));
+      tabs.appendChild(t);
+    });
+    bagScroll.appendChild(tabs);
+    if (bagTab === "eggs") renderEggsPart(s);
+    else renderItemsPart(s);
+  }
+}
+
+let bagTab = "items";
+let eggSel = 0;
+let hatching = false;
+let eggTicker = 0;
+
+function eggNow(s, e) {
+  if (e.slot === null) return { left: e.left, care: e.care };
+  const min = Math.max(0, (Date.now() - (s.now || Date.now())) / 60000);
+  const active = Math.min(min, e.care / s.careDecay);
+  return { left: Math.max(0, e.left - active * 60000), care: Math.max(0, e.care - min * s.careDecay) };
+}
+
+function eggSvg(color, size) {
+  const w = size || 34;
+  return '<svg viewBox="0 0 24 28" width="' + w + '" height="' + Math.round(w * 28 / 24) + '" aria-hidden="true"><path d="M12 1.5C7 1.5 3 9.5 3 16.5a9 9 0 0 0 18 0C21 9.5 17 1.5 12 1.5z" fill="' + color + '" stroke="rgba(0,0,0,0.25)" stroke-width="1"/><circle cx="8.5" cy="15" r="1.9" fill="#ffffff" opacity="0.75"/><circle cx="15" cy="10" r="1.4" fill="#ffffff" opacity="0.7"/><circle cx="14.5" cy="20" r="2.3" fill="#ffffff" opacity="0.65"/><ellipse cx="8" cy="8.5" rx="1.6" ry="2.6" fill="#ffffff" opacity="0.55" transform="rotate(25 8 8.5)"/></svg>';
+}
+
+function slotOf(s, i) {
+  return s.eggs.find(e => e.slot === i) || null;
+}
+
+function renderEggsPart(s) {
+  if (!slotOf(s, eggSel)) {
+    const f = [0, 1, 2].find(i => slotOf(s, i));
+    if (f !== undefined) eggSel = f;
+  }
+  const slots = el("div", "egg-slots");
+  for (let i = 0; i < s.incubatorSlots; i++) {
+    const e = slotOf(s, i);
+    const b = el("button", "egg-slot" + (e ? "" : " empty") + (i === eggSel ? " on" : ""));
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(i === eggSel));
+    if (e) {
+      const ico = el("span", "egg-ico");
+      ico.innerHTML = eggSvg(e.color, 30);
+      const n = eggNow(s, e);
+      if (n.left <= 0) ico.classList.add("ready");
+      else if (n.care <= 0) ico.classList.add("cold");
+      b.appendChild(ico);
+      const tm = el("span", "egg-time", n.left <= 0 ? "Pronto!" : fmtTime(n.left));
+      tm.dataset.slot = String(i);
+      b.appendChild(tm);
+    } else {
+      b.appendChild(el("span", "egg-empty-ico", "+"));
+      b.appendChild(el("span", "egg-time", "Vazio"));
+    }
+    b.addEventListener("click", () => {
+      eggSel = i;
+      renderBag(lastState);
+    });
+    slots.appendChild(b);
+  }
+  bagScroll.appendChild(slots);
+  const e = slotOf(s, eggSel);
+  if (e) {
+    const n = eggNow(s, e);
+    const card = el("div", "egg-card");
+    if (n.left <= 0) {
+      card.appendChild(el("p", "egg-msg", "Pronto para chocar!"));
+      const go = btn("Chocar", "solid hatch-btn", () => hatch(e, card));
+      card.appendChild(go);
+    } else {
+      const row = el("div", "egg-care");
+      row.appendChild(el("span", "", "Cuidado"));
+      const track = el("div", "track");
+      const fill = el("div", "care-fill");
+      fill.style.width = Math.round(n.care) + "%";
+      fill.style.background = barColor(n.care);
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(el("span", "care-val", Math.round(n.care) + "%"));
+      card.appendChild(row);
+      card.appendChild(el("p", "egg-msg", n.care <= 0 ? "Sem cuidado o ovo para de chocar. Limpe e brinque com ele." : "Mantenha o cuidado alto para o tempo continuar correndo."));
+      const acts = el("div", "row-buttons");
+      [["clean", "Limpar"], ["play", "Brincar"]].forEach(([k, t]) => {
+        acts.appendChild(
+          btn(t, "ghost", async () => {
+            const ico = bagScroll.querySelector(".egg-slot.on .egg-ico");
+            if (ico) {
+              ico.classList.remove("wiggle");
+              void ico.offsetWidth;
+              ico.classList.add("wiggle");
+            }
+            await window.pet.eco({ op: "care", id: e.id, kind: k });
+          }, n.care >= 99.5)
+        );
+      });
+      card.appendChild(acts);
+    }
+    bagScroll.appendChild(card);
+  } else {
+    bagScroll.appendChild(el("p", "", "Espaço vazio. Escolha um ovo guardado para colocar aqui."));
+  }
+  const inv = s.eggs.filter(x => x.slot === null);
+  const full = [0, 1, 2].every(i => slotOf(s, i));
+  bagScroll.appendChild(el("h3", "egg-sub", "Guardados" + (inv.length ? " (" + inv.length + ")" : "")));
+  if (!inv.length) {
+    bagScroll.appendChild(el("p", "", "Nenhum ovo guardado. Compre ovos na loja."));
+    bagScroll.appendChild(btn("Ir para a loja", "solid", () => setMode("shop")));
+  }
+  inv.forEach(x => {
+    const row = el("div", "it");
+    const ico = el("span", "it-ico");
+    ico.innerHTML = eggSvg(x.color, 20);
+    row.appendChild(ico);
+    const info = el("span", "info");
+    info.append(el("span", "name-line", "Ovo misterioso"), el("span", "eff", full ? "A chocadeira está cheia" : "Leve para a chocadeira"));
+    row.appendChild(info);
+    const box = el("span", "it-btns");
+    box.appendChild(
+      btn("Chocadeira", "", async () => {
+        const free = [0, 1, 2].find(i => !slotOf(lastState, i));
+        if (free !== undefined) eggSel = free;
+        const r = await window.pet.eco({ op: "incubate", id: x.id });
+        if (r && r !== "Ovo foi para a chocadeira") bagSay(r);
+      }, full)
+    );
+    row.appendChild(box);
+    bagScroll.appendChild(row);
+  });
+  clearInterval(eggTicker);
+  eggTicker = setInterval(tickEggTimes, 1000);
+}
+
+function tickEggTimes() {
+  if (!lastState || bagMode !== "bag" || bagTab !== "eggs") {
+    clearInterval(eggTicker);
+    return;
+  }
+  if (hatching) return;
+  let flip = false;
+  bagScroll.querySelectorAll(".egg-time[data-slot]").forEach(t => {
+    const e = slotOf(lastState, Number(t.dataset.slot));
+    if (!e) return;
+    const n = eggNow(lastState, e);
+    const txt = n.left <= 0 ? "Pronto!" : fmtTime(n.left);
+    if (txt === "Pronto!" && t.textContent !== "Pronto!") flip = true;
+    t.textContent = txt;
+  });
+  const sel = slotOf(lastState, eggSel);
+  if (sel) {
+    const n = eggNow(lastState, sel);
+    const fill = bagScroll.querySelector(".care-fill");
+    const val = bagScroll.querySelector(".care-val");
+    if (fill) {
+      fill.style.width = Math.round(n.care) + "%";
+      fill.style.background = barColor(n.care);
+    }
+    if (val) val.textContent = Math.round(n.care) + "%";
+  }
+  if (flip) renderBag(lastState);
+}
+
+async function hatch(e, card) {
+  if (hatching) return;
+  hatching = true;
+  const ico = bagScroll.querySelector(".egg-slot.on .egg-ico");
+  card.textContent = "";
+  const stage = el("div", "hatch-stage");
+  const big = el("span", "hatch-egg");
+  big.innerHTML = eggSvg(e.color, 64);
+  stage.appendChild(big);
+  card.appendChild(stage);
+  if (ico) ico.style.visibility = "hidden";
+  await new Promise(res => setTimeout(res, 1300));
+  const r = await window.pet.eco({ op: "hatch", id: e.id });
+  big.classList.add("pop");
+  await new Promise(res => setTimeout(res, 260));
+  stage.textContent = "";
+  if (r && r.hatched) {
+    const burst = el("div", "hatch-burst");
+    burst.style.setProperty("--c", r.color);
+    stage.appendChild(burst);
+    stage.appendChild(el("p", "hatch-name", "Nasceu um " + r.name + "!"));
+    stage.appendChild(el("p", "egg-msg", "Foi para " + r.where + "."));
+  }
+  const ok = btn("Legal!", "solid", () => {
+    hatching = false;
+    if (lastState) renderBag(lastState);
+  });
+  stage.appendChild(ok);
 }
 
 function renderShopPart(s) {
@@ -627,7 +827,11 @@ function render(s) {
   const itemCount = s.items.reduce((n, it) => n + it.count, 0);
   const ready = s.expeditions.filter(x => x.endsAt <= s.now).length;
   setTile(openShopBtn, s.coins + " moedas", false);
-  setTile(openBagBtn, itemCount ? itemCount + (itemCount === 1 ? " item" : " itens") : "Vazia", false);
+  const eggsReady = s.eggs.filter(e => e.slot !== null && eggNow(s, e).left <= 0).length;
+  const bagParts = [];
+  if (itemCount) bagParts.push(itemCount + (itemCount === 1 ? " item" : " itens"));
+  if (s.eggs.length) bagParts.push(s.eggs.length + (s.eggs.length === 1 ? " ovo" : " ovos"));
+  setTile(openBagBtn, eggsReady ? (eggsReady === 1 ? "Ovo pronto!" : eggsReady + " ovos prontos!") : bagParts.join(" · ") || "Vazia", eggsReady > 0);
   const expLocked = s.owned.length < 2 && !s.expeditions.length;
   if (expLocked) setTile(openExpBtn, "Bloqueado", false, true);
   else setTile(openExpBtn, ready ? (ready === 1 ? "1 voltou!" : ready + " voltaram!") : s.expeditions.length ? s.expeditions.length + " em andamento" : "Nenhuma", ready > 0);
@@ -709,6 +913,7 @@ accountBtn.addEventListener("click", async () => {
 
 function setMode(m) {
   if (m === "bag") bagNew = 0;
+  if (m !== "bag") hatching = false;
   if (m === "shop") shownCoins = null;
   bagMode = m;
   boxMode = false;

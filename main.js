@@ -125,6 +125,10 @@ function snapshot() {
   view.expeditionSize = Game.C.EXPEDITION_SIZE;
   view.expeditionKinds = Object.keys(Game.C.EXPEDITIONS);
   view.eggPrice = Game.C.EGG_PRICE;
+  view.eggs = view.eggs.map(e => Object.assign(e, { color: (petMeta[e.species] && petMeta[e.species].color) || "#999999" }));
+  view.incubatorSlots = Game.C.INCUBATOR_SLOTS;
+  view.hatchMs = Game.C.HATCH_MS;
+  view.careDecay = Game.C.CARE_DECAY_PER_MIN;
   view.eggPool = eggBaseIds().length;
   const items = Object.keys(Game.ITEMS).map(id =>
     Object.assign({ id, count: state.inventory[id] || 0, canUse: Game.canUseItem(state, id, state.pet) }, Game.ITEMS[id])
@@ -441,6 +445,19 @@ ipcMain.handle("eco", (_e, p) => {
   } else if (p.op === "egg") {
     r = Game.buyEgg(state, eggBaseIds());
     if (r.changed) msg = "Ovo adicionado ao inventário";
+  } else if (p.op === "incubate") {
+    r = Game.incubate(state, p.id);
+    if (r.changed) msg = "Ovo foi para a chocadeira";
+    else if (r.reason === "full") return "A chocadeira está cheia.";
+  } else if (p.op === "care") {
+    r = Game.careEgg(state, p.id, p.kind === "clean" ? "clean" : "play");
+    if (r.changed) msg = p.kind === "clean" ? "Ovo limpinho" : "O ovo gostou da brincadeira";
+  } else if (p.op === "hatch") {
+    r = Game.hatchEgg(state, p.id);
+    if (r.changed) {
+      const m = petMeta[r.species] || {};
+      msg = { hatched: true, species: r.species, name: m.name || r.species, color: m.color || "#999999", where: state.party.includes(r.uid) ? "o seu grupo" : "a caixa" };
+    }
   } else if (p.op === "release") {
     const nm = name(p.id);
     r = Game.releasePet(state, p.id);
