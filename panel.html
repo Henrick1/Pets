@@ -83,7 +83,8 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-width: 52px;
+  width: 56px;
+  min-height: 28px;
   justify-content: center;
 }
 .it-btns button.price::before {
@@ -229,6 +230,15 @@ html, body {
 }
 .it-btns button.price.done::before {
   display: none;
+}
+.it-btns button.price.done::after {
+  content: "";
+  width: 11px;
+  height: 6px;
+  margin-top: -3px;
+  border-left: 2.5px solid currentColor;
+  border-bottom: 2.5px solid currentColor;
+  transform: rotate(-45deg);
 }
 .fly {
   position: absolute;
@@ -805,6 +815,28 @@ button:focus-visible {
   font-weight: 600;
   font-size: 12px;
 }
+main > section:has(> .track) {
+  display: grid;
+  grid-template-columns: 68px 1fr 52px;
+  align-items: center;
+  column-gap: 8px;
+}
+main > section:has(> .track) .row {
+  display: contents;
+}
+main > section:has(> .track) .row > span:first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+main > section:has(> .track) .row > span:last-child {
+  grid-column: 3;
+  grid-row: 1;
+  text-align: right;
+}
+main > section:has(> .track) .track {
+  grid-column: 2;
+  grid-row: 1;
+}
 .track {
   height: 10px;
   border-radius: 5px;
@@ -885,6 +917,31 @@ button:focus-visible {
   gap: 6px;
   overflow-y: auto;
   min-height: 0;
+  margin-right: -6px;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+#pets.more {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(46, 125, 84, 0.28);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(46, 125, 84, 0.5);
+}
+::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
 }
 .pet {
   display: flex;
@@ -892,7 +949,7 @@ button:focus-visible {
   gap: 10px;
   border: 2px solid transparent;
   border-radius: 12px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   background: #f3f7f5;
   font-size: 14px;
   font-weight: 600;

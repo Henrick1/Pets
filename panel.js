@@ -147,7 +147,14 @@ function dotFor(p) {
   return d;
 }
 
+function fadeList() {
+  listEl.classList.toggle("more", listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight > 2);
+}
+listEl.addEventListener("scroll", fadeList);
+window.addEventListener("resize", fadeList);
+
 function renderParty(s) {
+  const keep = listEl.scrollTop;
   listEl.textContent = "";
   s.party.forEach(p => {
     const btn = el("button", "pet");
@@ -159,6 +166,8 @@ function renderParty(s) {
     btn.addEventListener("click", () => window.pet.selectPet(p.id));
     listEl.appendChild(btn);
   });
+  listEl.scrollTop = keep;
+  requestAnimationFrame(fadeList);
 }
 
 function renderBox(s) {
@@ -377,6 +386,7 @@ async function buy(op, id, row) {
 function btn(text, cls, onClick, disabled) {
   const b = el("button", cls || "", text);
   b.type = "button";
+  if (!text && /\bdone\b/.test(cls || "")) b.setAttribute("aria-label", "Comprado");
   b.disabled = !!disabled;
   b.addEventListener("click", onClick);
   return b;
@@ -426,10 +436,10 @@ function renderBag(s) {
 function renderShopPart(s) {
   bagScroll.appendChild(el("p", "", "O que você compra vai para a mochila. O grupo rende moedas toda hora enquanto está alimentado e feliz."));
   const egg = itemLine({ id: "ovo", name: "Ovo misterioso" }, "");
-  egg.querySelector(".eff").textContent = bought.ovo && bought.ovo > Date.now() ? "Foi para o inventário de ovos" : "Nasce uma criatura aleatória";
+  egg.querySelector(".eff").textContent = "Nasce uma criatura aleatória";
   const eggBox = el("span", "it-btns");
   const eggDone = bought.ovo && bought.ovo > Date.now();
-  const eggBtn = btn(eggDone ? "Comprado!" : String(s.eggPrice), "price" + (eggDone ? " done" : ""), () => buy("egg", "ovo", egg), !eggDone && (s.coins < s.eggPrice || !s.eggPool));
+  const eggBtn = btn(eggDone ? "" : String(s.eggPrice), "price" + (eggDone ? " done" : ""), () => buy("egg", "ovo", egg), !eggDone && (s.coins < s.eggPrice || !s.eggPool));
   eggBox.appendChild(eggBtn);
   egg.dataset.item = "ovo";
   egg.appendChild(eggBox);
@@ -438,7 +448,7 @@ function renderShopPart(s) {
     const row = itemLine(it, it.count ? "tem " + it.count : "");
     const box = el("span", "it-btns");
     const done = bought[it.id] && bought[it.id] > Date.now();
-    box.appendChild(btn(done ? "Comprado!" : String(it.price), "price" + (done ? " done" : ""), () => buy("buy", it.id, row), !done && s.coins < it.price));
+    box.appendChild(btn(done ? "" : String(it.price), "price" + (done ? " done" : ""), () => buy("buy", it.id, row), !done && s.coins < it.price));
     row.dataset.item = it.id;
     row.appendChild(box);
     bagScroll.appendChild(row);
