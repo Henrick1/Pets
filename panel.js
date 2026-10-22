@@ -486,6 +486,7 @@ function renderBag(s) {
     [["items", "Itens"], ["eggs", "Ovos" + (eggCount ? " (" + eggCount + ")" : "")]].forEach(([k, label]) => {
       const t = btn(label, "bag-tab" + (bagTab === k ? " on" : ""), () => {
         bagTab = k;
+        if (k !== "eggs") stopEgg3d();
         renderBag(lastState);
       });
       t.setAttribute("aria-pressed", String(bagTab === k));
@@ -552,13 +553,20 @@ function renderEggsPart(s) {
   }
   bagScroll.appendChild(slots);
   const e = slotOf(s, eggSel);
+  const wrap = ensureEggStage();
+  if (wrap) {
+    bagScroll.appendChild(wrap);
+    syncEgg3d(s);
+  }
   if (e) {
     const n = eggNow(s, e);
     const card = el("div", "egg-card");
     if (n.left <= 0) {
-      card.appendChild(el("p", "egg-msg", "Pronto para chocar!"));
-      const go = btn("Chocar", "solid hatch-btn", () => hatch(e, card));
-      card.appendChild(go);
+      if (wrap) card.appendChild(el("p", "egg-msg", "Pronto para chocar! Toque no ovo acima."));
+      else {
+        card.appendChild(el("p", "egg-msg", "Pronto para chocar!"));
+        card.appendChild(btn("Chocar", "solid hatch-btn", () => hatch(e, card)));
+      }
     } else {
       const row = el("div", "egg-care");
       row.appendChild(el("span", "", "Cuidado"));
@@ -581,6 +589,7 @@ function renderEggsPart(s) {
               void ico.offsetWidth;
               ico.classList.add("wiggle");
             }
+            if (eggStage) eggStage.eggDo(k);
             await window.pet.eco({ op: "care", id: e.id, kind: k });
           }, n.care >= 99.5)
         );
@@ -588,7 +597,7 @@ function renderEggsPart(s) {
       card.appendChild(acts);
     }
     bagScroll.appendChild(card);
-  } else {
+  } else if (!wrap) {
     bagScroll.appendChild(el("p", "", "Espaço vazio. Escolha um ovo guardado para colocar aqui."));
   }
   const inv = s.eggs.filter(x => x.slot === null);
@@ -622,9 +631,169 @@ function renderEggsPart(s) {
   eggTicker = setInterval(tickEggTimes, 1000);
 }
 
+let eggStage = null;
+let eggWrap = null;
+let eggLabel = null;
+let shownEgg;
+let petsLoaded = null;
+
+function loadPets() {
+  if (petsLoaded) return petsLoaded;
+  petsLoaded = window.pet.getPetFiles().then(files =>
+    files.reduce(
+      (p, f) =>
+        p.then(
+          () =>
+            new Promise(res => {
+              const sc = document.createElement("script");
+              sc.src = f;
+              sc.onload = res;
+              sc.onerror = res;
+              document.body.appendChild(sc);
+            })
+        ),
+      Promise.resolve()
+    )
+  );
+  return petsLoaded;
+}
+
+function eggSay(text, cls) {
+  if (!eggLabel) return;
+  eggLabel.hidden = !text;
+  eggLabel.textContent = text || "";
+  eggLabel.className = "egg3d-text" + (cls ? " " + cls : "");
+  void eggLabel.offsetWidth;
+}
+
+function ensureEggStage() {
+  if (eggWrap) return eggWrap;
+  if (!window.THREE || !window.PetStage || !window.PetEgg) return null;
+  eggWrap = el("div", "egg3d");
+  const canvas = document.createElement("canvas");
+  eggWrap.appendChild(canvas);
+  eggLabel = el("p", "egg3d-text");
+  eggLabel.hidden = true;
+  eggWrap.appendChild(eggLabel);
+  try {
+    eggStage = window.PetStage.create({ canvas, THREE: window.THREE, kit: window.PetKit, Pets: window.Pets, reduceMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+  } catch (err) {
+    eggWrap = null;
+    eggStage = null;
+    return null;
+  }
+  loadPets();
+  let down = false;
+  let x = 0;
+  let sx = 0;
+  let sy = 0;
+  eggWrap.addEventListener("pointerdown", ev => {
+    down = true;
+    x = ev.clientX;
+    sx = ev.clientX;
+    sy = ev.clientY;
+    try {
+      eggWrap.setPointerCapture(ev.pointerId);
+    } catch (err) {}
+    eggStage.spin.begin();
+  });
+  eggWrap.addEventListener("pointermove", ev => {
+    if (!down) return;
+    eggStage.spin.drag(ev.clientX - x, 0);
+    x = ev.clientX;
+  });
+  const up = ev => {
+    if (down) eggStage.spin.end();
+    const tap = down && ev.type === "pointerup" && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 8;
+    down = false;
+    if (tap) tapEgg3d();
+  };
+  eggWrap.addEventListener("pointerup", up);
+  eggWrap.addEventListener("pointercancel", up);
+  requestAnimationFrame(() => {
+    eggStage.resize();
+    eggStage.start();
+  });
+  return eggWrap;
+}
+
+function syncEgg3d(s) {
+  if (!eggStage || hatching) return;
+  const e = slotOf(s, eggSel);
+  eggStage.start();
+  requestAnimationFrame(() => eggStage && eggStage.resize());
+  if (!e) {
+    if (shownEgg !== null) {
+      eggStage.setEgg(null);
+      eggStage.setPet(null);
+      shownEgg = null;
+    }
+    eggSay("Espaço vazio", "soft");
+    return;
+  }
+  const n = eggNow(s, e);
+  if (shownEgg !== e.id) {
+    eggStage.setPet(null);
+    eggStage.setEgg({ color: e.color, nest: true, care: n.care });
+    shownEgg = e.id;
+  }
+  eggStage.setEggCare(n.care);
+  if (n.left <= 0) {
+    if (eggStage.eggCracks() === 0) eggSay("Toque no ovo 3 vezes!");
+  } else eggSay("");
+}
+
+const TAP_TEXT = ["Toque no ovo 3 vezes!", "Rachou!", "Está brilhando!", "Lá vem!"];
+
+async function tapEgg3d() {
+  if (!lastState || !eggStage || hatching) return;
+  const e = slotOf(lastState, eggSel);
+  if (!e || eggNow(lastState, e).left > 0 || !eggStage.hasEgg() || eggStage.eggCracks() >= 3) return;
+  const level = eggStage.eggTap();
+  eggSay(TAP_TEXT[level], level % 2 ? "again" : "");
+  if (level < 3) return;
+  hatching = true;
+  await loadPets();
+  setTimeout(() => {
+    eggSay("Vai nascer!", "again");
+    eggWrap.classList.add("shaking");
+    eggStage.hatch(
+      e.species,
+      async () => {
+        const r = await window.pet.eco({ op: "hatch", id: e.id });
+        shownEgg = undefined;
+        const card = bagScroll.querySelector(".egg-card");
+        if (card) {
+          card.textContent = "";
+          if (r && r.hatched) card.appendChild(el("p", "hatch-name", r.name + " foi para " + r.where + "!"));
+          card.appendChild(
+            btn("Legal!", "solid", () => {
+              hatching = false;
+              eggSay("");
+              if (lastState) renderBag(lastState);
+            })
+          );
+        }
+      },
+      () => {
+        eggWrap.classList.remove("shaking");
+        eggWrap.classList.add("burst");
+        setTimeout(() => eggWrap && eggWrap.classList.remove("burst"), 900);
+        const sp = window.Pets && window.Pets.find(e.species);
+        eggSay("Nasceu " + (sp ? sp.name : "") + "!", "reveal");
+      }
+    );
+  }, 600);
+}
+
+function stopEgg3d() {
+  if (eggStage) eggStage.stop();
+}
+
 function tickEggTimes() {
   if (!lastState || bagMode !== "bag" || bagTab !== "eggs") {
     clearInterval(eggTicker);
+    stopEgg3d();
     return;
   }
   if (hatching) return;
@@ -640,6 +809,7 @@ function tickEggTimes() {
   const sel = slotOf(lastState, eggSel);
   if (sel) {
     const n = eggNow(lastState, sel);
+    if (eggStage && shownEgg === sel.id) eggStage.setEggCare(n.care);
     const fill = bagScroll.querySelector(".care-fill");
     const val = bagScroll.querySelector(".care-val");
     if (fill) {
@@ -913,7 +1083,10 @@ accountBtn.addEventListener("click", async () => {
 
 function setMode(m) {
   if (m === "bag") bagNew = 0;
-  if (m !== "bag") hatching = false;
+  if (m !== "bag") {
+    hatching = false;
+    stopEgg3d();
+  }
   if (m === "shop") shownCoins = null;
   bagMode = m;
   boxMode = false;
