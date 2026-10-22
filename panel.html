@@ -737,14 +737,50 @@ body > .chest-overlay .chest-stage {
 }
 #account {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: #f1f6f3;
+  align-items: stretch;
+  gap: 6px;
   font-size: 12px;
   color: #5b6b63;
+}
+.profile-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 12px;
+  padding: 6px 10px;
+  background: #f1f6f3;
+  color: #2e7d54;
+  text-align: left;
+}
+.profile-btn:hover {
+  background: #e4eee8;
+}
+.profile-btn svg {
+  flex: none;
+}
+.icon-sq {
+  flex: none;
+  width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c9d6cf;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #2e7d54;
+}
+.icon-sq:hover {
+  background: #f1f6f3;
+}
+#acc-status {
+  font-size: 11px;
+}
+#acc-status:empty {
+  display: none;
 }
 #account-info {
   display: flex;
@@ -1286,11 +1322,11 @@ main > section:has(> .track) .track {
       <span class="tile-dot" hidden></span>
     </button>
   </div>
-  <button id="site-btn" class="site-btn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Abrir o site</span></button>
   </div>
-  <footer id="account" hidden>
-    <div id="account-info"><span id="acc-email"></span><span id="acc-status"></span></div>
-    <button id="account-btn" class="link" type="button">Sair</button>
+  <footer id="account">
+    <button id="profile-btn" class="profile-btn" type="button" title="Abrir o perfil"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="account-info"><span id="acc-email"></span><span id="acc-status"></span></span></button>
+    <button id="site-btn" class="icon-sq" type="button" aria-label="Abrir o site" title="Abrir o site"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+    <button id="account-btn" class="icon-sq" type="button" aria-label="Sair" title="Sair"><svg id="acc-ico-out" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 8l4 4-4 4M18 12H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg id="acc-ico-in" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="display:none"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 8l4 4-4 4M14 12H4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </footer>
 </main>
 <script src="node_modules/three/build/three.min.js"></script>

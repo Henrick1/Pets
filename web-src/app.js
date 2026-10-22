@@ -2085,6 +2085,11 @@
     }
     route();
     if (cloud.signedIn()) syncNow();
+    if (location.hash === "#conta") {
+      history.replaceState(null, "", location.pathname + location.search);
+      $("account-sheet").showModal();
+      renderAccount();
+    }
   }
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {

@@ -30,6 +30,7 @@ const accountEl = document.getElementById("account");
 const accEmail = document.getElementById("acc-email");
 const accStatus = document.getElementById("acc-status");
 const accountBtn = document.getElementById("account-btn");
+const profileBtn = document.getElementById("profile-btn");
 const openBoxBtn = document.getElementById("open-box");
 const boxList = document.getElementById("box-list");
 const boxClose = document.getElementById("box-close");
@@ -547,18 +548,22 @@ function renderAccount(acc) {
   signedIn = acc.signedIn;
   const showAuth = acc.configured && !acc.signedIn && (!acc.guest || forceAuth);
   cardEl.classList.toggle("auth-mode", showAuth);
-  accountEl.hidden = !acc.configured;
+  profileBtn.hidden = !acc.configured;
+  accountBtn.hidden = !acc.configured;
   if (!acc.configured) return;
+  const label = acc.signedIn ? "Sair" : "Entrar";
+  accountBtn.setAttribute("aria-label", label);
+  accountBtn.title = label;
+  document.getElementById("acc-ico-out").style.display = acc.signedIn ? "" : "none";
+  document.getElementById("acc-ico-in").style.display = acc.signedIn ? "none" : "";
   if (acc.signedIn) {
     accEmail.textContent = acc.email || "";
     accStatus.textContent = statusText(acc);
-    accStatus.hidden = !accStatus.textContent;
-    accountBtn.textContent = "Sair";
+    profileBtn.title = "Abrir o perfil";
   } else {
     accEmail.textContent = "Sem conta";
-    accStatus.textContent = "O progresso fica só neste computador.";
-    accStatus.hidden = false;
-    accountBtn.textContent = "Entrar";
+    accStatus.textContent = "Progresso só neste computador";
+    profileBtn.title = "Entrar para salvar o progresso";
   }
 }
 
@@ -672,6 +677,10 @@ dailyBtn.addEventListener("click", async () => {
   }
 });
 document.getElementById("site-btn").addEventListener("click", () => window.pet.openSite());
+profileBtn.addEventListener("click", () => {
+  if (signedIn) window.pet.openSite("conta");
+  else accountBtn.click();
+});
 setInterval(() => {
   if (!bagMode || !lastState) return;
   if (lastState.expeditions.some(x => x.endsAt <= Date.now() && x.endsAt > lastState.now)) window.pet.getState().then(render);

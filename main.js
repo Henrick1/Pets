@@ -513,8 +513,8 @@ ipcMain.on("auth-skip", () => {
 
 ipcMain.on("close-panel", closePanel);
 
-ipcMain.on("open-site", () => {
-  if (config.siteUrl) shell.openExternal(config.siteUrl);
+ipcMain.on("open-site", (_e, hash) => {
+  if (config.siteUrl) shell.openExternal(config.siteUrl + (typeof hash === "string" && /^[a-z]+$/.test(hash) ? "#" + hash : ""));
 });
 
 ipcMain.on("drag-start", (_e, p) => {
