@@ -2261,3 +2261,54 @@ a.btn.soft {
     opacity: 0;
   }
 }
+
+.item-wrap {
+  position: relative;
+}
+
+.more-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.more-btn:hover,
+.more-btn:focus-visible {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--text);
+}
+
+.item-wrap > .more-btn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+}
+
+@media (hover: hover) {
+  .item-wrap > .more-btn,
+  .item .more-btn {
+    opacity: 0;
+  }
+
+  .item-wrap:hover > .more-btn,
+  .item-wrap:focus-within > .more-btn,
+  .item:hover .more-btn,
+  .item:focus-within .more-btn {
+    opacity: 1;
+  }
+}
+
+#release-sheet .btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}

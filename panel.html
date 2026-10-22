@@ -958,6 +958,73 @@ main > section:has(> .track) .track {
   padding-right: 6px;
   scrollbar-gutter: stable;
 }
+.pet-wrap {
+  position: relative;
+}
+.pet-wrap > .pet {
+  width: 100%;
+}
+.more-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5b6b63;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.pet-wrap > .more-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+.pet-wrap:hover > .more-btn,
+.box-item:hover .more-btn,
+.more-btn:focus-visible {
+  opacity: 1;
+}
+.more-btn:hover {
+  background: #e1ebe5;
+  color: #243029;
+}
+.release-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fde8e6;
+  color: #8c1d18;
+  font-size: 12px;
+  font-weight: 600;
+}
+.release-ask p {
+  margin: 0;
+}
+.release-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.release-btns button {
+  border: 0;
+  border-radius: 9px;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ffffff;
+  color: #243029;
+}
+.release-btns button.danger {
+  background: #c0392b;
+  color: #ffffff;
+}
 #pets.more {
   -webkit-mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
   mask-image: linear-gradient(#000 calc(100% - 18px), transparent);

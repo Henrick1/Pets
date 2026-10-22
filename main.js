@@ -119,6 +119,7 @@ function snapshot() {
   const now = Date.now();
   view.party.concat(view.box).forEach(p => {
     p.canExplore = Game.canExplore(state, p.id);
+    p.canRelease = Game.canRelease(state, p.id);
     p.ready = !!p.away && p.away.endsAt <= now;
   });
   view.expeditionSize = Game.C.EXPEDITION_SIZE;
@@ -440,6 +441,10 @@ ipcMain.handle("eco", (_e, p) => {
   } else if (p.op === "egg") {
     r = Game.buyEgg(state, eggBaseIds());
     if (r.changed) msg = "Ovo adicionado ao inventário";
+  } else if (p.op === "release") {
+    const nm = name(p.id);
+    r = Game.releasePet(state, p.id);
+    if (r.changed) msg = nm + " foi liberada";
   } else if (p.op === "explore") {
     r = Game.startExpedition(state, p.kind, Array.isArray(p.ids) ? p.ids : []);
     if (r.changed) msg = "Expedição partiu";

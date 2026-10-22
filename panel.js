@@ -154,6 +154,44 @@ function fadeList() {
 listEl.addEventListener("scroll", fadeList);
 window.addEventListener("resize", fadeList);
 
+let releaseAsk = null;
+function moreFor(p) {
+  if (!p.canRelease) return null;
+  const b = el("button", "more-btn");
+  b.type = "button";
+  b.title = "Mais opções";
+  b.setAttribute("aria-label", "Mais opções para " + p.name);
+  b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>';
+  b.addEventListener("click", e => {
+    e.stopPropagation();
+    releaseAsk = releaseAsk === p.id ? null : p.id;
+    if (lastState) render(lastState);
+  });
+  return b;
+}
+function releaseBox(p) {
+  const box = el("div", "release-ask");
+  box.appendChild(el("p", "", "Liberar " + p.name + "? Ela sai da sua conta para sempre, junto com o XP."));
+  const row = el("div", "release-btns");
+  const no = el("button", "ghost", "Cancelar");
+  no.type = "button";
+  no.addEventListener("click", () => {
+    releaseAsk = null;
+    if (lastState) render(lastState);
+  });
+  const yes = el("button", "danger", "Liberar");
+  yes.type = "button";
+  yes.addEventListener("click", async () => {
+    releaseAsk = null;
+    const msg = await window.pet.eco({ op: "release", id: p.id });
+    if (msg) showToast(msg);
+  });
+  row.append(no, yes);
+  box.appendChild(row);
+  requestAnimationFrame(() => box.isConnected && box.scrollIntoView({ block: "nearest" }));
+  return box;
+}
+
 function renderParty(s) {
   const keep = listEl.scrollTop;
   listEl.textContent = "";
@@ -165,7 +203,12 @@ function renderParty(s) {
     btn.disabled = !!p.away;
     btn.append(dotFor(p), petInfo(p));
     btn.addEventListener("click", () => window.pet.selectPet(p.id));
-    listEl.appendChild(btn);
+    const wrap = el("div", "pet-wrap");
+    wrap.appendChild(btn);
+    const more = moreFor(p);
+    if (more) wrap.appendChild(more);
+    listEl.appendChild(wrap);
+    if (releaseAsk === p.id) listEl.appendChild(releaseBox(p));
   });
   listEl.scrollTop = keep;
   requestAnimationFrame(fadeList);
@@ -187,8 +230,12 @@ function renderBox(s) {
       pickFor = pickFor === p.id ? null : p.id;
       renderBox(lastState);
     });
-    line.append(dotFor(p), petInfo(p), swap);
+    const more = moreFor(p);
+    line.append(dotFor(p), petInfo(p));
+    if (more) line.appendChild(more);
+    line.appendChild(swap);
     item.appendChild(line);
+    if (releaseAsk === p.id) item.appendChild(releaseBox(p));
     if (pickFor === p.id) {
       const picker = el("div", "picker");
       picker.appendChild(el("span", "who", "Quem sai do grupo?"));
@@ -620,6 +667,15 @@ function render(s) {
   levelBadge.textContent = "Nível " + s.level;
   xpFillEl.style.width = Math.min(100, (s.xp / s.xpNext) * 100) + "%";
   xpValueEl.textContent = Math.floor(s.xp) + " / " + s.xpNext;
+}
+
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.hidden = true;
+  }, 4000);
 }
 
 window.pet.onLevelUp(n => {

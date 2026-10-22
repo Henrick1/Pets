@@ -1386,6 +1386,24 @@
     return el;
   }
 
+  let releaseId = null;
+  function moreBtn(p) {
+    if (!Game.canRelease(state, p.id)) return null;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "more-btn";
+    b.setAttribute("aria-label", "Mais opções para " + p.name);
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>';
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      releaseId = p.id;
+      $("release-title").textContent = "Liberar " + p.name + "?";
+      $("release-hint").textContent = p.name + " (nível " + p.level + ") vai embora e sai da sua conta para sempre, junto com o XP. Não dá para desfazer.";
+      $("release-sheet").showModal();
+    });
+    return b;
+  }
+
   function renderSheet(v) {
     const partyList = $("party-list");
     const boxList = $("box-list");
@@ -1434,7 +1452,12 @@
         $("party-sheet").close();
         render();
       });
-      partyList.append(el);
+      const wrap = document.createElement("div");
+      wrap.className = "item-wrap";
+      wrap.append(el);
+      const more = moreBtn(p);
+      if (more) wrap.append(more);
+      partyList.append(wrap);
     });
 
     boxList.replaceChildren();
@@ -1493,6 +1516,11 @@
         swapIn = p.id;
         render();
       });
+      const more = moreBtn(p);
+      if (more) {
+        more.classList.add("inline");
+        el.append(more);
+      }
       el.append(btn);
       boxList.append(el);
     });
@@ -1886,6 +1914,23 @@
     });
 
     $("sync-now").addEventListener("click", () => syncNow({ preferRemote: false }));
+
+    $("release-cancel").addEventListener("click", () => $("release-sheet").close());
+    $("release-ok").addEventListener("click", () => {
+      const id = releaseId;
+      releaseId = null;
+      $("release-sheet").close();
+      const vv = view();
+      const name = id && vv.party.concat(vv.box).find(p => p.id === id);
+      const r = id ? Game.releasePet(state, id) : { changed: false };
+      if (!r.changed) return;
+      Object.keys(expDraft).forEach(k => (expDraft[k] = expDraft[k].filter(x => x !== id)));
+      if (swapIn === id) swapIn = null;
+      saveState();
+      scheduleSync();
+      showToast((name ? name.name : "A criatura") + " foi liberada");
+      render();
+    });
 
     const dl = desktopDownload();
     if (dl) {
