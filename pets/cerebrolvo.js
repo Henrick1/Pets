@@ -52,7 +52,7 @@ Pets.register({
 
     const jellyMat = new THREE.MeshPhysicalMaterial({ color: 0xa8e6ff, roughness: 0.08, transmission: 0, transparent: true, opacity: 0.42, clearcoat: 1, clearcoatRoughness: 0.1, emissive: 0x2a7ab8, emissiveIntensity: 0.18, side: THREE.DoubleSide, depthWrite: false });
     const faceMat = new THREE.MeshPhysicalMaterial({ color: 0x7cc8f0, roughness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.2, emissive: 0x1a4a80, emissiveIntensity: 0.15 });
-    const brainMat = new THREE.MeshStandardMaterial({ color: 0xf07ab8, roughness: 0.5, emissive: 0xd83a90, emissiveIntensity: 0.3 });
+    const brainMat = new THREE.MeshStandardMaterial({ color: 0xf489c2, roughness: 0.45, emissive: 0xd83a90, emissiveIntensity: 0.3, vertexColors: true });
     const brainDark = new THREE.MeshStandardMaterial({ color: 0xd86aa8, roughness: 0.5, emissive: 0xb02a7a, emissiveIntensity: 0.3 });
     const spotMat = new THREE.MeshBasicMaterial({ color: 0x8ffcff });
     const armMat = new THREE.MeshPhysicalMaterial({ color: 0x6cbcea, roughness: 0.3, clearcoat: 0.8, emissive: 0x1a4a80, emissiveIntensity: 0.15 });
@@ -88,15 +88,29 @@ Pets.register({
     const lobes = [-1, 1].map(s => {
       const lg = new THREE.Group();
       lg.position.x = R * 0.19 * s;
-      const lobeGeo = new THREE.SphereGeometry(R * 0.33, 32, 24);
+      const LR = R * 0.33;
+      const lobeGeo = new THREE.SphereGeometry(LR, 96, 72);
       const pos = lobeGeo.attributes.position;
+      const col = new Float32Array(pos.count * 3);
       for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        const z = pos.getZ(i);
-        const n = 1 + 0.06 * Math.sin(y * 38 + Math.sin(z * 30) * 2) * Math.cos(z * 22 + x * 14);
-        pos.setXYZ(i, x * n, y * n, z * n);
+        const x = pos.getX(i) / LR;
+        const y = pos.getY(i) / LR;
+        const z = pos.getZ(i) / LR;
+        const wx = x * 5.6 + Math.sin(y * 5.1 + z * 3.3 + s) * 0.9;
+        const wy = y * 6.0 + Math.sin(z * 4.7 - x * 3.1) * 0.9;
+        const wz = z * 5.4 + Math.sin(x * 5.3 + y * 2.9) * 0.9;
+        const v = Math.sin(wx + Math.sin(wy) * 1.3) + Math.sin(wy + Math.sin(wz) * 1.3) + Math.sin(wz + Math.sin(wx) * 1.3);
+        const fold = Math.min(1, Math.abs(v) / 1.1);
+        const ridge = 1 - Math.pow(1 - fold, 3);
+        const inner = Math.max(0, -x * s);
+        const n = 1 + (ridge - 0.7) * 0.075 * (1 - inner * 0.6);
+        pos.setXYZ(i, pos.getX(i) * n, pos.getY(i) * n, pos.getZ(i) * n);
+        const c = 0.62 + 0.38 * ridge;
+        col[i * 3] = c;
+        col[i * 3 + 1] = c * 0.94;
+        col[i * 3 + 2] = c;
       }
+      lobeGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
       lobeGeo.computeVertexNormals();
       const lobe = mesh(lobeGeo, brainMat, false);
       lobe.scale.set(0.85, 0.9, 1.2);
@@ -104,9 +118,6 @@ Pets.register({
       brain.add(lg);
       return lg;
     });
-    const fissure = mesh(new THREE.BoxGeometry(0.02, R * 0.5, R * 0.75), brainDark, false);
-    fissure.position.y = R * 0.04;
-    brain.add(fissure);
     const stem = mesh(new THREE.CylinderGeometry(R * 0.07, R * 0.12, R * 0.4, 14), brainDark, false);
     stem.position.y = -R * 0.36;
     brain.add(stem);
