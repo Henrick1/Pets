@@ -28,5 +28,9 @@ contextBridge.exposeInMainWorld("pet", {
   signUp: creds => ipcRenderer.invoke("auth-signup", creds),
   signOut: () => ipcRenderer.invoke("auth-signout"),
   syncNow: () => ipcRenderer.send("sync-now"),
-  skipAuth: () => ipcRenderer.send("auth-skip")
+  skipAuth: () => ipcRenderer.send("auth-skip"),
+  onRealtime: cb => ipcRenderer.on("rt", (_e, on) => cb(on)),
+  realtimeAuth: () => ipcRenderer.invoke("rt-auth"),
+  realtimeChange: rec => ipcRenderer.send("rt-change", rec),
+  realtimeStatus: on => ipcRenderer.send("rt-status", on)
 });

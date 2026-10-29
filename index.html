@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' wss://*.supabase.co">
 <title>Pets</title>
 <style>
 html, body {
@@ -106,6 +106,7 @@ html, body {
 <script src="node_modules/three/build/three.min.js"></script>
 <script src="lib/types.js"></script>
 <script src="lib/pet-kit.js"></script>
+<script src="lib/cloud.js"></script>
 <script src="renderer.js"></script>
 </body>
 </html>

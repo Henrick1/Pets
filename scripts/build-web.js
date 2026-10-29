@@ -35,7 +35,8 @@ function walk(dir, base = dir) {
 
 function supabaseOrigin() {
   try {
-    return new URL(config.supabaseUrl).origin;
+    const o = new URL(config.supabaseUrl).origin;
+    return o + " " + o.replace(/^http/, "ws");
   } catch (err) {
     return "";
   }
@@ -63,9 +64,23 @@ const petFiles = fs
   .sort()
   .map(f => "pets/" + f);
 const build = Date.now().toString(36);
+const crypto = require("crypto");
+const vm = require("vm");
+const petMeta = [];
+const shared = ["lib/pet-kit.js", "lib/stage.js"].map(f => (fs.existsSync(path.join(out, f)) ? fs.readFileSync(path.join(out, f), "utf8") : "")).join("\n");
+petFiles.forEach(f => {
+  const src = fs.readFileSync(path.join(out, f), "utf8");
+  const hash = crypto.createHash("sha1").update(src).update(shared).digest("hex").slice(0, 10);
+  const sandbox = { Pets: { register: d => petMeta.push({ id: d.id, dex: d.dex || 999, name: d.name, color: d.color, types: d.types || [], description: d.description || "", evolvesTo: d.evolvesTo || null, evolveBranches: d.evolveBranches || null, evolveLevel: d.evolveLevel || 0, file: f, hash }) } };
+  try {
+    vm.runInNewContext(src, sandbox, { filename: f });
+  } catch (err) {
+    console.warn("Nao foi possivel ler " + f + ": " + err.message);
+  }
+});
 fs.writeFileSync(
   path.join(out, "pets-list.js"),
-  "window.PET_FILES = " + JSON.stringify(petFiles) + ";\nwindow.PETS_BUILD = " + JSON.stringify(build) + ";\n"
+  "window.PET_FILES = " + JSON.stringify(petFiles) + ";\nwindow.PET_META = " + JSON.stringify(petMeta) + ";\nwindow.PETS_BUILD = " + JSON.stringify(build) + ";\n"
 );
 
 const indexPath = path.join(out, "index.html");

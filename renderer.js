@@ -280,6 +280,24 @@ window.pet.onPanel(open => {
 });
 window.pet.onState(applyState);
 
+let live = null;
+window.pet.onRealtime(on => {
+  if (!window.PetsCloud) return;
+  if (!on) {
+    if (live) live.stop();
+    return;
+  }
+  if (!live)
+    live = PetsCloud.realtime({
+      getAuth: () => window.pet.realtimeAuth(),
+      onChange: rec => {
+        if (rec) window.pet.realtimeChange(rec);
+      },
+      onStatus: st => window.pet.realtimeStatus(!!st)
+    });
+  live.start();
+});
+
 canvas.addEventListener("contextmenu", e => e.preventDefault());
 
 canvas.addEventListener("pointerdown", e => {

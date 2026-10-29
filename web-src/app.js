@@ -5,6 +5,7 @@
   const SESSION_KEY = "pets.session.v1";
   const SYNC_DELAY_MS = 1500;
   const SYNC_EVERY_MS = 60000;
+  const LIVE_SYNC_MS = 5 * 60000;
   const THREE_LOCAL = "vendor/three.min.js";
   const THREE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
 
@@ -34,6 +35,44 @@
     });
 
   const loadScriptSafe = src => loadScript(src).catch(() => null);
+  const petLoads = {};
+  const hasPet = id => !!(window.Pets && window.Pets.find && window.Pets.list.some(p => p.id === id));
+  function ensurePets(ids) {
+    const list = Array.from(new Set(ids || [])).filter(id => meta[id] && meta[id].file && !hasPet(id));
+    return Promise.all(list.map(id => petLoads[id] || (petLoads[id] = loadScriptSafe(meta[id].file))));
+  }
+  function neededPets() {
+    if (!state) return [];
+    const ids = new Set();
+    state.owned.forEach(u => ids.add(Game.speciesOf(state, u)));
+    (state.seen || []).forEach(x => ids.add(x));
+    state.eggs.forEach(e => ids.add(e.species));
+    if (Game.needsStarter(state)) Game.C.STARTERS.forEach(x => ids.add(x));
+    Array.from(ids).forEach(id => nextForms(id).forEach(x => ids.add(x)));
+    return Array.from(ids);
+  }
+  function familyOf(id) {
+    const out = new Set([id]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      petIds.forEach(p => {
+        const forms = nextForms(p);
+        if (!out.has(p) && forms.some(f => out.has(f))) {
+          out.add(p);
+          grew = true;
+        }
+        if (out.has(p))
+          forms.forEach(f => {
+            if (!out.has(f)) {
+              out.add(f);
+              grew = true;
+            }
+          });
+      });
+    }
+    return Array.from(out);
+  }
 
   let cloud = null;
   let state = null;
@@ -55,6 +94,7 @@
   let firstSyncDone = false;
   let evolvingNow = false;
   let syncing = false;
+  let live = null;
   let syncAgain = false;
   let account = { offline: false, error: "", lastSync: 0 };
   let toastTimer = 0;
@@ -200,6 +240,11 @@
   }
 
   function openDexDetail(id) {
+    const fam = familyOf(id);
+    if (fam.some(x => !hasPet(x))) {
+      ensurePets(fam).then(() => openDexDetail(id));
+      return;
+    }
     const v = view();
     const m = meta[id];
     if (!m) return;
@@ -1595,8 +1640,11 @@
     if ($("shop-sheet").open) renderShop();
     if ($("bag-sheet").open) renderBag();
     if (lastPetId !== v.pet + ":" + v.species) {
-      lastPetId = v.pet + ":" + v.species;
-      stage.setPet(v.species);
+      if (v.species && !hasPet(v.species)) ensurePets([v.species]).then(() => render());
+      else {
+        lastPetId = v.pet + ":" + v.species;
+        stage.setPet(v.species);
+      }
     }
     stage.setStatus({ hunger: v.hunger, life: v.life, dying: v.dying });
     if ($("party-sheet").open) renderSheet(v);
@@ -1626,12 +1674,30 @@
     }
     syncing = true;
     try {
-      const row = await cloud.pull();
-      const remote = row ? Game.normalize(row.state, petIds) : null;
+      let row = null;
+      let same = false;
+      const known = cloud.known();
+      if (options.row) {
+        if (options.row.updated_at && cloud.ts(options.row.updated_at) === known.updatedAt) same = true;
+        else {
+          row = options.row;
+          cloud.seen(row);
+        }
+      } else if (!options.preferRemote && known.updatedAt) {
+        const head = await cloud.head();
+        if (head && head === known.updatedAt) same = true;
+        else row = await cloud.pull();
+      } else row = await cloud.pull();
       Game.catchUp(state);
-      const result = Game.merge(state, remote, Date.now(), { preferRemote: !!options.preferRemote && !!remote });
-      state = result.state;
-      if (result.push) await cloud.push(state);
+      if (same) {
+        if (state.actionAt > (cloud.known().actionAt || 0)) await cloud.push(state);
+      } else {
+        const remote = row ? Game.normalize(row.state, petIds) : null;
+        const result = Game.merge(state, remote, Date.now(), { preferRemote: !!options.preferRemote && !!remote });
+        state = result.state;
+        if (result.push) await cloud.push(state);
+        if (remote) await ensurePets(neededPets());
+      }
       account.offline = false;
       account.error = "";
       account.lastSync = Date.now();
@@ -1656,8 +1722,30 @@
     }
   }
 
+  function startLive() {
+    if (!cloud || !cloud.configured || !cloud.signedIn() || document.hidden) return;
+    if (!live)
+      live = PetsCloud.realtime({
+        url: cfg.supabaseUrl,
+        anonKey: cfg.supabaseAnonKey,
+        getAuth: () => cloud.auth(),
+        onChange: rec => {
+          if (rec && !document.hidden) syncNow({ row: rec });
+        },
+        onStatus: on => {
+          if (on) syncNow();
+        }
+      });
+    live.start();
+  }
+
+  function stopLive() {
+    if (live) live.stop();
+  }
+
   function enterAuth(message) {
     clearTimeout(syncTimer);
+    stopLive();
     $("password").value = "";
     setAuthMsg(message || "", message ? "error" : "");
     showView("auth");
@@ -1697,6 +1785,7 @@
       firstSyncDone = false;
       route();
       await syncNow({ preferRemote: true });
+      startLive();
     } catch (err) {
       setAuthMsg(err.offline ? "Sem conexão com a internet." : err.message, "error");
     } finally {
@@ -1777,6 +1866,7 @@
       const before = state.coins;
       const r = Game.buyEgg(state, baseIds());
       if (!r.changed) return;
+      ensurePets(neededPets());
       saveState();
       scheduleSync();
       buzz([15, 40, 25]);
@@ -2018,11 +2108,15 @@
     window.addEventListener("orientationchange", () => setTimeout(() => stage.resize(), 200));
 
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible") {
+        stopLive();
+        return;
+      }
       Game.catchUp(state);
       saveState();
       render();
       syncNow();
+      startLive();
     });
     window.addEventListener("online", () => syncNow());
 
@@ -2067,7 +2161,6 @@
       await loadScriptSafe("lib/chest.js");
       await loadScript("lib/stage.js");
       await loadScript("pets-list.js");
-      for (const f of window.PET_FILES || []) await loadScriptSafe(f);
     } catch (err) {
       let tries = 0;
       try {
@@ -2086,14 +2179,15 @@
       sessionStorage.removeItem("pets.boot.retry");
     } catch (e) {}
 
-    window.Pets.list.forEach(p => {
-      meta[p.id] = { id: p.id, dex: p.dex || 999, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveBranches: p.evolveBranches || null, evolveLevel: p.evolveLevel || 0 };
+    (window.PET_META || []).forEach(p => {
+      meta[p.id] = { id: p.id, dex: p.dex || 999, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveBranches: p.evolveBranches || null, evolveLevel: p.evolveLevel || 0, file: p.file, hash: p.hash };
     });
-    petIds = window.Pets.list.map(p => p.id).sort();
+    petIds = Object.keys(meta).sort();
 
     state = Game.normalize(store.read(STATE_KEY), petIds);
     Game.catchUp(state);
     saveState();
+    await Promise.all([ensurePets(neededPets()), PetStage.loadThumbs ? PetStage.loadThumbs(meta) : null]);
 
     cloud = PetsCloud.create({
       url: cfg.supabaseUrl,
@@ -2122,14 +2216,21 @@
       render();
       maybeDaily();
     }, Game.C.TICK_MS);
-    setInterval(() => syncNow(), SYNC_EVERY_MS);
+    setInterval(() => {
+      if (document.hidden) return;
+      if (live && live.live() && Date.now() - account.lastSync < LIVE_SYNC_MS) return;
+      syncNow();
+    }, SYNC_EVERY_MS);
 
     if (cloud.configured && !cloud.signedIn()) {
       enterAuth("");
       return;
     }
     route();
-    if (cloud.signedIn()) syncNow();
+    if (cloud.signedIn()) {
+      syncNow();
+      startLive();
+    }
     if (location.hash === "#conta") {
       history.replaceState(null, "", location.pathname + location.search);
       $("account-sheet").showModal();

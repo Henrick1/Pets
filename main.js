@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, screen, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, screen, shell, powerMonitor } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
@@ -22,6 +22,7 @@ const PANEL_GAP = 8;
 const EDGE_X = 28;
 const SYNC_DELAY_MS = 1500;
 const SYNC_EVERY_MS = 60000;
+const LIVE_SYNC_MS = 5 * 60000;
 
 let win = null;
 let panel = null;
@@ -37,6 +38,8 @@ let syncing = false;
 let syncAgain = false;
 let account = { offline: false, error: "", lastSync: 0 };
 let guest = false;
+let rtLive = false;
+let asleep = false;
 
 const iconPath = path.join(__dirname, "assets", "icon.png");
 
@@ -166,7 +169,16 @@ function tickHunger() {
 
 function startSyncLoop() {
   clearInterval(syncLoop);
-  syncLoop = setInterval(syncNow, SYNC_EVERY_MS);
+  syncLoop = setInterval(() => {
+    if (asleep) return;
+    if (rtLive && Date.now() - account.lastSync < LIVE_SYNC_MS) return;
+    syncNow();
+  }, SYNC_EVERY_MS);
+}
+
+function setLive(on) {
+  if (!on) rtLive = false;
+  if (alive(win)) win.webContents.send("rt", !!on && cloud.configured && cloud.signedIn() && !asleep);
 }
 
 function scheduleSync() {
@@ -183,12 +195,29 @@ async function syncNow(opts = {}) {
   }
   syncing = true;
   try {
-    const row = await cloud.pull();
-    const remote = row ? Game.normalize(row.state, petIds) : null;
+    let row = null;
+    let same = false;
+    const known = cloud.known();
+    if (opts.row) {
+      if (opts.row.updated_at && cloud.ts(opts.row.updated_at) === known.updatedAt) same = true;
+      else {
+        row = opts.row;
+        cloud.seen(row);
+      }
+    } else if (!opts.preferRemote && known.updatedAt) {
+      const head = await cloud.head();
+      if (head && head === known.updatedAt) same = true;
+      else row = await cloud.pull();
+    } else row = await cloud.pull();
     Game.catchUp(state);
-    const result = Game.merge(state, remote, Date.now(), { preferRemote: !!opts.preferRemote && !!remote });
-    state = result.state;
-    if (result.push) await cloud.push(state);
+    if (same) {
+      if (state.actionAt > (cloud.known().actionAt || 0)) await cloud.push(state);
+    } else {
+      const remote = row ? Game.normalize(row.state, petIds) : null;
+      const result = Game.merge(state, remote, Date.now(), { preferRemote: !!opts.preferRemote && !!remote });
+      state = result.state;
+      if (result.push) await cloud.push(state);
+    }
     account.offline = false;
     account.error = "";
     account.lastSync = Date.now();
@@ -298,15 +327,23 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "index.html"));
   win.once("ready-to-show", placeOnTarget);
 
+  let lastCursor = null;
   cursorTimer = setInterval(() => {
-    if (!alive(win)) return;
+    if (!alive(win) || asleep) return;
     const c = screen.getCursorScreenPoint();
     const b = win.getBounds();
+    const key = c.x + "," + c.y + "," + b.x + "," + b.y + "," + b.width + "," + b.height;
+    if (key === lastCursor) return;
+    lastCursor = key;
     const area = screen.getDisplayNearestPoint(c).workArea;
     const x = (c.x - (b.x + b.width / 2)) / (area.width / 2);
     const y = -(c.y - (b.y + b.height * 0.45)) / (area.height / 2);
     win.webContents.send("cursor", { x: clamp(x), y: clamp(y) });
   }, 33);
+  win.webContents.on("did-finish-load", () => {
+    lastCursor = null;
+    if (cloud.configured && cloud.signedIn()) setLive(true);
+  });
 
   win.on("closed", () => {
     clearInterval(cursorTimer);
@@ -314,6 +351,21 @@ function createWindow() {
     win = null;
   });
 }
+
+ipcMain.handle("rt-auth", async () => {
+  if (!cloud.configured || !cloud.signedIn()) return null;
+  const a = await cloud.auth().catch(() => null);
+  return a ? Object.assign({}, cloud.realtimeInfo(), a) : null;
+});
+
+ipcMain.on("rt-change", (_e, rec) => {
+  if (rec && typeof rec === "object") syncNow({ row: rec });
+});
+
+ipcMain.on("rt-status", (_e, on) => {
+  rtLive = !!on;
+  if (on) syncNow();
+});
 
 ipcMain.handle("pet-files", () => petIds.map(id => "pets/" + id + ".js"));
 
@@ -496,6 +548,7 @@ ipcMain.handle("auth-signin", async (_e, creds) => {
     await cloud.signIn(String((creds && creds.email) || "").trim(), String((creds && creds.password) || ""));
     startSyncLoop();
     await syncNow({ preferRemote: true });
+    setLive(true);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err.offline ? "Sem conexão com a internet." : err.message };
@@ -509,6 +562,7 @@ ipcMain.handle("auth-signup", async (_e, creds) => {
     if (r.confirm) return { ok: true, confirm: true };
     startSyncLoop();
     await syncNow({ preferRemote: true });
+    setLive(true);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err.offline ? "Sem conexão com a internet." : err.message };
@@ -516,6 +570,7 @@ ipcMain.handle("auth-signup", async (_e, creds) => {
 });
 
 ipcMain.handle("auth-signout", async () => {
+  setLive(false);
   clearInterval(syncLoop);
   clearTimeout(syncTimer);
   await cloud.signOut();
@@ -598,6 +653,22 @@ app.whenReady().then(() => {
   tickTimer = setInterval(tickHunger, Game.C.TICK_MS);
   screen.on("display-added", placeOnTarget);
   screen.on("display-removed", placeOnTarget);
+  const sleep = () => {
+    asleep = true;
+    setLive(false);
+  };
+  const wake = () => {
+    if (!asleep) return;
+    asleep = false;
+    Game.catchUp(state);
+    broadcast();
+    syncNow();
+    setLive(true);
+  };
+  powerMonitor.on("suspend", sleep);
+  powerMonitor.on("lock-screen", sleep);
+  powerMonitor.on("resume", wake);
+  powerMonitor.on("unlock-screen", wake);
   setTimeout(() => {
     createWindow();
     if (cloud.configured) {
