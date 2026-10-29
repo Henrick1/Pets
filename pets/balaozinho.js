@@ -2,11 +2,11 @@ Pets.register({
   id: "balaozinho",
   dex: 26,
   name: "Balãozinho",
-  color: "#7cc8ff",
+  color: "#7d98b4",
   types: ["flying"],
   evolvesTo: "zepelume",
   evolveLevel: 16,
-  description: "Um filhote do céu, redondo e macio, com asinhas e cauda feitas de nuvem. Quando enche o peito de ar, flutua como um balão e sopra rajadas de vento. Com fome, murcha e pousa emburrado.",
+  description: "Um filhote aviador que nunca tira os óculos de voo. Enche a bolsa vermelha do pescoço como um balão para flutuar e, quando ela esvazia, solta rajadas de vento. Com fome, a bolsa murcha e ele pousa emburrado.",
   actions: {
     jump: { duration: 1.6 },
     eat: { duration: 2.4 },
@@ -77,10 +77,13 @@ Pets.register({
     });
 
     const bodyMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: fuzzTex, bumpMap: fuzzBump, bumpScale: 0.006, roughness: 0.78 });
-    const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, emissive: 0xdcecff, emissiveIntensity: 0.28, map: fuzzTex });
-    const featherMats = [0x3f8fe6, 0x8fd3ff, 0xffffff].map(c => new THREE.MeshStandardMaterial({ color: c, map: featherTex, roughness: 0.7, side: THREE.DoubleSide }));
-    const beakMat = new THREE.MeshStandardMaterial({ color: 0xffc23d, roughness: 0.32 });
-    const beakDark = new THREE.MeshStandardMaterial({ color: 0xf29a2e, roughness: 0.4 });
+    const featherMats = [0x4f6c8c, 0x7d98b4, 0x2f4058, 0xf2e6d4].map(c => new THREE.MeshStandardMaterial({ color: c, map: featherTex, roughness: 0.7, side: THREE.DoubleSide }));
+    const beakMat = new THREE.MeshStandardMaterial({ color: 0xf0a33c, roughness: 0.3 });
+    const beakDark = new THREE.MeshStandardMaterial({ color: 0xd07a28, roughness: 0.38 });
+    const pouchMat = new THREE.MeshPhysicalMaterial({ color: 0xff3b4e, roughness: 0.22, clearcoat: 0.8, clearcoatRoughness: 0.2, emissive: 0x6a0010, emissiveIntensity: 0.25 });
+    const brass = new THREE.MeshStandardMaterial({ color: 0xd8a84e, roughness: 0.28, metalness: 0.85 });
+    const leather = new THREE.MeshStandardMaterial({ color: 0x6b4430, roughness: 0.75 });
+    const lensMat = new THREE.MeshPhysicalMaterial({ color: 0xbfe6ff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.55, clearcoat: 1, emissive: 0x2a5a80, emissiveIntensity: 0.15 });
     const legMat = new THREE.MeshStandardMaterial({ color: 0xffa94a, roughness: 0.5 });
     const cheekMat = new THREE.MeshBasicMaterial({ color: 0xff9fb4, transparent: true, opacity: 0.65, depthWrite: false });
     const mouthIn = new THREE.MeshStandardMaterial({ color: 0x6a1f2e, roughness: 0.5 });
@@ -121,16 +124,6 @@ Pets.register({
       g.computeVertexNormals();
       return g;
     };
-    const cloud = (parts, mat) => {
-      const g = new THREE.Group();
-      parts.forEach(([x, y, z, r]) => {
-        const b = mesh(new THREE.SphereGeometry(r, 22, 16), mat, false);
-        b.position.set(x, y, z);
-        g.add(b);
-      });
-      return g;
-    };
-
     const root = new THREE.Group();
     const bod = new THREE.Group();
     bod.position.y = 0.9;
@@ -153,18 +146,17 @@ Pets.register({
     {
       const p = bodyGeo.attributes.position;
       const col = new Float32Array(p.count * 3);
-      const sky = new THREE.Color(0x86ceff);
-      const deep = new THREE.Color(0x4b9ff0);
-      const cream = new THREE.Color(0xfff0d2);
+      const sky = new THREE.Color(0x7f93a6);
+      const deep = new THREE.Color(0x44576d);
+      const cream = new THREE.Color(0xf6ead8);
       const c = new THREE.Color();
       for (let i = 0; i < p.count; i++) {
         const x = p.getX(i);
         const y = p.getY(i);
         const z = p.getZ(i);
         const a = Math.atan2(x, z);
-        const edge = 0.5 + Math.sin(a * 9) * 0.05 - Math.cos(a) * 0.07;
-        const cap = smooth(edge - 0.03, edge + 0.03, y);
-        const back = smooth(0.2, -0.6, Math.cos(a)) * smooth(-0.5, 0.2, y) * 0.35;
+        const cap = smooth(0.25, 0.85, y);
+        const back = smooth(0.3, -0.7, Math.cos(a)) * 0.75;
         c.copy(sky).lerp(deep, Math.max(cap, back));
         const bx = Math.sin(a) / 0.6;
         const by = (y + 0.32) / 0.46;
@@ -182,67 +174,95 @@ Pets.register({
     puffG.add(body);
 
     const crest = new THREE.Group();
-    crest.position.set(0, 0.93, 0.05);
+    crest.position.set(0, 0.95, -0.12);
     puffG.add(crest);
     [
-      [0, 0.56, 0.17, 0.3, 0, -0.55],
-      [-0.12, 0.4, 0.13, 0.2, 1, -0.3],
-      [0.12, 0.4, 0.13, 0.2, 1, -0.3],
-      [0, 0.28, 0.1, 0.16, 2, -0.08]
+      [0, 0.26, 0.09, 0.14, 2, -0.7],
+      [0.08, 0.2, 0.07, 0.1, 0, -0.9],
+      [-0.08, 0.2, 0.07, 0.1, 0, -0.9]
     ].forEach(([x, len, wid, curl, m, tilt]) => {
       const f = mesh(featherGeo(len, wid, curl), featherMats[m], false);
       f.position.x = x;
-      f.rotation.set(tilt, 0, -x * 2.6);
+      f.rotation.set(tilt, 0, -x * 3);
       crest.add(f);
     });
-    const curlPts = [];
-    for (let i = 0; i <= 16; i++) {
-      const u = i / 16;
-      const a = u * Math.PI * 1.5;
-      curlPts.push(V3(0, 0.02 + Math.sin(a) * 0.16 * (1 - u * 0.35) + u * 0.12, 0.04 + (1 - Math.cos(a)) * 0.12 * (1 - u * 0.35)));
+
+    const goggles = new THREE.Group();
+    puffG.add(goggles);
+    {
+      const gy = 0.6;
+      const gr = rAt(gy);
+      const strap = mesh(new THREE.TorusGeometry(gr + 0.012, 0.045, 10, 64), leather, false);
+      strap.rotation.x = Math.PI / 2;
+      strap.scale.z = 1.6;
+      strap.position.y = gy;
+      goggles.add(strap);
+      [-1, 1].forEach(s => {
+        const x = 0.21 * s;
+        const y = gy + 0.04;
+        const r = rAt(y);
+        const z = Math.sqrt(Math.max(0, r * r - x * x));
+        const g = new THREE.Group();
+        g.position.set(x, y, z + 0.02);
+        g.lookAt(x * 2.2, y + 0.55, z * 2.2 + 0.02);
+        const cup = mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.09, 32, 1, true), leather, false);
+        cup.material.side = THREE.DoubleSide;
+        cup.rotation.x = Math.PI / 2;
+        g.add(cup);
+        const rim = mesh(new THREE.TorusGeometry(0.15, 0.032, 12, 36), brass, false);
+        rim.position.z = 0.045;
+        g.add(rim);
+        const lens = mesh(new THREE.SphereGeometry(0.15, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2), lensMat, false);
+        lens.rotation.x = Math.PI / 2;
+        lens.scale.set(1, 0.35, 1);
+        lens.position.z = 0.04;
+        g.add(lens);
+        const glint = new THREE.Mesh(new THREE.CircleGeometry(0.035, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+        glint.position.set(-0.05, 0.05, 0.095);
+        g.add(glint);
+        goggles.add(g);
+      });
+      const bridge = mesh(tube([V3(-0.08, gy + 0.08, rAt(gy) + 0.02), V3(0, gy + 0.11, rAt(gy) + 0.04), V3(0.08, gy + 0.08, rAt(gy) + 0.02)], 0.022, 0.022, 10, 8), brass, false);
+      goggles.add(bridge);
     }
-    const curl = mesh(tube(curlPts, 0.04, 0.012, 30, 8), featherMats[0], false);
-    curl.position.set(0, 0.0, 0.06);
-    crest.add(curl);
 
     const wings = [-1, 1].map(s => {
       const pv = new THREE.Group();
-      pv.position.set(0.8 * s, 0.02, -0.06);
+      pv.position.set(0.82 * s, 0.05, -0.08);
       puffG.add(pv);
-      const fan = cloud(
-        [
-          [0.08, 0.0, 0.0, 0.2],
-          [0.28, 0.1, -0.02, 0.19],
-          [0.47, 0.22, -0.05, 0.16],
-          [0.62, 0.35, -0.08, 0.12],
-          [0.26, -0.1, 0.02, 0.15],
-          [0.44, 0.03, 0.0, 0.13],
-          [0.58, 0.16, -0.03, 0.1]
-        ].map(([x, y, z, r]) => [x * s, y, z, r]),
-        cloudMat
-      );
+      const fan = new THREE.Group();
+      fan.rotation.z = -s * 1.25;
       pv.add(fan);
+      [[0.72, 0.15, 2], [0.66, 0.15, 0], [0.56, 0.14, 0], [0.46, 0.13, 1], [0.36, 0.12, 1]].forEach(([len, wid, m], k) => {
+        const f = mesh(featherGeo(len, wid, 0.08), featherMats[m], false);
+        f.rotation.set(0.15, s * 0.45, -s * (0.02 + k * 0.26));
+        f.position.z = -k * 0.012;
+        fan.add(f);
+      });
+      const nub = mesh(new THREE.SphereGeometry(0.16, 18, 14), new THREE.MeshStandardMaterial({ color: 0x6f8ba8, roughness: 0.75, map: fuzzTex }), false);
+      nub.scale.set(0.75, 1, 0.65);
+      pv.add(nub);
       return { pv, s };
     });
 
-    const tail = cloud(
-      [
-        [0, 0, 0, 0.17],
-        [0.15, 0.06, -0.06, 0.13],
-        [-0.15, 0.06, -0.06, 0.13],
-        [0, 0.14, -0.12, 0.12]
-      ],
-      cloudMat
-    );
-    tail.position.set(0, -0.32, -0.8);
+    const tail = new THREE.Group();
+    tail.position.set(0, -0.3, -0.8);
     puffG.add(tail);
+    [-1, 1].forEach(s => {
+      const f = mesh(featherGeo(0.62, 0.11, -0.1), featherMats[2], false);
+      f.rotation.set(-1.85, 0, s * 0.42);
+      tail.add(f);
+      const f2 = mesh(featherGeo(0.42, 0.11, -0.06), featherMats[0], false);
+      f2.rotation.set(-1.65, 0, s * 0.18);
+      tail.add(f2);
+    });
 
     const faceY = 0.12;
     const fr = rAt(faceY);
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 1.15 });
+      const e = eye({ size: 1.05 });
       const x = 0.31 * s;
-      const y = faceY + 0.17;
+      const y = faceY + 0.15;
       const r = rAt(y);
       e.g.position.set(x, y, Math.sqrt(r * r - x * x) - 0.07);
       e.g.rotation.y = Math.atan2(x, r) * 0.8;
@@ -261,7 +281,7 @@ Pets.register({
     });
     const beak = new THREE.Group();
     beak.position.set(0, faceY - 0.02, fr - 0.04);
-    beak.scale.setScalar(1.75);
+    beak.scale.set(1.7, 1.7, 2.3);
     puffG.add(beak);
     const upper = mesh(
       (() => {
@@ -308,6 +328,14 @@ Pets.register({
     tongue.scale.set(1.2, 0.4, 1);
     tongue.position.set(0, -0.01, 0.04);
     lowerPv.add(tongue);
+
+    const pouchPv = new THREE.Group();
+    pouchPv.position.set(0, faceY - 0.2, rAt(faceY - 0.2) - 0.16);
+    puffG.add(pouchPv);
+    const pouch = mesh(new THREE.SphereGeometry(0.2, 32, 24), pouchMat, false);
+    pouchPv.add(pouch);
+    const pouchShine = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
+    pouchPv.add(pouchShine);
 
     const legs = [-1, 1].map(s => {
       const pv = new THREE.Group();
@@ -409,16 +437,23 @@ Pets.register({
           bp.needsUpdate = true;
           bodyGeo.computeVertexNormals();
         }
-        const sc = 1 + inflate * 0.16 + Math.sin(t * 1.8) * 0.012 * motion;
+        const sc = 1 + inflate * 0.05 + Math.sin(t * 1.8) * 0.012 * motion;
         puffG.scale.set(sc * (1 - hungry * 0.05), sc * (1 - hungry * 0.12), sc * (1 - hungry * 0.05));
         puffG.position.y = -hungry * 0.1;
 
         wings.forEach(({ pv, s: sd }) => {
-          const w = Math.sin(t * (6 + flap * 10)) * (0.22 + flap * 0.22);
-          pv.rotation.z = sd * (w - hungry * 0.55 + inflate * 0.25);
-          pv.rotation.y = sd * 0.15;
-          pv.scale.setScalar(1 + inflate * 0.12);
+          const w = Math.sin(t * (6 + flap * 10)) * (0.25 + flap * 0.25);
+          pv.rotation.z = sd * (w - hungry * 0.5 + inflate * 0.3);
+          pv.rotation.y = sd * 0.2;
         });
+        const pk = 0.5 + inflate * 1.65;
+        const flatK = 1 - smooth(0, 0.6, inflate);
+        pouch.scale.set(pk * (1 + flatK * 0.15), pk * (0.92 - flatK * 0.3), pk * (0.88 - flatK * 0.55));
+        pouchPv.position.set(0, faceY - 0.3 - inflate * 0.08 - hungry * 0.04, rAt(faceY - 0.3) - 0.2 + pk * 0.2 * (1 - flatK * 0.6));
+        pouch.visible = true;
+        pouchShine.visible = inflate > 0.1;
+        pouchShine.position.set(-0.07 * pk, 0.09 * pk, 0.15 * pk);
+        pouchShine.scale.setScalar(pk);
         tail.rotation.x = Math.sin(t * 2.1) * 0.12 * motion + hungry * 0.4;
         tail.rotation.y = Math.sin(t * 1.4) * 0.15 * motion;
         legs.forEach(({ pv, s: sd }, i) => {

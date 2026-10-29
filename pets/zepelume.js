@@ -125,7 +125,7 @@ Pets.register({
       g.fillStyle = "#ffffff";
       g.fillRect(0, 0, w, h);
       for (let i = 0; i < 5; i++) {
-        g.strokeStyle = "rgba(40,80,130,0.22)";
+        g.strokeStyle = "rgba(120,40,30,0.25)";
         g.lineWidth = 3;
         g.beginPath();
         g.moveTo(w * 0.1, h);
@@ -139,7 +139,8 @@ Pets.register({
     const skin = new THREE.MeshStandardMaterial({ color: 0xfff0dc, map: skinTex, bumpMap: skinBump, bumpScale: 0.01, roughness: 0.6 });
     const brass = new THREE.MeshStandardMaterial({ color: 0xd8a84e, roughness: 0.28, metalness: 0.85 });
     const darkMetal = new THREE.MeshStandardMaterial({ color: 0x3a4450, roughness: 0.4, metalness: 0.8 });
-    const finMat = new THREE.MeshStandardMaterial({ color: 0x9fd0ff, map: finTex, roughness: 0.45, metalness: 0.1, side: THREE.DoubleSide });
+    const finMat = new THREE.MeshStandardMaterial({ color: 0xff8466, map: finTex, roughness: 0.5, side: THREE.DoubleSide });
+    const finTip = new THREE.MeshStandardMaterial({ color: 0x5db6ff, roughness: 0.5, side: THREE.DoubleSide });
     const mouthMat = new THREE.MeshStandardMaterial({ color: 0x4a1a24, roughness: 0.5 });
     const tongueMat = new THREE.MeshStandardMaterial({ color: 0xff7f8f, roughness: 0.5 });
     const cheekMat = new THREE.MeshBasicMaterial({ color: 0xff8fa3, transparent: true, opacity: 0.55 });
@@ -149,7 +150,7 @@ Pets.register({
     const lampGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffd070, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending });
     const beamMat = new THREE.MeshBasicMaterial({ map: beamTex, color: 0xfff0b0, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
 
-    const loft = (nodes, rad, per, a0 = 0, a1 = Math.PI * 2) => {
+    const loft = (nodes, rad, per, a0 = 0, a1 = Math.PI * 2, cut = 99, flat = null) => {
       const n = nodes.length;
       const segs = (n - 1) * per;
       const geo = new THREE.BufferGeometry();
@@ -179,9 +180,17 @@ Pets.register({
           const k = f * (n - 1);
           const i0 = Math.min(n - 2, Math.floor(k));
           const u = k - i0;
-          const s = u * u * (3 - 2 * u);
-          const rx = lerp(list[i0].rx, list[i0 + 1].rx, s);
-          const ry = lerp(list[i0].ry, list[i0 + 1].ry, s);
+          const cr = key => {
+            const p0 = list[Math.max(0, i0 - 1)][key];
+            const p1 = list[i0][key];
+            const p2 = list[i0 + 1][key];
+            const p3 = list[Math.min(n - 1, i0 + 2)][key];
+            const u2 = u * u;
+            const u3 = u2 * u;
+            return Math.max(0.005, 0.5 * (2 * p1 + (p2 - p0) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u2 + (3 * p1 - p0 - 3 * p2 + p3) * u3));
+          };
+          const rx = cr("rx");
+          const ry = cr("ry");
           side.crossVectors(V3(0, 1, 0), tng).normalize();
           up.crossVectors(tng, side).normalize();
           if (prev) len += c.distanceTo(prev);
@@ -192,8 +201,9 @@ Pets.register({
             pos[o] = c.x + side.x * Math.cos(a) * rx + up.x * Math.sin(a) * ry;
             pos[o + 1] = c.y + side.y * Math.cos(a) * rx + up.y * Math.sin(a) * ry;
             pos[o + 2] = c.z + side.z * Math.cos(a) * rx + up.z * Math.sin(a) * ry;
-            uv[(i * (rad + 1) + j) * 2] = j / rad;
-            uv[(i * (rad + 1) + j) * 2 + 1] = len * 0.7;
+            const plain = flat && c.z > cut;
+            uv[(i * (rad + 1) + j) * 2] = plain ? flat[0] : j / rad;
+            uv[(i * (rad + 1) + j) * 2 + 1] = plain ? flat[1] : len * 0.7;
           }
         }
         geo.attributes.position.needsUpdate = true;
@@ -212,12 +222,12 @@ Pets.register({
       [-0.85, 0.0, 0.56, 0.5],
       [-0.2, 0.0, 0.78, 0.68],
       [0.45, 0.02, 0.84, 0.74],
-      [0.98, 0.04, 0.78, 0.7],
-      [1.36, 0.02, 0.6, 0.56],
-      [1.58, -0.02, 0.42, 0.4],
-      [1.7, -0.03, 0.24, 0.23],
-      [1.76, -0.03, 0.08, 0.08],
-      [1.77, -0.03, 0.01, 0.01]
+      [0.98, 0.04, 0.8, 0.72],
+      [1.3, 0.02, 0.73, 0.67],
+      [1.5, 0.01, 0.63, 0.58],
+      [1.64, 0.0, 0.47, 0.44],
+      [1.73, -0.01, 0.27, 0.26],
+      [1.765, -0.02, 0.02, 0.02]
     ];
     const nodes = BASE.map(([z, y, rx, ry]) => ({ p: V3(0, y, z), rx, ry }));
     const shellNodes = nodes.map(q => ({ p: q.p.clone(), rx: q.rx * 1.004, ry: q.ry * 1.004 }));
@@ -238,11 +248,21 @@ Pets.register({
     whale.rotation.y = -0.32;
     root.add(whale);
 
-    const top = loft(shellNodes, 40, 10, -0.18, Math.PI + 0.18);
+    const FACE_Z = 1.06;
+    const top = loft(shellNodes, 40, 10, -0.18, Math.PI + 0.18, FACE_Z, [0.0205, 0.3073]);
     whale.add(mesh(top.geo, steel));
-    const belly = loft(nodes, 40, 10, Math.PI, Math.PI * 2);
+    const belly = loft(nodes, 40, 10, Math.PI, Math.PI * 2, 1.32, [0.012, 0.5]);
     whale.add(mesh(belly.geo, skin));
 
+    {
+      const rr = rAt(FACE_Z);
+      const pts = [];
+      for (let i = 0; i <= 40; i++) {
+        const a = -0.2 + (i / 40) * (Math.PI + 0.4);
+        pts.push(V3(Math.cos(a) * (rr.rx + 0.012), rr.y + Math.sin(a) * (rr.ry + 0.012), FACE_Z));
+      }
+      whale.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.026, 8), brass, false));
+    }
     const shells = [];
     [[-0.95, 0.42], [-0.5, 0.46], [-0.02, 0.5], [0.46, 0.46]].forEach(([z, len], k) => {
       const r0 = rAt(z - len / 2);
@@ -310,16 +330,11 @@ Pets.register({
 
     const flipper = s => {
       const sh = new THREE.Shape();
-      sh.moveTo(0, 0.2);
-      sh.bezierCurveTo(0.32, 0.26, 0.72, 0.16, 1.02, -0.02);
-      sh.quadraticCurveTo(1.14, -0.1, 1.04, -0.15);
-      const trail = [[1.04, -0.15], [0.8, -0.16], [0.58, -0.2], [0.36, -0.23], [0.16, -0.25], [0, -0.22]];
-      for (let k = 1; k < trail.length; k++) {
-        const [x0, y0] = trail[k - 1];
-        const [x1, y1] = trail[k];
-        sh.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 - 0.07, x1, y1);
-      }
-      sh.lineTo(0, 0.2);
+      sh.moveTo(0, -0.12);
+      sh.quadraticCurveTo(0.4, -0.2, 0.95, -0.08);
+      sh.quadraticCurveTo(1.12, 0.0, 0.98, 0.1);
+      sh.quadraticCurveTo(0.55, 0.22, 0.0, 0.14);
+      sh.lineTo(0, -0.12);
       const g = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.025, bevelSegments: 3, curveSegments: 16 });
       g.translate(0, 0, -0.02);
       const p = g.attributes.position;
@@ -337,13 +352,15 @@ Pets.register({
     const flippers = [-1, 1].map(s => {
       const pv = new THREE.Group();
       const r = rAt(0.55);
-      pv.position.set(r.rx * 0.8 * s, r.y - r.ry * 0.55, 0.55);
-      pv.rotation.order = "ZYX";
-      pv.rotation.set(0.75, 0.4 * s, -0.5 * s);
+      pv.position.set(r.rx * 0.82 * s, r.y - r.ry * 0.5, 0.55);
+      pv.rotation.set(Math.PI / 2, 0.35 * s, -0.25 * s);
       whale.add(pv);
       const f = flipper(s);
-      f.scale.set(f.scale.x * 1.05, 1.4, 1.3);
       pv.add(f);
+      const tip = mesh(new THREE.SphereGeometry(0.1, 16, 12), finTip, false);
+      tip.scale.set(1.2, 0.9, 0.3);
+      tip.position.set(1.0 * s, 0.01, 0);
+      pv.add(tip);
       return { pv, s };
     });
 
@@ -361,8 +378,11 @@ Pets.register({
       g.rotateX(Math.PI / 2);
       const m = mesh(g, finMat);
       if (s < 0) m.scale.x = -1;
-      m.scale.multiplyScalar(1.3);
       fluke.add(m);
+      const tip = mesh(new THREE.SphereGeometry(0.06, 14, 10), finTip, false);
+      tip.scale.set(1.4, 0.35, 1);
+      tip.position.set(0.6 * s, 0, 0.33);
+      fluke.add(tip);
     });
 
     const headZ = 1.18;
@@ -570,7 +590,7 @@ Pets.register({
         });
 
         flippers.forEach(({ pv, s: sd }) => {
-          pv.rotation.z = -0.5 * sd + Math.sin(wv * 0.8) * 0.35 * sd * (0.5 + swim * 0.5);
+          pv.rotation.z = -0.25 * sd + Math.sin(wv * 0.8) * 0.35 * sd * (0.5 + swim * 0.5);
         });
         rotors.forEach((h, i) => {
           h.rotation.z += (0.15 + swim * 0.35) * (i ? 1 : -1) * (reduceMotion ? 0.3 : 1);
