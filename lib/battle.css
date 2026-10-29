@@ -28,6 +28,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .bt {
+    --bt-icon: #ffffff;
     --bt-sky-1: #23324a;
     --bt-sky-2: #2f4560;
     --bt-field-1: #2e4a36;
@@ -549,11 +550,8 @@
 .bt-ico {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
   flex: none;
-  border-radius: 8px;
-  background: var(--ic);
+  color: var(--bt-icon, var(--bt-text));
 }
 
 .bt-ico svg {
