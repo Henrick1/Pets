@@ -32,6 +32,8 @@
       "panel.js",
       "index.html",
       "panel.html",
+      "battle.html",
+      "battle-win.js",
       "config.js",
       "lib/**",
       "pets/**",

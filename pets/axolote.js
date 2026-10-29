@@ -12,8 +12,10 @@ Pets.register({
     eat: { duration: 2.4 },
     gills: { duration: 1.8 },
     toxic: { duration: 2.2 },
+    attack: { duration: 1.1 },
     crawl: { duration: 2.6 }
   },
+  battle: { special: { action: "toxic", hit: 0.36, speed: 1.3 } },
   idle: [
     { action: "gills", min: 15, max: 35 },
     { action: "crawl", min: 25, max: 50 },
@@ -23,7 +25,7 @@ Pets.register({
   clickAction: n => ["jump", "gills", "toxic", "crawl"][(n - 1) % 4],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eatPhase } = kit;
+    const { mesh, lerp, smooth, eatPhase, strike } = kit;
 
     const std = (color, rough = 0.55, extra = {}) =>
       new THREE.MeshStandardMaterial({ color, roughness: rough, ...extra });
@@ -585,6 +587,23 @@ Pets.register({
           }
         }
 
+        let lungeZ = 0;
+        if (a === "attack") {
+          const k = strike(p);
+          const face = smooth(0, 0.22, p) * (1 - smooth(0.78, 1, p));
+          poseYaw = 0.15 * face;
+          headPush = -k.wind * 0.2 + k.lunge * 0.5;
+          headPitch = -k.wind * 0.35 + k.lunge * 0.2;
+          mouthOpen = k.wind > 0.35 || (k.lunge > 0.15 && k.impact < 0.45);
+          squint = k.lunge > 0.4;
+          flare = -0.45 * k.wind + 0.45 * k.impact;
+          flutter = 0.5;
+          tailAmp = 1 + 1.6 * k.wind;
+          tailLift = k.wind * 0.6;
+          sy = 1 - k.wind * 0.12 + k.lunge * 0.05;
+          lungeZ = k.lunge * 0.35 - k.wind * 0.12;
+        }
+
         if (a === "gills") {
           const k = smooth(0, 0.12, p) * (1 - smooth(0.88, 1, p));
           flare = 0.45 * k;
@@ -639,6 +658,7 @@ Pets.register({
         const sx = (1 / Math.sqrt(sy)) * (1 + 0.1 * puff);
         squash.scale.set(sx, sy * (1 + 0.05 * puff), sx);
         root.position.y = y;
+        root.position.z = lungeZ;
         root.rotation.y = lookYaw * 0.35;
         pose.rotation.y = -0.35 + poseYaw;
         squash.rotation.z = airborne ? 0 : Math.sin(t * 1.3) * 0.015 * motion;

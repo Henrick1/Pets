@@ -8,8 +8,10 @@ Pets.register({
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },
-    flare: { duration: 2.4 }
+    flare: { duration: 2.4 },
+    attack: { duration: 1.1 }
   },
+  battle: { special: { action: "flare", hit: 0.42, speed: 1.4 } },
   idle: [
     { action: "flare", min: 25, max: 50 },
     { action: "jump", min: 40, max: 80 }
@@ -17,7 +19,7 @@ Pets.register({
   clickAction: n => ["jump", "flare", "jump", "jump"][(n - 1) % 4],
 
   create({ THREE, kit }) {
-    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
+    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, strike } = kit;
 
     const root = new THREE.Group();
     const squash = new THREE.Group();
@@ -175,6 +177,9 @@ Pets.register({
     openMouth.position.set(0, -0.24, 0.88);
     openMouth.visible = false;
     head.add(openMouth);
+    const muzzle = new THREE.Group();
+    muzzle.position.set(0, -0.24, 1.0);
+    head.add(muzzle);
 
     const eyes = [-1, 1].map(s => {
       const e = eye({ size: 0.95, whiteColor: 0xfff0c4, pupilColor: 0x3a0f08 });
@@ -358,6 +363,7 @@ Pets.register({
 
     return {
       root,
+      muzzle,
       update(s) {
         const { t, pointer, lookYaw, lookPitch, blink, action, motion, reduceMotion } = s;
         const hunger = typeof s.hunger === "number" ? s.hunger : 100;
@@ -365,6 +371,7 @@ Pets.register({
         const eat = action && action.name === "eat" ? action : null;
         const flare = action && action.name === "flare" ? action : null;
         const ph = eat ? eatPhase(eat.p) : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
 
         const fire = s.dying ? 0.3 : 0.55 + 0.45 * Math.max(0, Math.min(1, hunger / 100));
         let burst = 0;
@@ -515,6 +522,28 @@ Pets.register({
         eyes.forEach(({ g }) => {
           g.scale.y = airborne ? 1.1 : squint ? 0.4 : charge > 0.3 ? 0.35 : blink;
         });
+        root.position.z = 0;
+        if (atk) {
+          const crouch = atk.wind * 0.2;
+          squash.scale.set(1 + crouch * 0.5, 1 - crouch + atk.lunge * 0.08, 1 + crouch * 0.5);
+          root.position.y = Math.sin(Math.min(1, atk.lunge * 1.2) * Math.PI) * 0.35;
+          root.position.z = atk.lunge * 0.7 - atk.wind * 0.2;
+          root.rotation.x = lookPitch + atk.lunge * 0.35 - atk.wind * 0.25;
+          head.rotation.x = -atk.wind * 0.2 + atk.lunge * 0.15;
+          arms.forEach(({ pivot, side }) => {
+            const lead = side > 0 ? 1 : 0.55;
+            pivot.rotation.z = side * (0.3 + atk.wind * 2.3 * lead - atk.impact * 1.6 * lead);
+            pivot.rotation.x = -atk.lunge * 1.1 * lead;
+          });
+          smile.visible = atk.lunge < 0.2;
+          openMouth.visible = !smile.visible;
+          openMouth.scale.y = 0.7 + atk.lunge * 0.6;
+          eyes.forEach(({ g }) => (g.scale.y = atk.lunge > 0.4 ? 0.5 : blink));
+          tails.forEach(({ outer }) => (outer.rotation.x = -atk.wind * 0.3 + atk.lunge * 0.2));
+        } else {
+          arms.forEach(({ pivot }) => (pivot.rotation.x = 0));
+          tails.forEach(({ outer }) => (outer.rotation.x = 0));
+        }
         followPupils(eyes, pointer);
       }
     };

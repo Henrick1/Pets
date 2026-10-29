@@ -1743,7 +1743,73 @@
     if (live) live.stop();
   }
 
+  let battleUi = null;
+  function battleApi() {
+    const pack = () => ({ team: Battle.team(state), battle: state.battle ? Battle.snapshot(state.battle) : null, inventory: Object.assign({}, state.inventory) });
+    const commit = r => {
+      if (r && r.changed) {
+        saveState();
+        scheduleSync();
+      }
+    };
+    return {
+      meta: sp => meta[sp] || null,
+      thumb: sp => (hasPet(sp) && window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null),
+      ensure: ids => ensurePets(ids),
+      lobby: async () => {
+        Game.catchUp(state);
+        await ensurePets(state.party.map(u => Game.speciesOf(state, u)));
+        return pack();
+      },
+      setMoves: async (uid, list) => {
+        commit(Battle.setMoves(state, uid, list));
+        return pack();
+      },
+      start: async () => {
+        const r = Battle.start(state);
+        commit(r);
+        return { ok: !!r.changed, reason: r.reason, battle: state.battle ? Battle.snapshot(state.battle) : null, events: r.events || [], inventory: Object.assign({}, state.inventory) };
+      },
+      act: async action => {
+        const r = Battle.act(state, action);
+        commit(r);
+        return { ok: !!r.changed, battle: r.changed ? r.battle : state.battle ? Battle.snapshot(state.battle) : null, events: r.events || [], inventory: Object.assign({}, state.inventory) };
+      }
+    };
+  }
+
+  function openBattle() {
+    if (!window.BattleUI || !window.BattleStage || !state || Game.needsStarter(state)) return;
+    if (!battleUi)
+      battleUi = BattleUI.mount($("battle-view"), {
+        THREE: window.THREE,
+        kit: window.PetKit,
+        Pets: window.Pets,
+        Battle: window.Battle,
+        Types: window.PetTypes,
+        Game,
+        api: battleApi(),
+        reduceMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        onClose: closeBattle,
+        onChange: () => render()
+      });
+    $("battle-view").hidden = false;
+    if (stage) stage.stop();
+    battleUi.open();
+  }
+
+  function closeBattle() {
+    if (battleUi) battleUi.close();
+    $("battle-view").hidden = true;
+    if (stage && !$("game-view").hidden) {
+      stage.resize();
+      stage.start();
+    }
+    render();
+  }
+
   function enterAuth(message) {
+    if (battleUi && !$("battle-view").hidden) closeBattle();
     clearTimeout(syncTimer);
     stopLive();
     $("password").value = "";
@@ -1960,6 +2026,10 @@
       if (!$("menu-pop").hidden && !e.target.closest(".top-actions")) setMenu(false);
     });
     ["shop-btn", "bag-btn", "egg-btn", "dex-btn", "account-btn"].forEach(id => $(id).addEventListener("click", () => setMenu(false)));
+    $("battle-btn").addEventListener("click", () => {
+      setMenu(false);
+      openBattle();
+    });
     $("dex-btn").addEventListener("click", () => {
       closeDexDetail();
       renderDex();
@@ -2160,6 +2230,9 @@
       await loadScript("lib/egg.js");
       await loadScriptSafe("lib/chest.js");
       await loadScript("lib/stage.js");
+      await loadScript("lib/battle.js");
+      await loadScriptSafe("lib/battle-stage.js");
+      await loadScriptSafe("lib/battle-ui.js");
       await loadScript("pets-list.js");
     } catch (err) {
       let tries = 0;
@@ -2183,6 +2256,7 @@
       meta[p.id] = { id: p.id, dex: p.dex || 999, name: p.name, color: p.color, types: p.types, description: p.description || "", evolvesTo: p.evolvesTo || null, evolveBranches: p.evolveBranches || null, evolveLevel: p.evolveLevel || 0, file: p.file, hash: p.hash };
     });
     petIds = Object.keys(meta).sort();
+    if (window.Battle) Battle.setMeta(window.PET_META || []);
 
     state = Game.normalize(store.read(STATE_KEY), petIds);
     Game.catchUp(state);

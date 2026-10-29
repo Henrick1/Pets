@@ -13,6 +13,7 @@ Pets.register({
     jet: { duration: 2.4 },
     zap: { duration: 2.2 }
   },
+  battle: { attack: { action: "jet", hit: 0.5, speed: 1.3 }, special: { action: "zap", hit: 0.42, speed: 1.3 } },
   idle: [
     { action: "zap", min: 25, max: 50 },
     { action: "jet", min: 45, max: 90 }

@@ -8,8 +8,10 @@ Pets.register({
   actions: {
     jump: { duration: 2.0 },
     eat: { duration: 2.6 },
-    beam: { duration: 2.8 }
+    beam: { duration: 2.8 },
+    attack: { duration: 1.2 }
   },
+  battle: { special: { action: "beam", hit: 0.25, speed: 1.3 } },
   idle: [
     { action: "beam", min: 25, max: 50 },
     { action: "jump", min: 40, max: 80 }
@@ -17,7 +19,7 @@ Pets.register({
   clickAction: n => ["beam", "jump", "beam"][(n - 1) % 3],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
+    const { mesh, lerp, smooth, eye, followPupils, eatPhase, berry, strike } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
     const V2 = (x, y) => new THREE.Vector2(x, y);
 
@@ -505,6 +507,7 @@ Pets.register({
         const jump = action && action.name === "jump" ? action : null;
         const eat = action && action.name === "eat" ? action : null;
         const bm = action && action.name === "beam" ? action : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
         const ph = eat ? eatPhase(eat.p) : null;
         const weak = s.dying ? 1 : smooth(30, 8, hunger);
 
@@ -521,6 +524,12 @@ Pets.register({
           lift += Math.sin(Math.min(1, p / 0.9) * Math.PI) * 1.0;
           pitch -= Math.sin(p * Math.PI) * 0.25;
           swim += Math.sin(p * Math.PI) * 1.6;
+        }
+        if (atk) {
+          lift += atk.wind * 0.35 - atk.lunge * 0.2;
+          pitch += -atk.wind * 0.35 + atk.lunge * 0.3;
+          swim += atk.wind * 1.5 + atk.lunge * 2.5;
+          squint = atk.wind > 0.3 || atk.lunge > 0.2;
         }
         if (bm) {
           const p = bm.p;
@@ -539,6 +548,7 @@ Pets.register({
         } else om.scale.y = 0.6;
 
         root.position.y = lift;
+        root.position.z = atk ? atk.lunge * 0.4 - atk.wind * 0.06 : 0;
         root.rotation.y = lookYaw;
         root.rotation.x = lookPitch * 0.5;
         whale.rotation.x = pitch;

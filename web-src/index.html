@@ -13,6 +13,7 @@
 <link rel="icon" type="image/png" href="assets/icon-192.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="lib/battle.css">
 <title>Pets</title>
 </head>
 <body>
@@ -76,6 +77,9 @@
         <span id="menu-alert" class="alert-dot" hidden></span>
       </button>
       <div id="menu-pop" class="menu-pop" hidden>
+      <button id="battle-btn" class="icon-btn" type="button" aria-label="Batalha">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 4l9.5 9.5M4 4h4l9 9M4 4v4l9 9M14.5 17.5l3-3M16 16l4 4M20 4l-6.5 6.5M20 4h-4l-2.5 2.5M20 4v4l-2.5 2.5M9.5 17.5l-3-3M8 16l-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <button id="shop-btn" class="icon-btn" type="button" aria-label="Loja">
         <span class="coin-ico" aria-hidden="true"></span>
       </button>
@@ -143,6 +147,8 @@
     </nav>
   </section>
 </main>
+
+<section id="battle-view" class="battle-view" aria-label="Batalha" hidden></section>
 
 <dialog id="party-sheet" class="sheet" aria-labelledby="party-title">
   <div class="sheet-head">

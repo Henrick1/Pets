@@ -10,6 +10,7 @@ if (process.platform === "linux") {
 if (!app.requestSingleInstanceLock()) app.quit();
 
 const Game = require("./lib/game.js");
+const Battle = require("./lib/battle.js");
 const PetTypes = require("./lib/types.js");
 const PetsCloud = require("./lib/cloud.js");
 const config = require("./config.js");
@@ -26,6 +27,7 @@ const LIVE_SYNC_MS = 5 * 60000;
 
 let win = null;
 let panel = null;
+let battleWin = null;
 let dragOrigin = null;
 let cursorTimer = null;
 let tickTimer = null;
@@ -125,6 +127,8 @@ function snapshot() {
     p.canRelease = Game.canRelease(state, p.id);
     p.ready = !!p.away && p.away.endsAt <= now;
   });
+  view.battle = !!state.battle;
+  view.canFight = state.party.filter(uid => Battle.canFight(state, uid)).length;
   view.expeditionSize = Game.C.EXPEDITION_SIZE;
   view.expeditionKinds = Object.keys(Game.C.EXPEDITIONS);
   view.eggPrice = Game.C.EGG_PRICE;
@@ -367,12 +371,73 @@ ipcMain.on("rt-status", (_e, on) => {
   if (on) syncNow();
 });
 
+function openBattle() {
+  if (alive(battleWin)) {
+    battleWin.show();
+    battleWin.focus();
+    return;
+  }
+  battleWin = new BrowserWindow({
+    width: 440,
+    height: 780,
+    minWidth: 360,
+    minHeight: 600,
+    title: "Batalha",
+    icon: iconPath,
+    autoHideMenuBar: true,
+    backgroundColor: "#eef9f3",
+    webPreferences
+  });
+  battleWin.setMenuBarVisibility(false);
+  battleWin.loadFile(path.join(__dirname, "battle.html"));
+  battleWin.on("closed", () => {
+    battleWin = null;
+  });
+}
+
+ipcMain.on("open-battle", () => {
+  if (state.owned.length) openBattle();
+});
+
+ipcMain.on("close-battle", () => {
+  if (alive(battleWin)) battleWin.close();
+});
+
+ipcMain.handle("battle", (_e, p) => {
+  const op = p && p.op;
+  Game.catchUp(state);
+  const pack = () => ({ team: Battle.team(state), battle: Battle.snapshot(state.battle), inventory: Object.assign({}, state.inventory) });
+  const commit = r => {
+    if (!r || !r.changed) return;
+    saveState();
+    scheduleSync();
+    broadcast();
+  };
+  if (op === "lobby") return pack();
+  if (op === "moves") {
+    commit(Battle.setMoves(state, String(p.uid || ""), Array.isArray(p.moves) ? p.moves.map(String) : []));
+    return pack();
+  }
+  if (op === "start") {
+    const r = Battle.start(state);
+    commit(r);
+    return { ok: !!r.changed, reason: r.reason, battle: Battle.snapshot(state.battle), events: r.events || [], inventory: Object.assign({}, state.inventory) };
+  }
+  if (op === "act") {
+    const r = Battle.act(state, p.action);
+    commit(r);
+    return { ok: !!r.changed, battle: r.changed ? r.battle : Battle.snapshot(state.battle), events: r.events || [], inventory: Object.assign({}, state.inventory) };
+  }
+  return null;
+});
+
 ipcMain.handle("pet-files", () => petIds.map(id => "pets/" + id + ".js"));
 
 ipcMain.handle("get-state", () => snapshot());
 
 ipcMain.on("pets-meta", (_e, list) => {
   if (!Array.isArray(list)) return;
+  Battle.setMeta(list.filter(p => p && petIds.includes(p.id)).map(p => ({ id: p.id, types: PetTypes.clean(p.types) })));
   list.forEach(p => {
     if (!p || !petIds.includes(p.id)) return;
     petMeta[p.id] = {

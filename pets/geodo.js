@@ -9,8 +9,10 @@ Pets.register({
     jump: { duration: 1.0 },
     eat: { duration: 2.6 },
     open: { duration: 3.0 },
-    psy: { duration: 3.0 }
+    psy: { duration: 3.0 },
+    attack: { duration: 1.1 }
   },
+  battle: { special: { action: "psy", hit: 0.3, speed: 1.5 } },
   idle: [
     { action: "open", min: 20, max: 45 },
     { action: "psy", min: 40, max: 80 }
@@ -18,7 +20,7 @@ Pets.register({
   clickAction: n => ["open", "psy", "jump", "open"][(n - 1) % 4],
 
   create({ THREE, kit }) {
-    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
+    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, strike } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
     const root = new THREE.Group();
@@ -248,6 +250,7 @@ Pets.register({
         const eat = action && action.name === "eat" ? action : null;
         const openA = action && action.name === "open" ? action : null;
         const psy = action && action.name === "psy" ? action : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
         const ph = eat ? eatPhase(eat.p) : null;
         const mind = s.dying ? 0.25 : 0.55 + 0.45 * Math.max(0, Math.min(1, hunger / 100));
 
@@ -283,12 +286,26 @@ Pets.register({
             open = lerp(open, 0.9, Math.sin(q * Math.PI));
           } else sy = 1 - 0.1 * Math.sin(((p - 0.8) / 0.2) * Math.PI);
         }
+        let lungeZ = 0;
+        let tilt = 0;
+        if (atk) {
+          const gape = Math.max(atk.wind, atk.lunge * (1 - smooth(0.4, 0.46, action.p)));
+          open = lerp(open, 1.3, gape);
+          open *= 1 - atk.impact * 0.9;
+          sy = 1 - atk.wind * 0.12 + atk.impact * 0.06;
+          y = Math.sin(smooth(0.3, 0.5, action.p) * Math.PI) * 0.3;
+          airborne = y > 0.05;
+          lungeZ = atk.lunge * 0.5 - atk.wind * 0.15;
+          tilt = atk.lunge * 0.25 - atk.wind * 0.15;
+          pulse = Math.max(pulse, atk.impact);
+        }
         if (s.dying) open *= 0.4;
         const sx = 1 / Math.sqrt(sy);
         squash.scale.set(sx, sy, sx);
         root.position.y = y;
+        root.position.z = lungeZ;
         root.rotation.y = lookYaw;
-        root.rotation.x = lookPitch;
+        root.rotation.x = lookPitch + tilt;
         hinge.rotation.x = -open;
 
         core.position.y = CUT_Y + 0.08 + rise + Math.sin(t * 2) * 0.03 * motion;

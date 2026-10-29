@@ -13,6 +13,7 @@ Pets.register({
     swim: { duration: 2.6 },
     splash: { duration: 2.0 }
   },
+  battle: { attack: { action: "swim", hit: 0.5, speed: 1.5 }, special: { action: "splash", hit: 0.35, speed: 1.2 } },
   idle: [
     { action: "splash", min: 25, max: 50 },
     { action: "swim", min: 45, max: 90 }

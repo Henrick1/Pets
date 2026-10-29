@@ -13,6 +13,7 @@ Pets.register({
     roll: { duration: 1.8 },
     stomp: { duration: 1.6 }
   },
+  battle: { attack: { action: "roll", hit: 0.5, speed: 1.0 }, special: { action: "stomp", hit: 0.6, speed: 1.0 } },
   idle: [
     { action: "stomp", min: 20, max: 45 },
     { action: "roll", min: 35, max: 70 }

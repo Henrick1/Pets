@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batalha</title>
+<link rel="stylesheet" href="lib/battle.css">
+<style>
+:root {
+  --bg: #eef9f3;
+  --surface: #ffffff;
+  --surface-2: #f1f6f3;
+  --text: #1f2a24;
+  --muted: #5b6b63;
+  --line: #d3e0d9;
+  --accent: #2e7d54;
+  --accent-text: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101a15;
+    --surface: #18251e;
+    --surface-2: #203128;
+    --text: #e6f1ea;
+    --muted: #9db1a6;
+    --line: #2d4338;
+    --accent: #4fb883;
+    --accent-text: #0b1a12;
+  }
+}
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="node_modules/three/build/three.min.js"></script>
+<script src="lib/types.js"></script>
+<script src="lib/game.js"></script>
+<script src="lib/pet-kit.js"></script>
+<script src="lib/stage.js"></script>
+<script src="lib/battle.js"></script>
+<script src="lib/battle-stage.js"></script>
+<script src="lib/battle-ui.js"></script>
+<script src="battle-win.js"></script>
+</body>
+</html>

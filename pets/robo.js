@@ -11,8 +11,10 @@ Pets.register({
     jump: { duration: 0.9 },
     eat: { duration: 2.4 },
     scan: { duration: 1.8 },
-    dance: { duration: 2.6 }
+    dance: { duration: 2.6 },
+    attack: { duration: 1.0 }
   },
+  battle: { special: { action: "scan", hit: 0.5, speed: 1.0 } },
   idle: [
     { action: "jump", min: 25, max: 50 },
     { action: "scan", min: 20, max: 45 },
@@ -21,7 +23,7 @@ Pets.register({
   clickAction: n => ["jump", "scan", "jump", "dance"][(n - 1) % 4],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eatPhase } = kit;
+    const { mesh, lerp, smooth, eatPhase, strike } = kit;
 
     const metal = (color, rough = 0.45) =>
       new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.25 });
@@ -204,6 +206,9 @@ Pets.register({
     tip.position.y = 0.36;
     antenna.add(stem, tip);
     head.add(antenna);
+    const muzzle = new THREE.Group();
+    muzzle.position.set(0, 0.12, 0.62);
+    head.add(muzzle);
 
     const food = new THREE.Group();
     const cell = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.34, 16), metal(0xf6c443, 0.4), false);
@@ -220,6 +225,7 @@ Pets.register({
 
     return {
       root,
+      muzzle,
       update(s) {
         const { t, pointer, lookYaw, lookPitch, blink, action, motion } = s;
         const dt = Math.min(0.1, Math.max(0, t - last));
@@ -328,6 +334,28 @@ Pets.register({
         legs.forEach((g, i) => {
           g.position.y = i === 0 ? liftL : liftR;
         });
+        const atk = a === "attack" ? strike(p) : null;
+        arms.forEach(({ pivot }) => (pivot.rotation.x = 0));
+        root.position.z = 0;
+        squash.rotation.x = 0;
+        if (atk) {
+          arms.forEach(({ pivot, side }) => {
+            if (side > 0) {
+              pivot.rotation.x = atk.wind * 0.8 - atk.lunge * 1.6;
+              pivot.rotation.z = 0.1 + atk.wind * 0.3;
+            } else {
+              pivot.rotation.x = -1.0 * Math.max(atk.wind, atk.lunge);
+              pivot.rotation.z = -0.45 * Math.max(atk.wind, atk.lunge) - 0.1;
+            }
+          });
+          root.rotation.y = lookYaw * 0.35 + atk.wind * 0.4 - atk.lunge * 0.35;
+          root.position.z = atk.lunge * 0.45 - atk.wind * 0.12;
+          squash.rotation.x = atk.lunge * 0.16 - atk.wind * 0.1;
+          head.rotation.x = lookPitch + atk.lunge * 0.1;
+          mouthOpen = atk.lunge > 0.3;
+          squint = atk.lunge > 0.3;
+          flames.forEach(f => (f.visible = atk.lunge > 0.2));
+        }
 
         flames.forEach((f, i) => {
           f.visible = airborne;

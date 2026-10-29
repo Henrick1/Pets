@@ -10,8 +10,10 @@ Pets.register({
   actions: {
     jump: { duration: 1.0 },
     eat: { duration: 2.4 },
-    sink: { duration: 2.4 }
+    sink: { duration: 2.4 },
+    special: { duration: 1.4 }
   },
+  battle: { attack: { action: "sink", hit: 0.84, speed: 1.4 } },
   idle: [
     { action: "sink", min: 30, max: 60 },
     { action: "jump", min: 25, max: 50 }
@@ -19,7 +21,7 @@ Pets.register({
   clickAction: n => ["jump", "sink", "jump"][(n - 1) % 3],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eatPhase, berry } = kit;
+    const { mesh, lerp, smooth, eatPhase, berry, cast } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
     const canvasTex = (w, h, draw, rx = 1, ry = 1) => {
@@ -357,9 +359,13 @@ Pets.register({
     const food = berry();
     food.visible = false;
     squash.add(food);
+    const muzzle = new THREE.Group();
+    muzzle.position.set(0, mouthY, mr + 0.15);
+    squash.add(muzzle);
 
     return {
       root,
+      muzzle,
       update(s) {
         const { t, pointer, lookYaw, lookPitch, blink, action, motion, reduceMotion } = s;
         uniforms.uTime.value = t;
@@ -368,6 +374,7 @@ Pets.register({
         const eat = action && action.name === "eat" ? action : null;
         const sink = action && action.name === "sink" ? action : null;
         const ph = eat ? eatPhase(eat.p) : null;
+        const spc = action && action.name === "special" ? cast(action.p) : null;
 
         let y = 0;
         let sy = 1 + Math.sin(t * 1.8) * 0.03 * motion;
@@ -404,6 +411,15 @@ Pets.register({
             sy *= 1 + Math.sin(q * Math.PI) * 0.18;
           }
           splash = Math.max(splash, smooth(0.6, 0.75, p) * (1 - smooth(0.8, 1, p)));
+        }
+        if (spc) {
+          sy -= spc.charge * 0.2;
+          sxz += spc.charge * 0.18;
+          sy += spc.burst * 0.25;
+          y = spc.burst * 0.25;
+          squint = spc.charge > 0.25;
+          mouthOpen = spc.burst > 0.25;
+          splash = Math.max(splash, spc.burst);
         }
         if (eat) {
           sy += 0.05 * Math.sin(ph.fall * Math.PI) - ph.chew * 0.1 * motion;
@@ -446,21 +462,21 @@ Pets.register({
           g.scale.y = airborne ? 1.12 : squint ? 0.35 : blink;
           iris.position.x = lerp(iris.position.x, iris.userData.bx + pointer.x * 0.035, 0.15);
           iris.position.y = lerp(iris.position.y, 0.01 + pointer.y * 0.03, 0.15);
-          halo.material.opacity = 0.45 + Math.sin(t * 2.4) * 0.08;
+          halo.material.opacity = 0.45 + Math.sin(t * 2.4) * 0.08 + (spc ? spc.charge * 0.5 + spc.burst * 0.4 : 0);
         });
 
         wisps.forEach(({ pv, ph: wp }, i) => {
           const k = jump ? Math.sin(t * 16 + wp) * 0.25 : 0;
-          pv.rotation.z = Math.sin(t * 1.7 + wp) * 0.12 * motion + k;
+          pv.rotation.z = Math.sin(t * 1.7 + wp) * 0.12 * motion + k + (spc ? Math.sin(t * 30 + wp) * 0.3 * spc.charge : 0);
           pv.rotation.x = Math.sin(t * 1.3 + wp * 1.3) * 0.08 * motion - (airborne ? 0.35 : 0) * (i === 0 ? 1 : 0.5);
         });
         arms.forEach(({ pv, s: sd }) => {
-          const target = airborne ? 1.4 : eat ? 0.9 : 0.15 + Math.sin(t * 2.2 + sd) * 0.1 * motion;
+          const target = airborne ? 1.4 : spc ? 0.4 + spc.charge * 1.6 + spc.burst * 0.6 : eat ? 0.9 : 0.15 + Math.sin(t * 2.2 + sd) * 0.1 * motion;
           pv.rotation.z = lerp(pv.rotation.z, target * sd, 0.18);
         });
 
         motes.forEach(mo => {
-          const u = (((t * 0.22 + mo.ph) % 1) + 1) % 1;
+          const u = (((t * (spc ? 0.22 + spc.charge * 1.4 : 0.22) + mo.ph) % 1) + 1) % 1;
           const a = mo.a + t * 0.3;
           mo.m.visible = !reduceMotion;
           mo.m.position.set(Math.cos(a) * mo.r * (1 - u * 0.3), u * 2.2, Math.sin(a) * mo.r * 0.7);

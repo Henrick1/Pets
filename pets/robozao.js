@@ -9,8 +9,10 @@ Pets.register({
     jump: { duration: 1.1 },
     eat: { duration: 2.4 },
     punch: { duration: 1.8 },
-    flex: { duration: 2.4 }
+    flex: { duration: 2.4 },
+    special: { duration: 1.5 }
   },
+  battle: { attack: { action: "punch", hit: 0.44, speed: 1.2 } },
   idle: [
     { action: "punch", min: 18, max: 40 },
     { action: "flex", min: 35, max: 70 },
@@ -19,7 +21,7 @@ Pets.register({
   clickAction: n => ["punch", "jump", "punch", "flex"][(n - 1) % 4],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eatPhase } = kit;
+    const { mesh, lerp, smooth, eatPhase, cast } = kit;
 
     const metal = (color, rough = 0.42, mt = 0.3) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: mt });
     const white = metal(0xe6ecf2);
@@ -164,6 +166,9 @@ Pets.register({
     const gearC = mesh(gearShape(6, 0.08, 0.056, 0.022, 0.05), metal(0xf2c14e, 0.35, 0.4), false);
     gearC.position.set(0.06, 0.15, FRONT + 0.05);
     chest.add(gearA, gearB, gearC);
+    const muzzle = new THREE.Group();
+    muzzle.position.set(0, 0.3, FRONT + 0.25);
+    chest.add(muzzle);
 
     [-0.43, 0.43].forEach(x => {
       const rv = mesh(new THREE.SphereGeometry(0.035, 10, 8), steel, false);
@@ -321,6 +326,7 @@ Pets.register({
 
     return {
       root,
+      muzzle,
       update(s) {
         const { t, pointer, lookYaw, lookPitch, blink, action, motion } = s;
         const dt = Math.min(0.1, Math.max(0, t - last));
@@ -397,6 +403,22 @@ Pets.register({
           coreFlash = k * (0.5 + 0.5 * Math.sin(p * Math.PI * 12));
           happy = true;
           gearSpeed = 8;
+        }
+
+        if (a === "special") {
+          const c = cast(p);
+          pose.forEach(o => {
+            o.sh = lerp(o.sh, -0.25, c.charge) - c.burst * 0.9;
+            o.sz = lerp(o.sz, 0.75, Math.max(c.charge, c.burst));
+            o.el = lerp(o.el, 0.6, Math.max(c.charge, c.burst));
+          });
+          sy -= c.charge * 0.06;
+          lunge -= c.burst * 0.25;
+          twist = c.shake * 0.08;
+          coreFlash = Math.min(1, c.charge * (0.6 + 0.4 * Math.sin(p * 60)) + c.burst);
+          gearSpeed = 4 + c.charge * 30 + c.burst * 10;
+          squint = c.charge > 0.3;
+          mouthOpen = c.burst > 0.3;
         }
 
         if (a === "eat") {

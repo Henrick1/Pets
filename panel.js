@@ -52,6 +52,7 @@ function chip(p) {
 let bagMode = null;
 const openShopBtn = document.getElementById("open-shop");
 const openExpBtn = document.getElementById("open-exp");
+const openBattleBtn = document.getElementById("open-battle");
 const dailyBtn = document.getElementById("daily-btn");
 const bagTitle = document.getElementById("bag-title");
 const MODE_TITLE = { shop: "Loja", bag: "Mochila", exp: "Expedições" };
@@ -1009,6 +1010,7 @@ function render(s) {
   openExpBtn.title = expLocked ? "Precisa de pelo menos 2 criaturas" : "";
   if (expLocked && bagMode === "exp") bagMode = null;
   setTile(openBoxBtn, s.box.length ? s.box.length + (s.box.length === 1 ? " bichinho" : " bichinhos") : "Vazia", false, s.box.length === 0);
+  setTile(openBattleBtn, s.battle ? "Batalha em andamento" : s.canFight ? (s.canFight === 1 ? "1 pronto para lutar" : s.canFight + " prontos para lutar") : "Ninguém pode lutar", !!s.battle, !s.battle && !s.canFight);
   dailyBtn.hidden = !(s.daily && s.daily.available);
   if (s.daily && s.daily.available) dailyBtn.textContent = "Presente do dia: pegar " + s.daily.coins + " moedas" + (s.daily.streak > 1 ? " (" + s.daily.streak + " dias seguidos)" : "");
   if (bagMode) renderBag(s);
@@ -1120,6 +1122,7 @@ setInterval(() => {
   if (lastState.expeditions.some(x => x.endsAt <= Date.now() && x.endsAt > lastState.now)) window.pet.getState().then(render);
   else bagScroll.querySelectorAll("[data-ends]").forEach(t => (t.textContent = "Volta em " + fmtTime(Number(t.dataset.ends) - Date.now())));
 }, 1000);
+openBattleBtn.addEventListener("click", () => window.pet.openBattle());
 openBoxBtn.addEventListener("click", () => {
   bagMode = null;
   boxMode = true;

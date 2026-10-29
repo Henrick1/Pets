@@ -301,6 +301,9 @@ html, body {
   gap: 6px;
   flex: none;
 }
+.tile-wide {
+  grid-column: span 2;
+}
 .tile {
   position: relative;
   display: flex;
@@ -1628,6 +1631,11 @@ p.egg-msg {
     <button id="open-box" class="tile" type="button">
       <span class="tile-ico"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 8l8-4 8 4v9l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 8l8 4 8-4M12 12v9" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
       <span class="tile-txt"><span class="tile-title">Caixa</span><span id="open-box-sub" class="tile-sub"></span></span>
+      <span class="tile-dot" hidden></span>
+    </button>
+    <button id="open-battle" class="tile tile-wide" type="button">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 4l9.5 9.5M4 4h4l9 9M4 4v4l9 9M14.5 17.5l3-3M16 16l4 4M20 4l-6.5 6.5M20 4h-4l-2.5 2.5M20 4v4l-2.5 2.5M9.5 17.5l-3-3M8 16l-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="tile-txt"><span class="tile-title">Batalha</span><span id="open-battle-sub" class="tile-sub"></span></span>
       <span class="tile-dot" hidden></span>
     </button>
   </div>

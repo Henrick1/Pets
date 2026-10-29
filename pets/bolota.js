@@ -9,13 +9,15 @@ Pets.register({
   description: "Uma bolinha de planta que brotou de uma semente teimosa. Quando está feliz, o broto da cabeça balança sem parar.",
   actions: {
     jump: { duration: 0.95 },
-    eat: { duration: 2.4 }
+    eat: { duration: 2.4 },
+    attack: { duration: 1.1 },
+    special: { duration: 1.4 }
   },
   idle: [{ action: "jump", min: 20, max: 45 }],
   clickAction: () => "jump",
 
   create({ THREE, kit }) {
-    const { mat, mesh, lerp, eye, followPupils, eatPhase, berry } = kit;
+    const { mat, mesh, lerp, eye, followPupils, eatPhase, berry, strike, cast, glow } = kit;
 
     const root = new THREE.Group();
     const squash = new THREE.Group();
@@ -88,6 +90,10 @@ Pets.register({
       return l;
     });
     squash.add(sprout);
+    const muzzle = new THREE.Group();
+    muzzle.position.y = 0.42;
+    sprout.add(muzzle);
+    let glowing = false;
 
     const food = berry();
     food.visible = false;
@@ -95,11 +101,14 @@ Pets.register({
 
     return {
       root,
+      muzzle,
       update(s) {
         const { t, pointer, lookYaw, lookPitch, blink, action, motion, reduceMotion } = s;
         const jump = action && action.name === "jump" ? action : null;
         const eat = action && action.name === "eat" ? action : null;
         const ph = eat ? eatPhase(eat.p) : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
+        const spc = action && action.name === "special" ? cast(action.p) : null;
 
         let y = 0;
         let sy = 1 + Math.sin(t * 2) * 0.025 * motion;
@@ -168,6 +177,39 @@ Pets.register({
         eyes.forEach(({ g }) => {
           g.scale.y = airborne ? 1.1 : squint ? 0.4 : blink;
         });
+        root.position.z = 0;
+        sprout.rotation.x = 0;
+        sprout.rotation.y = 0;
+        if (atk) {
+          root.position.z = atk.lunge * 0.55 - atk.wind * 0.18;
+          root.rotation.x = lookPitch + atk.lunge * 0.42 - atk.wind * 0.32;
+          squash.scale.set(1 + atk.wind * 0.12 - atk.lunge * 0.05, 1 - atk.wind * 0.18 + atk.lunge * 0.1, 1 + atk.wind * 0.12 + atk.impact * 0.1);
+          arms.forEach(({ pivot, side }) => (pivot.rotation.z = side * (0.2 + atk.wind * 1.5 - atk.lunge * 0.25)));
+          sprout.rotation.x = atk.wind * 0.5 - atk.lunge * 0.7;
+          smile.visible = atk.lunge < 0.25;
+          openMouth.visible = !smile.visible;
+          eyes.forEach(({ g }) => (g.scale.y = atk.lunge > 0.3 ? 0.45 : blink));
+        }
+        if (spc) {
+          const k = spc.charge;
+          const b = spc.burst;
+          root.position.y = y + k * 0.12 + b * 0.3;
+          root.rotation.x = lookPitch - k * 0.12 + b * 0.22;
+          squash.scale.set(1 + k * 0.08 - b * 0.06, 1 - k * 0.12 + b * 0.16, 1 + k * 0.08 - b * 0.06);
+          squash.rotation.z = spc.shake * 0.08;
+          sprout.rotation.y = action.p * 26 * (1 - b);
+          sprout.rotation.x = -b * 0.5;
+          leaves.forEach((l, i) => (l.rotation.z = (i ? 1 : -1) * (0.5 + k * 0.8 - b * 0.3)));
+          arms.forEach(({ pivot, side }) => (pivot.rotation.z = side * (0.35 + k * 1.9 + b * 0.4)));
+          smile.visible = b < 0.2;
+          openMouth.visible = !smile.visible;
+          eyes.forEach(({ g }) => (g.scale.y = k > 0.4 ? 0.4 : b > 0.3 ? 1.15 : blink));
+          glow(sprout, 0xb8ff7a, Math.min(1, k * 1.1 + b));
+          glowing = true;
+        } else if (glowing) {
+          glow(sprout, 0xb8ff7a, 0);
+          glowing = false;
+        }
         followPupils(eyes, pointer);
       }
     };

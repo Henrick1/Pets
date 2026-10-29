@@ -11,6 +11,7 @@ Pets.register({
     ring: { duration: 2.2 },
     claw: { duration: 2.2 }
   },
+  battle: { attack: { action: "claw", hit: 0.44, speed: 1.4 }, special: { action: "ring", hit: 0.35, speed: 1.4 } },
   idle: [
     { action: "ring", min: 25, max: 50 },
     { action: "claw", min: 30, max: 60 },

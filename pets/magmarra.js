@@ -9,8 +9,10 @@ Pets.register({
     eat: { duration: 2.6 },
     slam: { duration: 2.2 },
     roar: { duration: 3.0 },
-    stomp: { duration: 1.4 }
+    stomp: { duration: 1.4 },
+    attack: { duration: 1.2 }
   },
+  battle: { special: { action: "roar", hit: 0.33, speed: 1.35 } },
   idle: [
     { action: "slam", min: 25, max: 55 },
     { action: "roar", min: 40, max: 80 },
@@ -19,7 +21,7 @@ Pets.register({
   clickAction: n => ["roar", "slam", "stomp"][(n - 1) % 3],
 
   create({ THREE, kit }) {
-    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, lavaRock } = kit;
+    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, lavaRock, strike } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
     const T = lavaRock({ seed: 17, cells: 24, crack: 1.7, rock: [70, 74, 88], lava: [255, 104, 20] });
@@ -609,6 +611,9 @@ Pets.register({
     const legs = frontLegs.concat(backLegs);
 
     const head = anchor(front, 0, 2.02, 1.8);
+    const muzzle = new THREE.Group();
+    muzzle.position.set(0, -0.07, 0.9);
+    head.add(muzzle);
     const headLoft = makeLoft(9, 5, 20, headRock, {
       sym: true,
       crack: (f, c, s, u) => smooth(0.2, 0.7, s) * (1 - smooth(0.45, 0.75, u)),
@@ -857,6 +862,7 @@ Pets.register({
 
     return {
       root,
+      muzzle,
       update(s) {
         const { t, pointer, lookYaw, lookPitch, blink, action, motion, reduceMotion } = s;
         const hunger = typeof s.hunger === "number" ? s.hunger : 100;
@@ -907,6 +913,17 @@ Pets.register({
           impact = q > 0.6 ? (q - 0.6) / 0.4 : -1;
           shake = impact >= 0 ? Math.max(0, 1 - impact * 4) * 0.6 : 0;
         }
+        const atk = a === "attack" ? strike(p) : null;
+        if (atk) {
+          rear = atk.wind * 0.2 - atk.lunge * 0.05;
+          headPitch = -0.04 - atk.wind * 0.3 + atk.lunge * 0.35;
+          jawOpen = Math.max(atk.wind * 0.8, atk.lunge * (1 - atk.impact)) * 0.6;
+          crouch = atk.wind * 0.06;
+          tailLift = atk.wind * 0.9;
+          shake = atk.impact * 0.8;
+          erupt = atk.impact * 0.6;
+          squint = atk.lunge > 0.3;
+        }
         if (a === "eat") {
           headPitch = -0.04 + (1 - ph.fall) * -0.25 + ph.chew * 0.1;
           jawOpen = p > 0.12 && p < 0.85 ? (p < 0.3 ? 0.35 : 0.06 + ph.chew * 0.3) : 0;
@@ -916,6 +933,7 @@ Pets.register({
         const sh = reduceMotion ? 0 : shake;
         root.rotation.y = lookYaw;
         root.rotation.x = lookPitch;
+        root.position.z = atk ? atk.lunge * 0.5 - atk.wind * 0.2 : 0;
         body.position.set(Math.sin(t * 61) * 0.025 * sh, -crouch + Math.abs(Math.sin(t * 47)) * 0.015 * sh, 0);
         front.rotation.x = FT - rear;
         front.rotation.z = Math.sin(t * 0.9) * 0.012 * motion;

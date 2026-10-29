@@ -13,6 +13,7 @@ Pets.register({
     roll: { duration: 2.6 },
     spread: { duration: 3.2 }
   },
+  battle: { attack: { action: "roll", hit: 0.25, speed: 1.3 }, special: { action: "shine", hit: 0.5, speed: 1.3 } },
   idle: [
     { action: "roll", min: 20, max: 40 },
     { action: "spread", min: 15, max: 35 },

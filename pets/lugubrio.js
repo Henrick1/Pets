@@ -11,6 +11,7 @@ Pets.register({
     shadow: { duration: 3.0 },
     kick: { duration: 1.6 }
   },
+  battle: { attack: { action: "kick", hit: 0.42, speed: 1.1 }, special: { action: "fume", hit: 0.58, speed: 1.6 } },
   idle: [
     { action: "fume", min: 18, max: 40 },
     { action: "kick", min: 35, max: 70 },

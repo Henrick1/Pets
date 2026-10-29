@@ -10,8 +10,10 @@ Pets.register({
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },
-    bubble: { duration: 2.2 }
+    bubble: { duration: 2.2 },
+    attack: { duration: 1.1 }
   },
+  battle: { special: { action: "bubble", hit: 0.36, speed: 1.3 } },
   idle: [
     { action: "bubble", min: 25, max: 50 },
     { action: "jump", min: 35, max: 70 }
@@ -19,7 +21,7 @@ Pets.register({
   clickAction: n => ["jump", "bubble", "jump"][(n - 1) % 3],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eatPhase, berry } = kit;
+    const { mesh, lerp, smooth, eatPhase, berry, strike } = kit;
 
     const std = (color, rough = 0.55, extra = {}) =>
       new THREE.MeshStandardMaterial({ color, roughness: rough, ...extra });
@@ -271,6 +273,7 @@ Pets.register({
         const jump = action && action.name === "jump" ? action : null;
         const eat = action && action.name === "eat" ? action : null;
         const bub = action && action.name === "bubble" ? action : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
         const ph = eat ? eatPhase(eat.p) : null;
 
         let y = 0;
@@ -296,6 +299,17 @@ Pets.register({
             const q = (p - 0.78) / 0.22;
             sy = 1 - 0.2 * Math.sin(q * Math.PI);
           }
+        }
+
+        let whip = 0;
+        if (atk) {
+          const p = action.p;
+          spin = reduceMotion ? 0 : smooth(0.26, 0.62, p) * Math.PI * 2;
+          whip = smooth(0.26, 0.4, p) * (1 - smooth(0.55, 0.7, p));
+          y = Math.sin(smooth(0.26, 0.62, p) * Math.PI) * 0.35;
+          sy = 1 - atk.wind * 0.2 + whip * 0.06;
+          airborne = y > 0.08;
+          squint = atk.wind > 0.2 || whip > 0.3;
         }
 
         let blowP = -1;
@@ -327,6 +341,7 @@ Pets.register({
         const sx = 1 / Math.sqrt(sy) + sxExtra;
         squash.scale.set(sx, sy, 1 / Math.sqrt(sy));
         root.position.y = y;
+        root.position.z = atk ? atk.lunge * 0.35 - atk.wind * 0.12 : 0;
         root.rotation.y = lookYaw + spin;
         root.rotation.x = lookPitch;
         const happy = eat ? Math.sin(eat.p * Math.PI * 8) * 0.04 * motion : 0;
@@ -342,8 +357,9 @@ Pets.register({
           wig.rotation.x = Math.sin(t * speed * 0.7 + i) * 0.05 * motion;
         });
 
-        tail.rotation.y = Math.sin(t * (eat || jump ? 10 : 2.4)) * (eat || jump ? 0.45 : 0.25) * motion;
-        tail.rotation.x = airborne ? -0.3 : 0;
+        tail.rotation.y = Math.sin(t * (eat || jump ? 10 : 2.4)) * (eat || jump ? 0.45 : 0.25) * motion * (1 - whip) + (atk ? atk.wind * 0.6 - whip * 0.5 : 0);
+        tail.rotation.x = airborne ? -0.3 - whip * 0.3 : 0;
+        tail.scale.setScalar(1 + whip * 0.35);
 
         capDrips.forEach(({ d, ph: dp }) => {
           d.scale.y = 0.08 * (1 + 0.25 * Math.sin(t * 1.5 + dp) * motion);

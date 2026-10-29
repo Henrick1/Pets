@@ -11,8 +11,10 @@ Pets.register({
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },
     fly: { duration: 3.2 },
-    shine: { duration: 2.2 }
+    shine: { duration: 2.2 },
+    attack: { duration: 1.1 }
   },
+  battle: { special: { action: "shine", hit: 0.36, speed: 1.3 } },
   idle: [
     { action: "shine", min: 25, max: 50 },
     { action: "fly", min: 40, max: 80 }
@@ -20,7 +22,7 @@ Pets.register({
   clickAction: n => ["fly", "shine", "jump", "shine"][(n - 1) % 4],
 
   create({ THREE, kit }) {
-    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
+    const { mat, mesh, lerp, smooth, eye, followPupils, eatPhase, berry, strike } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
     const root = new THREE.Group();
@@ -293,6 +295,10 @@ Pets.register({
         const eat = action && action.name === "eat" ? action : null;
         const fly = action && action.name === "fly" ? action : null;
         const shine = action && action.name === "shine" ? action : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
+        const wind = atk ? atk.wind : 0;
+        const lunge = atk ? atk.lunge : 0;
+        const pinch = atk ? Math.max(wind, lunge * (1 - atk.impact * 1.6)) : 0;
         const ph = eat ? eatPhase(eat.p) : null;
         const light = s.dying ? 0.25 : 0.55 + 0.45 * Math.max(0, Math.min(1, hunger / 100));
 
@@ -326,15 +332,17 @@ Pets.register({
           } else sy = 1 - 0.15 * Math.sin(((p - 0.8) / 0.2) * Math.PI);
           open = Math.max(open, y > 0.3 ? 0.35 : 0);
         }
-        sy -= charge * 0.1;
+        sy -= charge * 0.1 + wind * 0.14;
+        open = Math.max(open, wind * 0.25);
         sy += burst * 0.06;
         if (eat) sy += -ph.chew * 0.05;
         if (s.dying) sy *= 0.92;
         const sx = 1 / Math.sqrt(sy);
         bodyG.scale.set(sx, sy, sx);
         root.position.y = y;
+        root.position.z = lunge * 0.45 - wind * 0.15;
         root.rotation.y = lookYaw;
-        root.rotation.x = lookPitch + (fly ? -0.12 * lift : 0);
+        root.rotation.x = lookPitch + (fly ? -0.12 * lift : 0) + wind * 0.12 + lunge * 0.18;
         bodyG.rotation.z = Math.sin(t * 1.4) * 0.03 * motion + (fly ? Math.sin(t * 2.2) * 0.06 * lift : 0);
 
         elytra.forEach(({ pivot, s: sd }) => {
@@ -355,10 +363,10 @@ Pets.register({
           m.opacity = (0.62 + flapAmp * 0.15 + Math.sin(t * 4 + k) * 0.06) * (0.6 + light * 0.4);
         });
 
-        head.rotation.x = eat ? -0.25 * (1 - ph.fall) + Math.sin(ph.chew * Math.PI) * 0.08 : burst * -0.2;
+        head.rotation.x = eat ? -0.25 * (1 - ph.fall) + Math.sin(ph.chew * Math.PI) * 0.08 : burst * -0.2 + wind * 0.3 - lunge * 0.15;
         head.rotation.y = Math.sin(t * 0.7) * 0.08 * motion;
         mandibles.forEach(({ g, s: sd }) => {
-          g.rotation.y = sd * ((eat ? ph.chew * 0.5 : 0) + Math.sin(t * 3 + sd) * 0.05 * motion);
+          g.rotation.y = sd * ((eat ? ph.chew * 0.5 : 0) + Math.sin(t * 3 + sd) * 0.05 * motion + pinch * 0.75 - (atk ? atk.impact * 0.25 : 0));
         });
         smile.scale.y = eat && eat.p > 0.3 && eat.p < 0.85 ? 0.6 + ph.chew : burst > 0.3 ? 1.6 : 1;
 
@@ -408,7 +416,7 @@ Pets.register({
         } else food.visible = false;
 
         eyes.forEach(({ g }) => {
-          g.scale.y = airborne ? 1.08 : eat && eat.p > 0.3 ? 0.45 : charge > 0.3 ? 0.35 : blink;
+          g.scale.y = lunge > 0.4 ? 0.4 : airborne ? 1.08 : eat && eat.p > 0.3 ? 0.45 : charge > 0.3 ? 0.35 : blink;
         });
         followPupils(eyes, pointer, 0.7);
       }

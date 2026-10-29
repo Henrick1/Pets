@@ -10,6 +10,7 @@ Pets.register({
     slam: { duration: 3.0 },
     bloom: { duration: 3.6 }
   },
+  battle: { attack: { action: "slam", hit: 0.48, speed: 1.3 }, special: { action: "bloom", hit: 0.45, speed: 1.5 } },
   idle: [
     { action: "bloom", min: 30, max: 60 },
     { action: "slam", min: 45, max: 90 }

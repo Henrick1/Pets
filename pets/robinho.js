@@ -10,7 +10,9 @@ Pets.register({
   actions: {
     jump: { duration: 0.9 },
     eat: { duration: 2.4 },
-    roll: { duration: 2.2 }
+    roll: { duration: 2.2 },
+    attack: { duration: 1.1 },
+    special: { duration: 1.4 }
   },
   idle: [
     { action: "roll", min: 20, max: 45 },
@@ -19,7 +21,7 @@ Pets.register({
   clickAction: n => ["jump", "roll", "jump"][(n - 1) % 3],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eatPhase } = kit;
+    const { mesh, lerp, smooth, eatPhase, strike, cast } = kit;
 
     const metal = (color, rough = 0.45) =>
       new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.25 });
@@ -195,9 +197,13 @@ Pets.register({
     let rollX = 0;
     let turn = 0;
     let rollK = 0;
+    const muzzle = new THREE.Group();
+    muzzle.position.set(0, 0.05, 0);
+    tip.add(muzzle);
 
     return {
       root,
+      muzzle,
       update(s) {
         const { t, pointer, lookYaw, lookPitch, blink, action, motion } = s;
         const dt = Math.min(0.1, Math.max(0, t - last));
@@ -268,9 +274,33 @@ Pets.register({
         pitch = Math.min(0.22, speed * 0.15);
         gearAngle += dt * gearSpeed;
 
+        const atk = a === "attack" ? strike(p) : null;
+        const spc = a === "special" ? cast(p) : null;
+        let dash = 0;
+        if (atk) {
+          wheelAngle += dt * (atk.wind * 30 + atk.lunge * 18);
+          pitch = -atk.wind * 0.25 + atk.lunge * 0.3;
+          dash = atk.lunge * 0.6 - atk.wind * 0.15;
+          sy -= atk.wind * 0.08;
+          gearSpeed = 12;
+          gearAngle += dt * 10;
+          squint = atk.lunge > 0.2;
+          mouthOpen = atk.wind > 0.3;
+          flash = atk.impact;
+        }
+        if (spc) {
+          flash = spc.charge * (0.6 + 0.4 * Math.sin(p * 70)) + spc.burst * 1.4;
+          sy += spc.burst * 0.08 - spc.charge * 0.05;
+          pitch = -spc.burst * 0.18;
+          gearAngle += dt * (6 + spc.charge * 30);
+          tilt = spc.shake * 0.05;
+          squint = spc.charge > 0.3;
+          mouthOpen = spc.burst > 0.3;
+        }
+
         const sx = 1 / Math.sqrt(sy);
         squash.scale.set(sx, sy, sx);
-        root.position.set(rollX, y, 0);
+        root.position.set(rollX, y, dash);
         root.rotation.y = lookYaw * 0.4 + turn;
         lean.rotation.z = airborne ? 0 : tilt;
         lean.rotation.x = airborne ? 0 : pitch;

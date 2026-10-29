@@ -9,8 +9,10 @@ Pets.register({
     jump: { duration: 1.1 },
     eat: { duration: 2.4 },
     lift: { duration: 3.4 },
-    blast: { duration: 2.4 }
+    blast: { duration: 2.4 },
+    attack: { duration: 1.2 }
   },
+  battle: { special: { action: "blast", hit: 0.42, speed: 1.3 } },
   idle: [
     { action: "lift", min: 25, max: 50 },
     { action: "blast", min: 40, max: 80 }
@@ -18,7 +20,7 @@ Pets.register({
   clickAction: n => ["blast", "lift", "jump", "blast"][(n - 1) % 4],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
+    const { mesh, lerp, smooth, eye, followPupils, eatPhase, berry, strike } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
     const taper = (pts, rf, radial, segs) => {
@@ -397,6 +399,9 @@ Pets.register({
         const eat = action && action.name === "eat" ? action : null;
         const lift = action && action.name === "lift" ? action : null;
         const bl = action && action.name === "blast" ? action : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
+        const wind = atk ? atk.wind : 0;
+        const lunge = atk ? atk.lunge : 0;
         const ph = eat ? eatPhase(eat.p) : null;
         const mind = s.dying ? 0.3 : 0.55 + 0.45 * Math.max(0, Math.min(1, hunger / 100));
 
@@ -423,8 +428,9 @@ Pets.register({
           fire = smooth(0.38, 0.44, bl.p) * (1 - smooth(0.72, 0.95, bl.p));
         }
         root.rotation.y = lookYaw;
-        floatG.position.y = y + focus * 0.25;
-        floatG.rotation.x = lookPitch * 0.5 + Math.sin(swimT) * 0.035 * motion - charge * 0.12 + fire * 0.06;
+        floatG.position.y = y + focus * 0.25 + wind * 0.25 - lunge * 0.1;
+        floatG.position.z = lunge * 0.45 - wind * 0.2;
+        floatG.rotation.x = lookPitch * 0.5 + Math.sin(swimT) * 0.035 * motion - charge * 0.12 + fire * 0.06 - wind * 0.28 + lunge * 0.32;
         floatG.rotation.z = Math.sin(t * 0.6) * 0.04 * motion;
 
         bodyG.scale.set(1 - squeeze * 0.08 + fire * 0.04, 1 + squeeze * 0.1, 1 - squeeze * 0.08 + fire * 0.04);
@@ -459,13 +465,14 @@ Pets.register({
         tentacles.forEach((tn, idx) => {
           const ca = Math.cos(tn.a);
           const sa = Math.sin(tn.a);
-          const raise = focus * (0.5 + 0.5 * Math.sin(t * 2 + tn.ph)) * (Math.abs(sa) < 0.75 ? 1 : 0.4);
+          const front = smooth(-0.1, 0.85, sa);
+          const raise = focus * (0.5 + 0.5 * Math.sin(t * 2 + tn.ph)) * (Math.abs(sa) < 0.75 ? 1 : 0.4) + wind * front * 1.8 - lunge * front * 0.35;
           const spread = 1 - squeeze * 0.4 + fire * 0.35 + focus * 0.2 + hop * 0.2;
           const curl = 0.6 + squeeze * 0.7 + (eat ? 0.3 : 0) - hop * 0.3;
           for (let i = 0; i < TS; i++) {
             const u = i / (TS - 1);
             const wave = Math.sin(t * 1.9 - u * 4 + tn.ph) * 0.12 * u * motion;
-            const reach = (0.1 + u * tn.len * 0.62) * spread;
+            const reach = (0.1 + u * tn.len * 0.62) * spread + lunge * front * u * 1.5 - wind * front * u * 0.35;
             let down = u * tn.len * (0.95 - u * 0.35);
             down -= raise * Math.pow(u, 1.4) * 1.6;
             const r = 0.3 + 0.2 * smooth(0, 0.3, u) + reach - 0.1 * spread;
@@ -578,11 +585,11 @@ Pets.register({
         ring.material.opacity = (0.12 + fire * 0.3 + focus * 0.15) * mind;
 
         eyes.forEach(({ g }) => {
-          g.scale.y = charge > 0.3 ? 0.3 : eat && eat.p > 0.3 ? 0.5 : blink;
+          g.scale.y = charge > 0.3 || lunge > 0.4 ? 0.3 : eat && eat.p > 0.3 ? 0.5 : blink;
         });
         followPupils(eyes, pointer, 0.45);
 
-        const chomp = eat ? Math.sin(ph.chew * Math.PI) * 0.5 + smooth(0.4, 0.9, ph.fall) * (1 - ph.bite) * 0.4 : 0;
+        const chomp = atk ? atk.impact * 0.5 + wind * 0.2 : eat ? Math.sin(ph.chew * Math.PI) * 0.5 + smooth(0.4, 0.9, ph.fall) * (1 - ph.bite) * 0.4 : 0;
         jaws.forEach(({ j, s: sj }) => { j.rotation.z = sj * (0.12 + chomp); });
         if (eat) {
           food.visible = ph.visible;

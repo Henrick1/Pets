@@ -8,8 +8,10 @@ Pets.register({
   actions: {
     jump: { duration: 1.1 },
     eat: { duration: 2.4 },
-    eclipse: { duration: 3.2 }
+    eclipse: { duration: 3.2 },
+    attack: { duration: 1.1 }
   },
+  battle: { special: { action: "eclipse", hit: 0.3, speed: 1.5 } },
   idle: [
     { action: "eclipse", min: 30, max: 60 },
     { action: "jump", min: 35, max: 70 }
@@ -17,7 +19,7 @@ Pets.register({
   clickAction: n => ["eclipse", "jump", "jump"][(n - 1) % 3],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eatPhase, berry } = kit;
+    const { mesh, lerp, smooth, eatPhase, berry, strike } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
     const canvasTex = (w, h, draw, rx = 1, ry = 1) => {
@@ -504,6 +506,7 @@ Pets.register({
         const jump = action && action.name === "jump" ? action : null;
         const eat = action && action.name === "eat" ? action : null;
         const ecl = action && action.name === "eclipse" ? action : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
         const ph = eat ? eatPhase(eat.p) : null;
 
         let y = 0;
@@ -526,6 +529,15 @@ Pets.register({
             crouch = 1 - smooth(0, 0.3, q);
           } else crouch = Math.sin(((p - 0.78) / 0.22) * Math.PI) * 0.6;
         }
+        if (atk) {
+          crouch = atk.wind;
+          y = Math.sin(smooth(0.3, 0.55, action.p) * Math.PI) * 0.4;
+          lean = atk.lunge * 0.35 - atk.wind * 0.1;
+          mouthOpen = atk.wind > 0.4 || atk.lunge > 0.15;
+          squint = atk.lunge > 0.35;
+          flare = atk.impact * 0.6;
+          openMouth.scale.y = 1.05;
+        }
         if (ecl) {
           const p = ecl.p;
           flare = smooth(0.08, 0.3, p) * (1 - smooth(0.75, 1, p));
@@ -539,9 +551,13 @@ Pets.register({
           mouthOpen = eat.p > 0.15 && eat.p < 0.85 && (eat.p < 0.32 || ph.chew > 0.35);
           squint = eat.p > 0.32;
           openMouth.scale.y = 0.5 + ph.chew * 0.6;
-        } else food.visible = false;
+        } else {
+          food.visible = false;
+          if (!atk) openMouth.scale.y = 0.8;
+        }
 
         root.position.y = y;
+        root.position.z = atk ? atk.lunge * 0.5 - atk.wind * 0.15 : 0;
         root.rotation.y = lookYaw;
         root.rotation.x = lookPitch * 0.6;
         body.scale.set(1 + crouch * 0.05, (1 - crouch * 0.12) * breathe, 1 + crouch * 0.05);
@@ -551,6 +567,10 @@ Pets.register({
         head.rotation.x = lerp(head.rotation.x, headDown * 0.5 - headUp * 0.3, 0.12);
         head.rotation.y = lerp(head.rotation.y, pointer.x * 0.45, 0.1);
         head.rotation.z = Math.sin(t * 0.7) * 0.03 * motion;
+        if (atk) {
+          neck.rotation.x = atk.wind * 0.45 - atk.lunge * 0.25;
+          head.rotation.x = atk.wind * 0.25 - atk.lunge * 0.2;
+        }
 
         const tw = Math.max(0, Math.sin(t * 0.9 + 1.2)) > 0.985 ? 1 : 0;
         ears.forEach(({ pv, s: sd }, i) => {

@@ -10,8 +10,10 @@ Pets.register({
   actions: {
     jump: { duration: 1.0 },
     eat: { duration: 2.4 },
-    root: { duration: 3.2 }
+    root: { duration: 3.2 },
+    attack: { duration: 1.1 }
   },
+  battle: { special: { action: "root", hit: 0.45, speed: 1.5 } },
   idle: [
     { action: "root", min: 25, max: 50 },
     { action: "jump", min: 30, max: 60 }
@@ -19,7 +21,7 @@ Pets.register({
   clickAction: n => ["root", "jump"][(n - 1) % 2],
 
   create({ THREE, kit }) {
-    const { mesh, lerp, smooth, eye, followPupils, eatPhase, berry } = kit;
+    const { mesh, lerp, smooth, eye, followPupils, eatPhase, berry, strike } = kit;
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
     const hexParts = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map(v => v / 255);
 
@@ -729,6 +731,7 @@ Pets.register({
         const jump = action && action.name === "jump" ? action : null;
         const eat = action && action.name === "eat" ? action : null;
         const rt = action && action.name === "root" ? action : null;
+        const atk = action && action.name === "attack" ? strike(action.p) : null;
         const ph = eat ? eatPhase(eat.p) : null;
 
         const breath = Math.sin(t * 1.6) * motion;
@@ -763,6 +766,12 @@ Pets.register({
           mouthOpen = p > 0.32 && p < 0.55;
           headUp = grow * 0.2;
         }
+        if (atk) {
+          crouch = atk.wind * 0.5;
+          pitch += atk.lunge * 0.3 - atk.wind * 0.08;
+          squint = atk.wind > 0.3 || atk.lunge > 0.3;
+          mouthOpen = atk.lunge > 0.3;
+        }
         if (eat) {
           food.visible = ph.visible;
           const m = V3(0, HEAD.y - 0.18, HEAD.z + headR + 0.05);
@@ -778,10 +787,12 @@ Pets.register({
         }
 
         root.position.y = y;
+        root.position.z = atk ? atk.lunge * 0.4 - atk.wind * 0.12 : 0;
         root.rotation.y = lookYaw;
         root.rotation.x = lookPitch;
         torsoPivot.position.y = HIP.y - crouch * 0.12 + breath * 0.01;
         torsoPivot.rotation.x = pitch;
+        torsoPivot.rotation.y = atk ? atk.wind * 0.45 - atk.lunge * 0.35 : 0;
         headPivot.rotation.y = lerp(headPivot.rotation.y, pointer.x * 0.4, 0.1);
         headPivot.rotation.x = lerp(headPivot.rotation.x, -pointer.y * 0.18 - headUp, 0.12);
         headPivot.rotation.z = Math.sin(t * 1.2) * 0.03 * motion;
@@ -790,6 +801,13 @@ Pets.register({
         openMouth.visible = airborne || mouthOpen;
 
         arms.forEach(({ pivot, s: sd, fist }) => {
+          if (atk) {
+            const punch = sd < 0;
+            pivot.rotation.x = punch ? atk.wind * 0.9 - atk.lunge * 1.75 : -atk.wind * 0.4 + atk.lunge * 0.5;
+            pivot.rotation.z = sd * (punch ? 0.05 + atk.wind * 0.25 : 0.15);
+            fist.position.y = -0.75;
+            return;
+          }
           pivot.rotation.x = lerp(pivot.rotation.x, -armUp * 1.6 - grow * 0.2, 0.2);
           pivot.rotation.z = lerp(pivot.rotation.z, sd * (armUp * 0.5 + breath * 0.01), 0.2);
           fist.position.y = -0.75;

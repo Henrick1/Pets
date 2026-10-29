@@ -9,8 +9,10 @@ Pets.register({
     jump: { duration: 1.3 },
     eat: { duration: 2.4 },
     reign: { duration: 3.6 },
-    zap: { duration: 2.6 }
+    zap: { duration: 2.6 },
+    attack: { duration: 1.2 }
   },
+  battle: { special: { action: "zap", hit: 0.42, speed: 1.3 } },
   idle: [
     { action: "zap", min: 25, max: 50 },
     { action: "reign", min: 45, max: 90 }
@@ -691,6 +693,9 @@ Pets.register({
           roar = smooth(0.62, 0.68, p) * (1 - smooth(0.84, 0.95, p));
         }
         const zap = action && action.name === "zap" ? action : null;
+        const atk = action && action.name === "attack" ? kit.strike(action.p) : null;
+        const sWind = atk ? atk.wind : 0;
+        const sLunge = atk ? atk.lunge : 0;
         const ph = eat ? eatPhase(eat.p) : null;
         const elec = s.dying ? 0.25 : 0.5 + 0.5 * Math.max(0, Math.min(1, hunger / 100));
 
@@ -734,7 +739,8 @@ Pets.register({
             y -= crouch * 0.28 * k - Math.sin(t * 2) * 0.025 * k * motion;
             y -= droop * 0.9 * k * k;
             z += droop * 0.35 * k + charge * -0.12 * k + blast * 0.08 * k - rise * 0.22 * k + roar * 0.1 * k;
-            y += rise * 0.55 * k * k;
+            y += rise * 0.55 * k * k + sWind * 0.35 * k - sLunge * 0.25 * k * k;
+            z += -sWind * 0.4 * k + sLunge * 0.85 * k * k;
             if (eat) {
               y += 0.08 * k * Math.sin(ph.fall * Math.PI);
               z -= 0.06 * k * ph.chew;
@@ -762,7 +768,7 @@ Pets.register({
         head.quaternion.copy(q);
         let nod = Math.sin(t * 1.4) * 0.05 * motion;
         if (eat) nod += -0.35 * (1 - ph.fall) * (eat.p < 0.3 ? 1 : 0) + Math.sin(ph.chew * Math.PI) * 0.06;
-        nod += -blast * 0.12 + charge * 0.15 + droop * 0.35 + crouch * 0.1 - hop * 0.2 + rise * 0.12 - roar * 0.42;
+        nod += sLunge * 0.3 - sWind * 0.25 - blast * 0.12 + charge * 0.15 + droop * 0.35 + crouch * 0.1 - hop * 0.2 + rise * 0.12 - roar * 0.42;
         head.rotateX(nod);
         head.rotateZ(Math.sin(t * 0.9) * 0.06 * motion);
         head.rotateY(survey);
@@ -774,6 +780,7 @@ Pets.register({
         if (eat) mouth = eat.p < 0.3 ? smooth(0.08, 0.28, eat.p) * 0.55 : eat.p < 0.85 ? 0.08 + ph.chew * 0.3 : 0;
         if (blast) mouth = Math.max(mouth, blast * 0.45);
         if (roar) mouth = Math.max(mouth, roar * 0.62);
+        if (atk) mouth = Math.max(mouth, (sWind > 0.3 || (sLunge > 0.1 && atk.impact < 0.5)) ? 0.6 : 0);
         if (hop > 0.3) mouth = Math.max(mouth, 0.3);
         const flickT = (t * 0.23) % 1;
         const flick = !eat && !dash && !s.dying && flickT > 0.9 ? Math.sin(((flickT - 0.9) / 0.1) * Math.PI) : 0;
