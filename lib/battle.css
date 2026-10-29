@@ -539,6 +539,27 @@
   font-weight: 600;
 }
 
+.bt-cmd .bt-sec {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bt-ico {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--ic);
+}
+
+.bt-ico svg {
+  display: block;
+}
+
 .bt-sec:disabled {
   opacity: 0.45;
 }
