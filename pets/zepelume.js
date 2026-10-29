@@ -125,7 +125,7 @@ Pets.register({
       g.fillStyle = "#ffffff";
       g.fillRect(0, 0, w, h);
       for (let i = 0; i < 5; i++) {
-        g.strokeStyle = "rgba(120,40,30,0.25)";
+        g.strokeStyle = "rgba(40,80,130,0.22)";
         g.lineWidth = 3;
         g.beginPath();
         g.moveTo(w * 0.1, h);
@@ -139,8 +139,7 @@ Pets.register({
     const skin = new THREE.MeshStandardMaterial({ color: 0xfff0dc, map: skinTex, bumpMap: skinBump, bumpScale: 0.01, roughness: 0.6 });
     const brass = new THREE.MeshStandardMaterial({ color: 0xd8a84e, roughness: 0.28, metalness: 0.85 });
     const darkMetal = new THREE.MeshStandardMaterial({ color: 0x3a4450, roughness: 0.4, metalness: 0.8 });
-    const finMat = new THREE.MeshStandardMaterial({ color: 0xff8466, map: finTex, roughness: 0.5, side: THREE.DoubleSide });
-    const finTip = new THREE.MeshStandardMaterial({ color: 0x5db6ff, roughness: 0.5, side: THREE.DoubleSide });
+    const finMat = new THREE.MeshStandardMaterial({ color: 0x9fd0ff, map: finTex, roughness: 0.45, metalness: 0.1, side: THREE.DoubleSide });
     const mouthMat = new THREE.MeshStandardMaterial({ color: 0x4a1a24, roughness: 0.5 });
     const tongueMat = new THREE.MeshStandardMaterial({ color: 0xff7f8f, roughness: 0.5 });
     const cheekMat = new THREE.MeshBasicMaterial({ color: 0xff8fa3, transparent: true, opacity: 0.55 });
@@ -215,8 +214,10 @@ Pets.register({
       [0.45, 0.02, 0.84, 0.74],
       [0.98, 0.04, 0.78, 0.7],
       [1.36, 0.02, 0.6, 0.56],
-      [1.6, -0.02, 0.34, 0.34],
-      [1.7, -0.04, 0.04, 0.04]
+      [1.58, -0.02, 0.42, 0.4],
+      [1.7, -0.03, 0.24, 0.23],
+      [1.76, -0.03, 0.08, 0.08],
+      [1.77, -0.03, 0.01, 0.01]
     ];
     const nodes = BASE.map(([z, y, rx, ry]) => ({ p: V3(0, y, z), rx, ry }));
     const shellNodes = nodes.map(q => ({ p: q.p.clone(), rx: q.rx * 1.004, ry: q.ry * 1.004 }));
@@ -309,11 +310,16 @@ Pets.register({
 
     const flipper = s => {
       const sh = new THREE.Shape();
-      sh.moveTo(0, -0.12);
-      sh.quadraticCurveTo(0.4, -0.2, 0.95, -0.08);
-      sh.quadraticCurveTo(1.12, 0.0, 0.98, 0.1);
-      sh.quadraticCurveTo(0.55, 0.22, 0.0, 0.14);
-      sh.lineTo(0, -0.12);
+      sh.moveTo(0, 0.2);
+      sh.bezierCurveTo(0.32, 0.26, 0.72, 0.16, 1.02, -0.02);
+      sh.quadraticCurveTo(1.14, -0.1, 1.04, -0.15);
+      const trail = [[1.04, -0.15], [0.8, -0.16], [0.58, -0.2], [0.36, -0.23], [0.16, -0.25], [0, -0.22]];
+      for (let k = 1; k < trail.length; k++) {
+        const [x0, y0] = trail[k - 1];
+        const [x1, y1] = trail[k];
+        sh.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 - 0.07, x1, y1);
+      }
+      sh.lineTo(0, 0.2);
       const g = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.025, bevelSegments: 3, curveSegments: 16 });
       g.translate(0, 0, -0.02);
       const p = g.attributes.position;
@@ -331,15 +337,13 @@ Pets.register({
     const flippers = [-1, 1].map(s => {
       const pv = new THREE.Group();
       const r = rAt(0.55);
-      pv.position.set(r.rx * 0.82 * s, r.y - r.ry * 0.5, 0.55);
-      pv.rotation.set(Math.PI / 2, 0.35 * s, -0.25 * s);
+      pv.position.set(r.rx * 0.8 * s, r.y - r.ry * 0.55, 0.55);
+      pv.rotation.order = "ZYX";
+      pv.rotation.set(0.75, 0.4 * s, -0.5 * s);
       whale.add(pv);
       const f = flipper(s);
+      f.scale.set(f.scale.x * 1.05, 1.4, 1.3);
       pv.add(f);
-      const tip = mesh(new THREE.SphereGeometry(0.1, 16, 12), finTip, false);
-      tip.scale.set(1.2, 0.9, 0.3);
-      tip.position.set(1.0 * s, 0.01, 0);
-      pv.add(tip);
       return { pv, s };
     });
 
@@ -357,24 +361,11 @@ Pets.register({
       g.rotateX(Math.PI / 2);
       const m = mesh(g, finMat);
       if (s < 0) m.scale.x = -1;
+      m.scale.multiplyScalar(1.3);
       fluke.add(m);
-      const tip = mesh(new THREE.SphereGeometry(0.06, 14, 10), finTip, false);
-      tip.scale.set(1.4, 0.35, 1);
-      tip.position.set(0.6 * s, 0, 0.33);
-      fluke.add(tip);
     });
 
     const headZ = 1.18;
-    const nosePv = new THREE.Group();
-    nosePv.position.set(0, rAt(1.63).y, 1.63);
-    whale.add(nosePv);
-    const noseCap = mesh(new THREE.SphereGeometry(0.17, 32, 20), finMat, false);
-    noseCap.scale.set(1, 0.85, 0.55);
-    nosePv.add(noseCap);
-    const noseRing = mesh(new THREE.TorusGeometry(0.17, 0.02, 10, 40), brass, false);
-    noseRing.scale.set(1, 0.85, 1);
-    noseRing.position.z = -0.03;
-    nosePv.add(noseRing);
     const face = new THREE.Group();
     whale.add(face);
     const surf = (x, y, z, out = 0) => {
@@ -579,7 +570,7 @@ Pets.register({
         });
 
         flippers.forEach(({ pv, s: sd }) => {
-          pv.rotation.z = -0.25 * sd + Math.sin(wv * 0.8) * 0.35 * sd * (0.5 + swim * 0.5);
+          pv.rotation.z = -0.5 * sd + Math.sin(wv * 0.8) * 0.35 * sd * (0.5 + swim * 0.5);
         });
         rotors.forEach((h, i) => {
           h.rotation.z += (0.15 + swim * 0.35) * (i ? 1 : -1) * (reduceMotion ? 0.3 : 1);

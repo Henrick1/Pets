@@ -2,11 +2,11 @@ Pets.register({
   id: "balaozinho",
   dex: 26,
   name: "Balãozinho",
-  color: "#ff8a6a",
+  color: "#7cc8ff",
   types: ["flying"],
   evolvesTo: "zepelume",
   evolveLevel: 16,
-  description: "Um filhote do céu que enche o corpo de ar quente para flutuar. As listras das costas lembram os gomos de um balão, e a cordinha da cauda serve para os amigos o puxarem de volta quando ele sobe demais. Com fome, murcha e pousa emburrado.",
+  description: "Um filhote do céu, redondo e macio, com asinhas e cauda feitas de nuvem. Quando enche o peito de ar, flutua como um balão e sopra rajadas de vento. Com fome, murcha e pousa emburrado.",
   actions: {
     jump: { duration: 1.6 },
     eat: { duration: 2.4 },
@@ -46,11 +46,11 @@ Pets.register({
     const fuzzDraw = base => (g, rnd, w, h) => {
       g.fillStyle = base;
       g.fillRect(0, 0, w, h);
-      for (let i = 0; i < 3500; i++) {
+      for (let i = 0; i < 4200; i++) {
         const x = rnd() * w;
         const y = rnd() * h;
         const v = rnd();
-        g.strokeStyle = v < 0.5 ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.07)";
+        g.strokeStyle = v < 0.5 ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.06)";
         g.lineWidth = 1;
         g.beginPath();
         g.moveTo(x, y);
@@ -58,15 +58,15 @@ Pets.register({
         g.stroke();
       }
     };
-    const fuzzTex = canvasTex(256, 256, fuzzDraw("#f6f6f6"), 6, 4);
+    const fuzzTex = canvasTex(256, 256, fuzzDraw("#f7f7f7"), 6, 4);
     const fuzzBump = canvasTex(256, 256, fuzzDraw("#808080"), 6, 4);
     const featherTex = canvasTex(64, 256, (g, rnd, w, h) => {
       g.fillStyle = "#ffffff";
       g.fillRect(0, 0, w, h);
-      g.fillStyle = "rgba(0,0,0,0.25)";
+      g.fillStyle = "rgba(0,0,0,0.18)";
       g.fillRect(w / 2 - 1.5, 0, 3, h);
       for (let y = 6; y < h; y += 7) {
-        g.strokeStyle = "rgba(0,0,0," + (0.08 + rnd() * 0.08) + ")";
+        g.strokeStyle = "rgba(0,0,0," + (0.06 + rnd() * 0.06) + ")";
         g.beginPath();
         g.moveTo(w / 2, y);
         g.lineTo(0, y - 10);
@@ -76,13 +76,13 @@ Pets.register({
       }
     });
 
-    const bodyMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: fuzzTex, bumpMap: fuzzBump, bumpScale: 0.006, roughness: 0.75 });
-    const featherMats = [0xff7f62, 0x5ab4ff, 0xffe2a8].map(c => new THREE.MeshStandardMaterial({ color: c, map: featherTex, roughness: 0.7, side: THREE.DoubleSide }));
-    const beakMat = new THREE.MeshStandardMaterial({ color: 0xffb340, roughness: 0.35 });
-    const beakDark = new THREE.MeshStandardMaterial({ color: 0xd9812a, roughness: 0.4 });
-    const legMat = new THREE.MeshStandardMaterial({ color: 0xf2a03a, roughness: 0.5 });
-    const stringMat = new THREE.MeshStandardMaterial({ color: 0xfff1d8, roughness: 0.8, map: fuzzTex });
-    const cheekMat = new THREE.MeshBasicMaterial({ color: 0xff8fa3, transparent: true, opacity: 0.6 });
+    const bodyMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: fuzzTex, bumpMap: fuzzBump, bumpScale: 0.006, roughness: 0.78 });
+    const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, emissive: 0xdcecff, emissiveIntensity: 0.28, map: fuzzTex });
+    const featherMats = [0x3f8fe6, 0x8fd3ff, 0xffffff].map(c => new THREE.MeshStandardMaterial({ color: c, map: featherTex, roughness: 0.7, side: THREE.DoubleSide }));
+    const beakMat = new THREE.MeshStandardMaterial({ color: 0xffc23d, roughness: 0.32 });
+    const beakDark = new THREE.MeshStandardMaterial({ color: 0xf29a2e, roughness: 0.4 });
+    const legMat = new THREE.MeshStandardMaterial({ color: 0xffa94a, roughness: 0.5 });
+    const cheekMat = new THREE.MeshBasicMaterial({ color: 0xff9fb4, transparent: true, opacity: 0.65, depthWrite: false });
     const mouthIn = new THREE.MeshStandardMaterial({ color: 0x6a1f2e, roughness: 0.5 });
     const tongueMat = new THREE.MeshStandardMaterial({ color: 0xff7f8f, roughness: 0.5 });
 
@@ -121,6 +121,15 @@ Pets.register({
       g.computeVertexNormals();
       return g;
     };
+    const cloud = (parts, mat) => {
+      const g = new THREE.Group();
+      parts.forEach(([x, y, z, r]) => {
+        const b = mesh(new THREE.SphereGeometry(r, 22, 16), mat, false);
+        b.position.set(x, y, z);
+        g.add(b);
+      });
+      return g;
+    };
 
     const root = new THREE.Group();
     const bod = new THREE.Group();
@@ -129,7 +138,7 @@ Pets.register({
     const puffG = new THREE.Group();
     bod.add(puffG);
 
-    const prof = [V2(0.0, -0.98), V2(0.14, -0.95), V2(0.36, -0.82), V2(0.62, -0.55), V2(0.82, -0.18), V2(0.9, 0.15), V2(0.88, 0.45), V2(0.76, 0.72), V2(0.52, 0.93), V2(0.25, 1.03), V2(0.0, 1.06)];
+    const prof = [V2(0.0, -0.84), V2(0.3, -0.81), V2(0.58, -0.66), V2(0.8, -0.4), V2(0.9, -0.06), V2(0.89, 0.28), V2(0.78, 0.58), V2(0.56, 0.82), V2(0.28, 0.95), V2(0.0, 0.98)];
     const profC = new THREE.SplineCurve(prof);
     const profPts = profC.getPoints(120);
     const rAt = y => {
@@ -144,28 +153,27 @@ Pets.register({
     {
       const p = bodyGeo.attributes.position;
       const col = new Float32Array(p.count * 3);
-      const coral = new THREE.Color(0xff8a66);
-      const blue = new THREE.Color(0x5db6ff);
-      const cream = new THREE.Color(0xffe2a6);
+      const sky = new THREE.Color(0x86ceff);
+      const deep = new THREE.Color(0x4b9ff0);
+      const cream = new THREE.Color(0xfff0d2);
       const c = new THREE.Color();
       for (let i = 0; i < p.count; i++) {
         const x = p.getX(i);
         const y = p.getY(i);
         const z = p.getZ(i);
         const a = Math.atan2(x, z);
-        const back = smooth(0.35, -0.2, Math.cos(a)) * smooth(-0.6, -0.1, y);
-        const top = smooth(0.5, 0.85, y);
-        const gore = smooth(0.25, 0.55, Math.cos(a * 6 + Math.PI / 6));
-        const stripe = Math.max(back, top) * gore;
-        c.copy(coral).lerp(blue, stripe);
-        const bx = Math.sin(a) / 0.55;
-        const by = (y + 0.45) / 0.38;
-        const belly = Math.max(0, Math.cos(a)) * smooth(1.05, 0.85, Math.hypot(bx, by));
+        const edge = 0.5 + Math.sin(a * 9) * 0.05 - Math.cos(a) * 0.07;
+        const cap = smooth(edge - 0.03, edge + 0.03, y);
+        const back = smooth(0.2, -0.6, Math.cos(a)) * smooth(-0.5, 0.2, y) * 0.35;
+        c.copy(sky).lerp(deep, Math.max(cap, back));
+        const bx = Math.sin(a) / 0.6;
+        const by = (y + 0.32) / 0.46;
+        const belly = Math.max(0, Math.cos(a)) * smooth(1.04, 0.9, Math.hypot(bx, by));
         c.lerp(cream, Math.min(1, belly));
-        const seam = (1 - Math.abs(Math.cos(a * 6 + Math.PI / 6)) ** 0.15) * Math.max(back, top) * 0.25;
-        col[i * 3] = c.r * (1 - seam);
-        col[i * 3 + 1] = c.g * (1 - seam);
-        col[i * 3 + 2] = c.b * (1 - seam);
+        const shade = 0.9 + 0.1 * smooth(-0.84, 0.2, y);
+        col[i * 3] = c.r * shade;
+        col[i * 3 + 1] = c.g * shade;
+        col[i * 3 + 2] = c.b * shade;
       }
       bodyGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
       bodyGeo.computeVertexNormals();
@@ -173,72 +181,78 @@ Pets.register({
     const body = mesh(bodyGeo, bodyMat);
     puffG.add(body);
 
-    const knot = mesh(new THREE.TorusGeometry(0.07, 0.04, 10, 20), stringMat, false);
-    knot.rotation.x = Math.PI / 2;
-    knot.position.y = -0.98;
-    puffG.add(knot);
-    const knotBall = mesh(new THREE.SphereGeometry(0.07, 16, 12), new THREE.MeshStandardMaterial({ color: 0xff8a66, roughness: 0.7 }), false);
-    knotBall.scale.set(1, 0.7, 1);
-    knotBall.position.y = -1.0;
-    puffG.add(knotBall);
-
     const crest = new THREE.Group();
-    crest.position.set(0, 1.0, -0.12);
+    crest.position.set(0, 0.93, 0.05);
     puffG.add(crest);
     [
-      [0, 0.42, 0.13, 0.2, 0, -0.35],
-      [-0.12, 0.3, 0.1, 0.16, 1, -0.2],
-      [0.12, 0.3, 0.1, 0.16, 1, -0.2],
-      [0, 0.24, 0.08, 0.12, 2, 0.15]
+      [0, 0.56, 0.17, 0.3, 0, -0.55],
+      [-0.12, 0.4, 0.13, 0.2, 1, -0.3],
+      [0.12, 0.4, 0.13, 0.2, 1, -0.3],
+      [0, 0.28, 0.1, 0.16, 2, -0.08]
     ].forEach(([x, len, wid, curl, m, tilt]) => {
       const f = mesh(featherGeo(len, wid, curl), featherMats[m], false);
       f.position.x = x;
-      f.rotation.set(tilt, 0, -x * 2.2);
+      f.rotation.set(tilt, 0, -x * 2.6);
       crest.add(f);
     });
+    const curlPts = [];
+    for (let i = 0; i <= 16; i++) {
+      const u = i / 16;
+      const a = u * Math.PI * 1.5;
+      curlPts.push(V3(0, 0.02 + Math.sin(a) * 0.16 * (1 - u * 0.35) + u * 0.12, 0.04 + (1 - Math.cos(a)) * 0.12 * (1 - u * 0.35)));
+    }
+    const curl = mesh(tube(curlPts, 0.04, 0.012, 30, 8), featherMats[0], false);
+    curl.position.set(0, 0.0, 0.06);
+    crest.add(curl);
 
     const wings = [-1, 1].map(s => {
       const pv = new THREE.Group();
-      pv.position.set(0.84 * s, 0.05, -0.05);
+      pv.position.set(0.8 * s, 0.02, -0.06);
       puffG.add(pv);
-      const fan = new THREE.Group();
-      fan.rotation.z = -s * 1.2;
+      const fan = cloud(
+        [
+          [0.08, 0.0, 0.0, 0.2],
+          [0.28, 0.1, -0.02, 0.19],
+          [0.47, 0.22, -0.05, 0.16],
+          [0.62, 0.35, -0.08, 0.12],
+          [0.26, -0.1, 0.02, 0.15],
+          [0.44, 0.03, 0.0, 0.13],
+          [0.58, 0.16, -0.03, 0.1]
+        ].map(([x, y, z, r]) => [x * s, y, z, r]),
+        cloudMat
+      );
       pv.add(fan);
-      [[0.66, 0.15, 0], [0.58, 0.14, 1], [0.48, 0.13, 0], [0.38, 0.12, 2], [0.3, 0.1, 1]].forEach(([len, wid, m], k) => {
-        const f = mesh(featherGeo(len, wid, 0.06), featherMats[m], false);
-        f.rotation.set(0.15, s * 0.4, -s * (0.05 + k * 0.28));
-        f.position.z = -k * 0.012;
-        fan.add(f);
-      });
-      const nub = mesh(new THREE.SphereGeometry(0.15, 18, 14), new THREE.MeshStandardMaterial({ color: 0xff8a66, roughness: 0.7, map: fuzzTex }), false);
-      nub.scale.set(0.8, 1, 0.7);
-      pv.add(nub);
       return { pv, s };
     });
 
-    const faceY = 0.18;
+    const tail = cloud(
+      [
+        [0, 0, 0, 0.17],
+        [0.15, 0.06, -0.06, 0.13],
+        [-0.15, 0.06, -0.06, 0.13],
+        [0, 0.14, -0.12, 0.12]
+      ],
+      cloudMat
+    );
+    tail.position.set(0, -0.32, -0.8);
+    puffG.add(tail);
+
+    const faceY = 0.12;
     const fr = rAt(faceY);
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 1.05 });
-      const x = 0.3 * s;
-      e.g.position.set(x, faceY + 0.14, Math.sqrt(fr * fr - x * x) - 0.05);
-      e.g.rotation.y = Math.atan2(x, fr) * 0.8;
+      const e = eye({ size: 1.15 });
+      const x = 0.31 * s;
+      const y = faceY + 0.17;
+      const r = rAt(y);
+      e.g.position.set(x, y, Math.sqrt(r * r - x * x) - 0.07);
+      e.g.rotation.y = Math.atan2(x, r) * 0.8;
       puffG.add(e.g);
       return e;
     });
-    const brows = [-1, 1].map(s => {
-      const on = (x, y) => {
-        const rr = rAt(y) + 0.012;
-        return V3(x, y, Math.sqrt(Math.max(0, rr * rr - x * x)));
-      };
-      const b = mesh(tube([on(0.17 * s, 0.5), on(0.3 * s, 0.54), on(0.43 * s, 0.5)], 0.034, 0.02, 12, 8), new THREE.MeshStandardMaterial({ color: 0x8a3a2a, roughness: 0.6 }), false);
-      puffG.add(b);
-      return b;
-    });
     [-1, 1].forEach(s => {
       const c = new THREE.Mesh(new THREE.CircleGeometry(0.1, 28), cheekMat);
-      const x = 0.55 * s;
-      const y = faceY - 0.08;
+      const x = 0.53 * s;
+      const y = faceY - 0.06;
       const r = rAt(y);
       c.scale.set(1, 0.62, 1);
       c.position.set(x, y, Math.sqrt(Math.max(0, r * r - x * x)) + 0.012);
@@ -246,17 +260,18 @@ Pets.register({
       puffG.add(c);
     });
     const beak = new THREE.Group();
-    beak.position.set(0, faceY - 0.06, rAt(faceY - 0.06) - 0.03);
-    beak.scale.setScalar(1.55);
+    beak.position.set(0, faceY - 0.02, fr - 0.04);
+    beak.scale.setScalar(1.75);
     puffG.add(beak);
     const upper = mesh(
       (() => {
-        const g = new THREE.SphereGeometry(0.11, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const g = new THREE.SphereGeometry(0.1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
         const p = g.attributes.position;
         for (let i = 0; i < p.count; i++) {
           const z = p.getZ(i);
           const y = p.getY(i);
-          p.setXYZ(i, p.getX(i) * (1 - Math.max(0, z) * 2.2), y * 0.55, z * 1.5 + Math.max(0, z) * 0.6);
+          const f = Math.max(0, z) / 0.1;
+          p.setXYZ(i, p.getX(i) * (1 - f * 0.55), y * 0.55, z * 1.25);
         }
         g.computeVertexNormals();
         return g;
@@ -264,18 +279,19 @@ Pets.register({
       beakMat,
       false
     );
-    upper.rotation.x = 0.15;
+    upper.rotation.x = 0.12;
     beak.add(upper);
     const lowerPv = new THREE.Group();
-    lowerPv.position.set(0, -0.005, -0.02);
+    lowerPv.position.set(0, -0.004, -0.015);
     beak.add(lowerPv);
     const lower = mesh(
       (() => {
-        const g = new THREE.SphereGeometry(0.09, 20, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+        const g = new THREE.SphereGeometry(0.08, 20, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
         const p = g.attributes.position;
         for (let i = 0; i < p.count; i++) {
           const z = p.getZ(i);
-          p.setXYZ(i, p.getX(i) * (1 - Math.max(0, z) * 2), p.getY(i) * 0.5, z * 1.35 + Math.max(0, z) * 0.3);
+          const f = Math.max(0, z) / 0.08;
+          p.setXYZ(i, p.getX(i) * (1 - f * 0.5), p.getY(i) * 0.45, z * 1.1);
         }
         g.computeVertexNormals();
         return g;
@@ -284,45 +300,35 @@ Pets.register({
       false
     );
     lowerPv.add(lower);
-    const inside = mesh(new THREE.SphereGeometry(0.07, 16, 12), mouthIn, false);
-    inside.scale.set(1, 0.35, 1);
-    inside.position.set(0, -0.015, 0.02);
+    const inside = mesh(new THREE.SphereGeometry(0.065, 16, 12), mouthIn, false);
+    inside.scale.set(1, 0.32, 1);
+    inside.position.set(0, -0.012, 0.015);
     lowerPv.add(inside);
-    const tongue = mesh(new THREE.SphereGeometry(0.035, 12, 10), tongueMat, false);
+    const tongue = mesh(new THREE.SphereGeometry(0.03, 12, 10), tongueMat, false);
     tongue.scale.set(1.2, 0.4, 1);
-    tongue.position.set(0, -0.012, 0.05);
+    tongue.position.set(0, -0.01, 0.04);
     lowerPv.add(tongue);
 
     const legs = [-1, 1].map(s => {
       const pv = new THREE.Group();
-      pv.position.set(0.24 * s, -0.78, 0.18);
+      pv.position.set(0.24 * s, -0.72, 0.2);
       puffG.add(pv);
-      pv.add(mesh(tube([V3(0, 0.05, 0), V3(0.01 * s, -0.12, 0.02), V3(0.02 * s, -0.24, 0.04)], 0.05, 0.038, 12, 10), legMat, false));
-      [-0.5, 0, 0.5].forEach(a => {
-        const toe = mesh(tube([V3(0, 0, 0), V3(Math.sin(a) * 0.07, -0.02, Math.cos(a) * 0.07), V3(Math.sin(a) * 0.12, -0.05, Math.cos(a) * 0.11)], 0.03, 0.012, 8, 6), legMat, false);
-        toe.position.set(0.02 * s, -0.24, 0.04);
+      pv.add(mesh(tube([V3(0, 0.04, 0), V3(0.01 * s, -0.1, 0.02), V3(0.02 * s, -0.2, 0.04)], 0.05, 0.038, 12, 10), legMat, false));
+      [-0.55, 0, 0.55].forEach(a => {
+        const toe = mesh(tube([V3(0, 0, 0), V3(Math.sin(a) * 0.07, -0.02, Math.cos(a) * 0.07), V3(Math.sin(a) * 0.11, -0.05, Math.cos(a) * 0.1)], 0.032, 0.014, 8, 6), legMat, false);
+        toe.position.set(0.02 * s, -0.2, 0.04);
         pv.add(toe);
       });
-      const thigh = mesh(new THREE.SphereGeometry(0.1, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffe2b0, roughness: 0.8, map: fuzzTex }), false);
-      thigh.position.y = 0.04;
-      thigh.scale.set(1, 0.8, 1);
-      pv.add(thigh);
       return { pv, s };
     });
 
-    const stringPts = [];
-    for (let i = 0; i <= 14; i++) stringPts.push(V3(0, -1.0 - i * 0.07, -0.02));
-    const stringCurve = new THREE.CatmullRomCurve3(stringPts);
-    const stringGeo = new THREE.TubeGeometry(stringCurve, 60, 0.016, 6, false);
-    const stringMesh = mesh(stringGeo, stringMat, false);
-    puffG.add(stringMesh);
-    const pom = new THREE.Group();
-    puffG.add(pom);
-    for (let k = 0; k < 7; k++) {
-      const b = mesh(new THREE.SphereGeometry(0.055, 14, 10), featherMats[k % 2 ? 1 : 0], false);
-      const a = k * 2.4;
-      b.position.set(Math.cos(a) * 0.04, (k % 3) * 0.03 - 0.03, Math.sin(a) * 0.04);
-      pom.add(b);
+    const gust = [];
+    for (let k = 0; k < 5; k++) {
+      const m = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 8, 28), m);
+      ring.visible = false;
+      puffG.add(ring);
+      gust.push({ ring, m, k });
     }
 
     const food = berry();
@@ -349,6 +355,7 @@ Pets.register({
         let flap = 1 - hungry * 0.8;
         let beakOpen = 0;
         let squint = false;
+        let blowP = -1;
 
         if (jump) {
           const p = jump.p;
@@ -360,20 +367,21 @@ Pets.register({
           const k = smooth(0, 0.25, p) * (1 - smooth(0.6, 1, p));
           inflate = k;
           lift += k * 0.3;
-          beakOpen = p > 0.62 && p < 0.85 ? Math.sin(((p - 0.62) / 0.23) * Math.PI) * 0.6 : 0;
+          beakOpen = p > 0.62 && p < 0.88 ? Math.sin(((p - 0.62) / 0.26) * Math.PI) * 0.55 : 0;
           squint = k > 0.6;
+          blowP = p;
         }
         let peck = 0;
         if (atk) {
           lift += atk.wind * 0.3 - atk.lunge * 0.15;
           flap += atk.wind * 2.2 + atk.lunge * 0.8;
-          beakOpen = atk.wind > 0.3 || (atk.lunge > 0.2 && atk.impact < 0.4) ? 0.55 : 0;
+          beakOpen = atk.wind > 0.3 || (atk.lunge > 0.2 && atk.impact < 0.4) ? 0.5 : 0;
           squint = atk.lunge > 0.4;
           peck = atk.lunge * 0.6 - atk.wind * 0.4;
         }
         if (eat) {
           food.visible = ph.visible;
-          food.position.set(0, lerp(4.2, 0.9 + (faceY - 0.06) * 1.0, ph.fall * ph.fall), lerp(1.2, fr + 0.15, ph.fall));
+          food.position.set(0, lerp(4.2, 0.9 + faceY - 0.02, ph.fall * ph.fall), lerp(1.2, fr + 0.12, ph.fall));
           food.scale.setScalar(1 - 0.85 * ph.bite);
           beakOpen = eat.p > 0.12 && eat.p < 0.85 && (eat.p < 0.3 || ph.chew > 0.35) ? 0.35 + ph.chew * 0.3 : 0;
           squint = eat.p > 0.3;
@@ -394,49 +402,41 @@ Pets.register({
             const y = baseBody[i * 3 + 1];
             const z = baseBody[i * 3 + 2];
             const a = Math.atan2(x, z);
-            const h = (y + 1) / 2.06;
-            const wr = 1 - d * (0.1 * h + 0.05 * Math.sin(a * 6) * h * h);
-            bp.setXYZ(i, x * wr, y - d * 0.22 * h * h * h, z * wr);
+            const h = (y + 0.84) / 1.82;
+            const wr = 1 - d * (0.08 * h + 0.04 * Math.sin(a * 6) * h * h);
+            bp.setXYZ(i, x * wr, y - d * 0.2 * h * h * h, z * wr);
           }
           bp.needsUpdate = true;
           bodyGeo.computeVertexNormals();
         }
         const sc = 1 + inflate * 0.16 + Math.sin(t * 1.8) * 0.012 * motion;
-        puffG.scale.set(sc * (1 - hungry * 0.05), sc * (1 - hungry * 0.14), sc * (1 - hungry * 0.05));
+        puffG.scale.set(sc * (1 - hungry * 0.05), sc * (1 - hungry * 0.12), sc * (1 - hungry * 0.05));
         puffG.position.y = -hungry * 0.1;
 
         wings.forEach(({ pv, s: sd }) => {
-          const w = Math.sin(t * (6 + flap * 10)) * (0.25 + flap * 0.25);
-          pv.rotation.z = sd * (w - hungry * 0.5);
-          pv.rotation.y = sd * 0.2;
+          const w = Math.sin(t * (6 + flap * 10)) * (0.22 + flap * 0.22);
+          pv.rotation.z = sd * (w - hungry * 0.55 + inflate * 0.25);
+          pv.rotation.y = sd * 0.15;
+          pv.scale.setScalar(1 + inflate * 0.12);
         });
+        tail.rotation.x = Math.sin(t * 2.1) * 0.12 * motion + hungry * 0.4;
+        tail.rotation.y = Math.sin(t * 1.4) * 0.15 * motion;
         legs.forEach(({ pv, s: sd }, i) => {
           pv.rotation.x = Math.sin(t * 2.2 + i * 1.6) * 0.25 * motion * (1 - hungry) + hungry * -0.6;
           pv.rotation.z = sd * (0.08 + Math.sin(t * 1.7 + i) * 0.06 * motion);
         });
-        crest.rotation.x = Math.sin(t * 2.5) * 0.08 * motion - (jump ? 0.25 : 0) + hungry * 0.35 - peck * 0.5;
-        brows.forEach((b, i) => {
-          b.position.y = squint ? -0.03 : hungry > 0.6 ? -0.02 : 0;
-          b.rotation.z = (i ? 1 : -1) * (hungry > 0.6 ? -0.15 : 0);
-        });
+        crest.rotation.x = Math.sin(t * 2.5) * 0.08 * motion - (jump ? 0.25 : 0) + hungry * 0.45 - peck * 0.5;
+        crest.rotation.z = Math.sin(t * 1.9) * 0.05 * motion;
 
-        for (let i = 0; i < stringPts.length; i++) {
-          const f = i / (stringPts.length - 1);
-          const sw = Math.sin(t * 2 - f * 3) * 0.12 * f * motion;
-          const groundY = -lift - 0.9 + 0.06;
-          let y = -1.0 - i * 0.07;
-          let z = -0.02 - f * f * 0.1;
-          if (y < groundY) {
-            const over = groundY - y;
-            y = groundY;
-            z -= over;
-          }
-          stringPts[i].set(sw + Math.sin(f * 9) * 0.04 * f, y, z);
-        }
-        const ng = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(stringPts), 50, 0.016, 6, false);
-        stringMesh.geometry.dispose();
-        stringMesh.geometry = ng;
-        pom.position.copy(stringPts[stringPts.length - 1]);
+        gust.forEach(({ ring, m, k }) => {
+          const q = (blowP - 0.64 - k * 0.05) / 0.32;
+          const on = blowP >= 0 && q > 0 && q < 1;
+          ring.visible = on;
+          if (!on) return;
+          ring.position.set(Math.sin(k * 2.1) * 0.05, faceY - 0.02, fr + 0.15 + q * 1.3);
+          ring.scale.setScalar(0.6 + q * 1.4);
+          m.opacity = Math.sin(q * Math.PI) * 0.7;
+        });
 
         lowerPv.rotation.x = beakOpen;
         eyes.forEach(({ g }) => {
