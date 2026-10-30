@@ -1926,19 +1926,6 @@ a:focus-visible {
     background: rgba(6, 20, 13, 0.78);
   }
 
-  .battle-view {
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background: rgba(6, 20, 13, 0.78);
-  }
-
-  .battle-view > .bt {
-    flex: none;
-    width: min(560px, 100%);
-    height: min(900px, 100%);
-    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-  }
 }
 
 @media (max-width: 370px) {
