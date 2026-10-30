@@ -64,6 +64,71 @@ Pets.register({
       g.computeVertexNormals();
       return g;
     };
+    const tailProfile = f => (f >= 1 ? 0 : Math.pow(Math.sin(Math.PI * (0.1 + 0.9 * f)), 0.55));
+    const tailTube = (rings, rad, r0, colorAt) => {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(rings * (rad + 1) * 3);
+      const col = new Float32Array(rings * (rad + 1) * 3);
+      const idx = [];
+      for (let i = 0; i < rings - 1; i++)
+        for (let j = 0; j < rad; j++) {
+          const a = i * (rad + 1) + j;
+          const b = a + rad + 1;
+          idx.push(a, b, a + 1, b, b + 1, a + 1);
+        }
+      for (let i = 0; i < rings; i++) {
+        const c = hexParts(colorAt(i / (rings - 1)));
+        for (let j = 0; j <= rad; j++) col.set(c, (i * (rad + 1) + j) * 3);
+      }
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      geo.setIndex(idx);
+      const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(0, 1, 0)], false, "centripetal");
+      const p = new THREE.Vector3();
+      const tg = new THREE.Vector3();
+      const side = new THREE.Vector3();
+      const up = new THREE.Vector3();
+      const ref = new THREE.Vector3(1, 0, 0);
+      const update = pts => {
+        curve.points = pts;
+        for (let i = 0; i < rings; i++) {
+          const f = i / (rings - 1);
+          curve.getPoint(f, p);
+          curve.getTangent(f, tg);
+          const r = r0 * tailProfile(f);
+          side.crossVectors(tg, ref);
+          if (side.lengthSq() < 1e-6) side.set(0, 0, 1);
+          side.normalize();
+          up.crossVectors(side, tg).normalize();
+          for (let j = 0; j <= rad; j++) {
+            const a = (j / rad) * Math.PI * 2;
+            const o = (i * (rad + 1) + j) * 3;
+            const ca = Math.cos(a) * r;
+            const sa = Math.sin(a) * r;
+            pos[o] = p.x + side.x * ca + up.x * sa;
+            pos[o + 1] = p.y + side.y * ca + up.y * sa;
+            pos[o + 2] = p.z + side.z * ca + up.z * sa;
+          }
+        }
+        geo.attributes.position.needsUpdate = true;
+        geo.computeVertexNormals();
+        geo.computeBoundingSphere();
+      };
+      return { geo, update };
+    };
+    const chainM = new THREE.Matrix4();
+    const chainPoints = (rootSeg, segs, tipLen, out) => {
+      rootSeg.updateMatrix();
+      chainM.copy(rootSeg.matrix);
+      segs.forEach((g, i) => {
+        g.updateMatrix();
+        chainM.multiply(g.matrix);
+        out[i].setFromMatrixPosition(chainM);
+      });
+      out[segs.length].set(0, tipLen, 0).applyMatrix4(chainM);
+      return out;
+    };
+
     const flames = [];
     const flame = (h, w, bend, outer, inner, phase) => {
       const g = new THREE.Group();
@@ -85,8 +150,6 @@ Pets.register({
     const armMat = mat(0xe0601f, 0.7);
     const emberMat = new THREE.MeshStandardMaterial({ color: 0xffc04a, roughness: 0.3, emissive: 0xff7a1a, emissiveIntensity: 1 });
     const mouthMat = mat(0x5a1018, 0.4);
-    const lashMat = mat(0x2a0a06, 0.5);
-    const irisMat = new THREE.MeshStandardMaterial({ color: 0xffb03a, roughness: 0.3, emissive: 0xff7a1a, emissiveIntensity: 0.35 });
 
     const body = mesh(paint(new THREE.SphereGeometry(1, 40, 30), 0xc8481a, 0xff8a3a, -0.9, 0.9), furMat);
     body.scale.set(0.52, 0.5, 0.47);
@@ -174,22 +237,9 @@ Pets.register({
     head.add(muzzle);
 
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 1.05, whiteColor: 0xfff4d6, pupilColor: 0x2a0806 });
+      const e = eye({ size: 1.05, whiteColor: 0xfff4d6, pupilColor: 0x3a0f08 });
       e.g.position.set(0.33 * s, 0.03, 0.52);
       e.g.rotation.z = -0.1 * s;
-      const iris = mesh(new THREE.SphereGeometry(0.155, 28, 20), irisMat, false);
-      iris.scale.set(1, 1.1, 0.5);
-      iris.position.z = -0.012;
-      e.pupil.add(iris);
-      e.pupil.scale.set(0.86, 0.94, 0.5);
-      const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.024, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      shine2.position.set(-0.05, -0.06, 0.09);
-      e.pupil.add(shine2);
-      const lid = mesh(new THREE.TorusGeometry(0.215, 0.022, 8, 28, Math.PI * 0.95), lashMat, false);
-      lid.scale.set(1, 1.12, 1);
-      lid.position.z = 0.04;
-      lid.rotation.z = 0.08;
-      e.g.add(lid);
       head.add(e.g);
       return e;
     });
@@ -267,23 +317,23 @@ Pets.register({
     const tailSegs = [];
     let parent = tailRoot;
     for (let i = 0; i < tailSpec.n; i++) {
-      const u = i / (tailSpec.n - 1);
       const g = new THREE.Group();
       g.position.y = i === 0 ? 0 : tailSpec.len;
-      const col = u < 0.65 ? hexMix(0xd8521c, 0xff9a40, u / 0.65) : hexMix(0xff9a40, 0x4a160c, (u - 0.65) / 0.35);
-      const m = new THREE.MeshStandardMaterial({ color: col, roughness: 0.6, emissive: u > 0.8 ? 0xff5a10 : 0x000000, emissiveIntensity: u > 0.8 ? 0.6 : 0 });
-      const r = tailSpec.r0 * (1 - 0.7 * Math.pow(Math.abs(u - 0.35) / 0.65, 1.4)) * (u < 0.35 ? 0.55 + u * 1.3 : 1);
-      const seg = mesh(new THREE.SphereGeometry(1, 18, 12), m);
-      seg.scale.set(r, tailSpec.len * 0.75, r);
-      seg.position.y = tailSpec.len * 0.45;
-      g.add(seg);
       parent.add(g);
       tailSegs.push(g);
       parent = g;
     }
     const tailTip = flame(0.42, 0.12, 0.2, 0xff5a14, 0xffd23a, 2.2);
-    tailTip.g.position.y = tailSpec.len * 0.55;
+    tailTip.g.position.y = tailSpec.len * 0.75;
     parent.add(tailTip.g);
+    const tailMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, emissive: 0xff5a14, emissiveIntensity: 0.1 });
+    const tailColor = f => (f < 0.6 ? hexMix(0xd8521c, 0xff9a40, f / 0.6) : f < 0.82 ? hexMix(0xff9a40, 0x5a1a0e, (f - 0.6) / 0.22) : hexMix(0x5a1a0e, 0xffa030, (f - 0.82) / 0.18));
+    const tailTubeMesh = tailTube(40, 18, tailSpec.r0 * 1.1, tailColor);
+    const tailMeshObj = mesh(tailTubeMesh.geo, tailMat);
+    tailMeshObj.frustumCulled = false;
+    tailOuter.add(tailMeshObj);
+    const tailPts = tailSegs.map(() => new THREE.Vector3()).concat([new THREE.Vector3()]);
+    tailTubeMesh.update(chainPoints(tailRoot, tailSegs, tailSpec.len * 0.85, tailPts));
     squash.add(tailOuter);
 
     const emberHot = new THREE.MeshBasicMaterial({ color: 0xffd36a });
@@ -421,6 +471,7 @@ Pets.register({
           g.rotation.x = tailSpec.curl + wave + (airborne ? 0.12 : 0) - burst * 0.1;
           g.rotation.z = Math.sin(t * 1.7 * wag - i * 0.4) * 0.07 * u * motion;
         });
+        tailTubeMesh.update(chainPoints(tailRoot, tailSegs, tailSpec.len * 0.85, tailPts));
 
         embers.forEach(e => {
           const u = (((t * e.sp * (1 + burst * 2) + e.ph) % 1) + 1) % 1;

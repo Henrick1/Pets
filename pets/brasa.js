@@ -67,6 +67,71 @@ Pets.register({
       return g;
     };
 
+    const tailProfile = f => (f >= 1 ? 0 : Math.pow(Math.sin(Math.PI * (0.1 + 0.9 * f)), 0.55));
+    const tailTube = (rings, rad, r0, colorAt) => {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(rings * (rad + 1) * 3);
+      const col = new Float32Array(rings * (rad + 1) * 3);
+      const idx = [];
+      for (let i = 0; i < rings - 1; i++)
+        for (let j = 0; j < rad; j++) {
+          const a = i * (rad + 1) + j;
+          const b = a + rad + 1;
+          idx.push(a, b, a + 1, b, b + 1, a + 1);
+        }
+      for (let i = 0; i < rings; i++) {
+        const c = hexParts(colorAt(i / (rings - 1)));
+        for (let j = 0; j <= rad; j++) col.set(c, (i * (rad + 1) + j) * 3);
+      }
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      geo.setIndex(idx);
+      const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(0, 1, 0)], false, "centripetal");
+      const p = new THREE.Vector3();
+      const tg = new THREE.Vector3();
+      const side = new THREE.Vector3();
+      const up = new THREE.Vector3();
+      const ref = new THREE.Vector3(1, 0, 0);
+      const update = pts => {
+        curve.points = pts;
+        for (let i = 0; i < rings; i++) {
+          const f = i / (rings - 1);
+          curve.getPoint(f, p);
+          curve.getTangent(f, tg);
+          const r = r0 * tailProfile(f);
+          side.crossVectors(tg, ref);
+          if (side.lengthSq() < 1e-6) side.set(0, 0, 1);
+          side.normalize();
+          up.crossVectors(side, tg).normalize();
+          for (let j = 0; j <= rad; j++) {
+            const a = (j / rad) * Math.PI * 2;
+            const o = (i * (rad + 1) + j) * 3;
+            const ca = Math.cos(a) * r;
+            const sa = Math.sin(a) * r;
+            pos[o] = p.x + side.x * ca + up.x * sa;
+            pos[o + 1] = p.y + side.y * ca + up.y * sa;
+            pos[o + 2] = p.z + side.z * ca + up.z * sa;
+          }
+        }
+        geo.attributes.position.needsUpdate = true;
+        geo.computeVertexNormals();
+        geo.computeBoundingSphere();
+      };
+      return { geo, update };
+    };
+    const chainM = new THREE.Matrix4();
+    const chainPoints = (rootSeg, segs, tipLen, out) => {
+      rootSeg.updateMatrix();
+      chainM.copy(rootSeg.matrix);
+      segs.forEach((g, i) => {
+        g.updateMatrix();
+        chainM.multiply(g.matrix);
+        out[i].setFromMatrixPosition(chainM);
+      });
+      out[segs.length].set(0, tipLen, 0).applyMatrix4(chainM);
+      return out;
+    };
+
     const flames = [];
     const flame = (h, w, bend, outer, inner, phase) => {
       const g = new THREE.Group();
@@ -224,29 +289,10 @@ Pets.register({
     muzzle.position.set(0, -0.24, 1.0);
     head.add(muzzle);
 
-    const irisMat = new THREE.MeshStandardMaterial({ color: 0xffa12a, roughness: 0.3, emissive: 0xff6a10, emissiveIntensity: 0.35 });
-    const lashMat = mat(0x2a0a06, 0.5);
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.95, whiteColor: 0xfff0c4, pupilColor: 0x2a0806 });
+      const e = eye({ size: 0.95, whiteColor: 0xfff0c4, pupilColor: 0x3a0f08 });
       e.g.position.set(0.37 * s, 0.05, 0.56);
       e.g.rotation.z = -0.12 * s;
-      const iris = mesh(new THREE.SphereGeometry(0.155, 28, 20), irisMat, false);
-      iris.scale.set(1, 1.1, 0.5);
-      iris.position.z = -0.012;
-      e.pupil.add(iris);
-      e.pupil.scale.set(0.82, 0.9, 0.5);
-      const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      shine2.position.set(-0.05, -0.06, 0.09);
-      e.pupil.add(shine2);
-      const lid = mesh(new THREE.TorusGeometry(0.215, 0.025, 8, 28, Math.PI * 0.95), lashMat, false);
-      lid.scale.set(1, 1.12, 1);
-      lid.position.z = 0.04;
-      lid.rotation.z = 0.08;
-      e.g.add(lid);
-      const lash = mesh(new THREE.ConeGeometry(0.03, 0.11, 8), lashMat, false);
-      lash.position.set(0.21 * s, 0.12, 0.04);
-      lash.rotation.z = -1.0 * s;
-      e.g.add(lash);
       head.add(e.g);
       return e;
     });
@@ -347,6 +393,7 @@ Pets.register({
       collar.push(f);
     }
 
+    const tailMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, emissive: 0xff5a14, emissiveIntensity: 0.18 });
     const tails = [
       { yaw: 0, pitch: -0.95, n: 11, len: 0.2, r0: 0.3, curl: 0.18, ph: 0 },
       { yaw: 0.8, pitch: -0.75, n: 9, len: 0.19, r0: 0.24, curl: 0.2, ph: 1.6 },
@@ -361,38 +408,23 @@ Pets.register({
       const segs = [];
       let parent = rootSeg;
       for (let i = 0; i < spec.n; i++) {
-        const u = i / (spec.n - 1);
         const g = new THREE.Group();
         g.position.y = i === 0 ? 0 : spec.len;
-        const col = u < 0.5 ? hexMix(0x8a1c0e, 0xff5a14, u / 0.5) : hexMix(0xff5a14, 0xffb52e, (u - 0.5) / 0.5);
-        const m = new THREE.MeshStandardMaterial({
-          color: col,
-          roughness: 0.55,
-          emissive: col,
-          emissiveIntensity: 0.15 + u * 0.55
-        });
-        const r = spec.r0 * (1 - 0.82 * Math.pow(u, 0.85));
-        const seg = mesh(new THREE.SphereGeometry(1, 20, 14), m);
-        seg.scale.set(r, spec.len * 0.72, r);
-        seg.position.y = spec.len * 0.45;
-        g.add(seg);
-        if (i > 1 && i < spec.n - 2 && i % 2 === 0) {
-          [-1, 1].forEach(q => {
-            const spike = mesh(new THREE.ConeGeometry(r * 0.38, r * 1.3, 10), m, false);
-            spike.position.set(q * r * 0.8, spec.len * 0.2, -r * 0.2);
-            spike.rotation.set(0.5, 0, -q * 1.0);
-            g.add(spike);
-          });
-        }
         parent.add(g);
         segs.push(g);
         parent = g;
       }
       const tipFlame = flame(0.9, 0.2, 0.2, 0xff5a14, 0xffd23a, spec.ph);
-      tipFlame.g.position.y = spec.len * 0.5;
+      tipFlame.g.position.y = spec.len * 0.75;
       parent.add(tipFlame.g);
+      const tube = tailTube(44, 20, spec.r0 * 1.05, f => (f < 0.5 ? hexMix(0xc8401a, 0xff6a1e, f / 0.5) : hexMix(0xff6a1e, 0xffc23a, (f - 0.5) / 0.5)));
+      const tm = mesh(tube.geo, tailMat);
+      tm.frustumCulled = false;
+      outer.add(tm);
+      const pts = segs.map(() => new THREE.Vector3()).concat([new THREE.Vector3()]);
+      tube.update(chainPoints(rootSeg, segs, spec.len * 0.85, pts));
       squash.add(outer);
-      return { spec, segs, outer, tipFlame };
+      return { spec, segs, outer, tipFlame, rootSeg, tube, pts };
     });
 
     const emberMat = new THREE.MeshBasicMaterial({ color: 0xffb13b });
@@ -558,7 +590,7 @@ Pets.register({
         });
 
         const wag = eat ? 2.6 : jump || flare ? 2.2 : 1;
-        tails.forEach(({ spec, segs, outer, tipFlame }, ti) => {
+        tails.forEach(({ spec, segs, outer, tipFlame, rootSeg, tube, pts }, ti) => {
           const spread = flare ? burst * 0.35 : 0;
           outer.rotation.y = spec.yaw * (1 + spread) + Math.sin(t * 1.1 * wag + spec.ph) * 0.1 * motion * (ti ? 1 : 0.6);
           segs.forEach((g, i) => {
@@ -570,6 +602,7 @@ Pets.register({
             g.rotation.z = Math.sin(t * 1.6 * wag - i * 0.4 + spec.ph) * 0.06 * u * motion;
           });
           tipFlame.base = 1 + burst * 0.4;
+          tube.update(chainPoints(rootSeg, segs, spec.len * 0.85, pts));
         });
 
         embers.forEach(e => {
