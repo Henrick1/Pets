@@ -585,6 +585,8 @@ a:focus-visible {
   color: var(--ink);
   background: linear-gradient(118deg, var(--diag) 0 38%, var(--mist) 38% 100%);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink-2) 45%, transparent) transparent;
 }
 
 .sheet[open] {
@@ -970,7 +972,16 @@ a:focus-visible {
 .box-actions {
   display: flex;
   gap: 8px;
-  margin-top: 4px;
+}
+
+.sheet-foot {
+  position: sticky;
+  bottom: calc(-16px - env(safe-area-inset-bottom));
+  z-index: 3;
+  margin: 4px -16px calc(-16px - env(safe-area-inset-bottom));
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--mist);
+  box-shadow: 0 -10px 14px -6px color-mix(in srgb, var(--mist) 90%, transparent);
 }
 
 .box-actions .btn {
@@ -1705,13 +1716,37 @@ a:focus-visible {
   }
 
   .sheet {
-    width: min(560px, 100%);
-    margin: 0 auto;
+    width: min(560px, calc(100% - 48px));
+    height: min(900px, calc(100dvh - 48px));
+    max-height: calc(100dvh - 48px);
+    margin: auto;
+    padding: 16px 20px 16px;
     border-radius: 0;
+    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+  }
+
+  .sheet-foot {
+    bottom: -16px;
+    margin: 4px -20px -16px;
+    padding: 10px 20px 16px;
   }
 
   .sheet::backdrop {
-    background: rgba(10, 30, 20, 0.55);
+    background: rgba(6, 20, 13, 0.78);
+  }
+
+  .battle-view {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(6, 20, 13, 0.78);
+  }
+
+  .battle-view > .bt {
+    flex: none;
+    width: min(560px, 100%);
+    height: min(900px, 100%);
+    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
   }
 }
 

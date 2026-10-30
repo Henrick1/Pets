@@ -1309,7 +1309,9 @@
       showToast(EXP_NAME[expKind] + " partiu");
       render();
     });
-    list.append(go);
+    const foot = el("div", "sheet-foot");
+    foot.append(go);
+    list.append(foot);
   }
 
   function tickExp() {
@@ -1642,7 +1644,7 @@
       const sel = v.box.find(p => p.id === boxSel);
       if (sel) {
         const bar = document.createElement("div");
-        bar.className = "box-actions";
+        bar.className = "box-actions sheet-foot";
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "btn primary";
