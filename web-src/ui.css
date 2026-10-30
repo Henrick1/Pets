@@ -459,6 +459,13 @@ a:focus-visible {
 .btn.evolve {
   background: var(--sun);
   color: #0f3a28;
+  animation: rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both, evolve-glow 1.6s ease-in-out 0.4s infinite;
+}
+
+@keyframes evolve-glow {
+  50% {
+    filter: brightness(1.1);
+  }
 }
 
 .dock {
@@ -1668,6 +1675,7 @@ a:focus-visible {
     border-radius: 0;
     background: transparent;
     padding: 0;
+    overflow-x: hidden;
   }
 
   .dock {
