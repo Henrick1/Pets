@@ -4,6 +4,8 @@ Pets.register({
   name: "Trichama",
   color: "#ff7a2e",
   types: ["fire"],
+  evolvesTo: "vulpira",
+  evolveLevel: 32,
   description: "Quando o Chamisco cresce, a brasa do rabo se divide em três caudas de fogo. Quanto mais bem alimentado, mais forte queimam as chamas do seu corpo.",
   actions: {
     jump: { duration: 0.95 },

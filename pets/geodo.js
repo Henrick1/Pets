@@ -1,6 +1,6 @@
 Pets.register({
   id: "geodo",
-  dex: 20,
+  dex: 21,
   name: "Cristalma",
   color: "#8e5cd8",
   types: ["rock", "psychic"],

@@ -1,6 +1,6 @@
 Pets.register({
   id: "magmarra",
-  dex: 24,
+  dex: 25,
   name: "Magmarra",
   color: "#b8401a",
   types: ["dragon", "fire"],

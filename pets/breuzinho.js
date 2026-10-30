@@ -1,6 +1,6 @@
 Pets.register({
   id: "breuzinho",
-  dex: 25,
+  dex: 26,
   name: "Poçombra",
   color: "#4a3a7a",
   types: ["dark"],
