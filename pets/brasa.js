@@ -1,10 +1,10 @@
 Pets.register({
   id: "brasa",
-  dex: 15,
+  dex: 16,
   name: "Trichama",
   color: "#ff7a2e",
   types: ["fire"],
-  description: "Raposa de fogo com três caudas em chamas. Quanto mais bem alimentada, mais forte queimam as chamas do seu corpo.",
+  description: "Quando o Chamisco cresce, a brasa do rabo se divide em três caudas de fogo. Quanto mais bem alimentado, mais forte queimam as chamas do seu corpo.",
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },
@@ -98,6 +98,8 @@ Pets.register({
     });
     const rockMat = new THREE.MeshStandardMaterial({ color: 0x3a1a14, roughness: 0.85, flatShading: true });
     const crackMat = new THREE.MeshBasicMaterial({ color: 0xff7a1a });
+    const thighMat = mat(0xe24e1a, 0.7);
+    const fluffMat = mat(0xffe3b0, 0.85);
 
     const bodyGeo = paint(new THREE.SphereGeometry(1, 48, 36), 0x5a1810, 0xff6a24, -0.9, 0.9);
     const body = mesh(bodyGeo, furMat);
@@ -120,12 +122,29 @@ Pets.register({
     coreRing.position.copy(core.position);
     squash.add(coreRing);
 
+    [-1, 1].forEach(s => {
+      const thigh = mesh(new THREE.SphereGeometry(1, 24, 18), thighMat);
+      thigh.scale.set(0.24, 0.26, 0.28);
+      thigh.position.set(0.4 * s, 0.5, 0.04);
+      squash.add(thigh);
+      const tuft = mesh(new THREE.ConeGeometry(0.06, 0.2, 10), thighMat, false);
+      tuft.position.set(0.6 * s, 0.56, -0.06);
+      tuft.rotation.set(0.4, 0, -1.9 * s);
+      squash.add(tuft);
+    });
+
     const feet = [-1, 1].map(s => {
       const f = new THREE.Group();
       f.position.set(0.32 * s, 0.14, 0.12);
       const sole = mesh(new THREE.SphereGeometry(1, 24, 16), darkMat);
       sole.scale.set(0.22, 0.14, 0.32);
       f.add(sole);
+      [-1, 0, 1].forEach(k => {
+        const toe = mesh(new THREE.SphereGeometry(0.07, 14, 10), darkMat, false);
+        toe.scale.set(1, 0.85, 1.1);
+        toe.position.set(0.085 * k, -0.02, 0.26 - Math.abs(k) * 0.04);
+        f.add(toe);
+      });
       [-1, 0, 1].forEach(k => {
         const bean = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), glowMat);
         bean.position.set(0.07 * k, 0.04, 0.27 - Math.abs(k) * 0.03);
@@ -144,7 +163,22 @@ Pets.register({
       const paw = mesh(new THREE.SphereGeometry(1, 20, 14), darkMat);
       paw.scale.set(0.15, 0.16, 0.16);
       paw.position.set(0.05 * s, -0.5, 0.02);
-      pivot.add(a, paw);
+      const elbow = mesh(new THREE.ConeGeometry(0.06, 0.2, 10), armMat, false);
+      elbow.position.set(0.14 * s, -0.24, -0.06);
+      elbow.rotation.set(0.5, 0, -1.6 * s);
+      const cuff = mesh(new THREE.TorusGeometry(0.115, 0.035, 10, 24), fluffMat, false);
+      cuff.rotation.x = Math.PI / 2;
+      cuff.position.set(0.048 * s, -0.38, 0.01);
+      pivot.add(a, paw, elbow, cuff);
+      [-1, 0, 1].forEach(k => {
+        const toe = mesh(new THREE.SphereGeometry(0.05, 12, 8), darkMat, false);
+        toe.position.set(0.05 * s + 0.065 * k, -0.6, 0.1 - Math.abs(k) * 0.02);
+        pivot.add(toe);
+      });
+      const bean = new THREE.Mesh(new THREE.SphereGeometry(0.04, 10, 8), glowMat);
+      bean.scale.z = 0.5;
+      bean.position.set(0.05 * s, -0.52, 0.16);
+      pivot.add(bean);
       squash.add(pivot);
       return { pivot, side: s };
     });
@@ -161,6 +195,15 @@ Pets.register({
     snout.scale.set(0.32, 0.21, 0.3);
     snout.position.set(0, -0.15, 0.64);
     head.add(snout);
+    const bridge = mesh(new THREE.SphereGeometry(1, 28, 20), orangeMat, false);
+    bridge.scale.set(0.2, 0.14, 0.34);
+    bridge.position.set(0, 0.0, 0.6);
+    bridge.rotation.x = 0.35;
+    head.add(bridge);
+    const chin = mesh(new THREE.SphereGeometry(1, 24, 16), creamMat, false);
+    chin.scale.set(0.2, 0.1, 0.18);
+    chin.position.set(0, -0.32, 0.6);
+    head.add(chin);
 
     const nose = mesh(new THREE.SphereGeometry(0.06, 16, 12), darkMat, false);
     nose.scale.set(1.2, 0.8, 0.9);
@@ -181,10 +224,29 @@ Pets.register({
     muzzle.position.set(0, -0.24, 1.0);
     head.add(muzzle);
 
+    const irisMat = new THREE.MeshStandardMaterial({ color: 0xffa12a, roughness: 0.3, emissive: 0xff6a10, emissiveIntensity: 0.35 });
+    const lashMat = mat(0x2a0a06, 0.5);
     const eyes = [-1, 1].map(s => {
-      const e = eye({ size: 0.95, whiteColor: 0xfff0c4, pupilColor: 0x3a0f08 });
+      const e = eye({ size: 0.95, whiteColor: 0xfff0c4, pupilColor: 0x2a0806 });
       e.g.position.set(0.37 * s, 0.05, 0.56);
       e.g.rotation.z = -0.12 * s;
+      const iris = mesh(new THREE.SphereGeometry(0.155, 28, 20), irisMat, false);
+      iris.scale.set(1, 1.1, 0.5);
+      iris.position.z = -0.012;
+      e.pupil.add(iris);
+      e.pupil.scale.set(0.82, 0.9, 0.5);
+      const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      shine2.position.set(-0.05, -0.06, 0.09);
+      e.pupil.add(shine2);
+      const lid = mesh(new THREE.TorusGeometry(0.215, 0.025, 8, 28, Math.PI * 0.95), lashMat, false);
+      lid.scale.set(1, 1.12, 1);
+      lid.position.z = 0.04;
+      lid.rotation.z = 0.08;
+      e.g.add(lid);
+      const lash = mesh(new THREE.ConeGeometry(0.03, 0.11, 8), lashMat, false);
+      lash.position.set(0.21 * s, 0.12, 0.04);
+      lash.rotation.z = -1.0 * s;
+      e.g.add(lash);
       head.add(e.g);
       return e;
     });
@@ -210,6 +272,15 @@ Pets.register({
     });
 
     [-1, 1].forEach(s => {
+      [0, 1].forEach(k => {
+        const tuft = mesh(new THREE.ConeGeometry(0.085 - k * 0.012, 0.32 - k * 0.06, 12), creamMat, false);
+        const g = new THREE.Group();
+        g.position.set(0.66 * s, -0.3 - k * 0.08, 0.2 - k * 0.04);
+        g.rotation.z = (1.9 + k * 0.3) * -s;
+        tuft.position.y = 0.15;
+        g.add(tuft);
+        head.add(g);
+      });
       [0, 1, 2].forEach(k => {
         const tuft = mesh(new THREE.ConeGeometry(0.1 - k * 0.012, 0.42 - k * 0.07, 14), orangeMat, false);
         const g = new THREE.Group();
@@ -230,6 +301,13 @@ Pets.register({
       const inner = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.62, 20), new THREE.MeshBasicMaterial({ color: 0xffb454 }));
       inner.scale.z = 0.3;
       inner.position.set(0, 0.3, 0.11);
+      [-1, 0, 1].forEach(k => {
+        const f = mesh(new THREE.ConeGeometry(0.05, 0.24 - Math.abs(k) * 0.05, 10), fluffMat, false);
+        f.position.set(0.08 * k, 0.12, 0.14);
+        f.rotation.set(0.25, 0, -0.35 * k);
+        g.add(f);
+      });
+
       const tip = flame(0.34, 0.07, 0.15, 0xff6a1a, 0xffd23a, s * 1.7);
       tip.g.position.y = 0.86;
       tip.base = 0.9;
@@ -298,6 +376,14 @@ Pets.register({
         seg.scale.set(r, spec.len * 0.72, r);
         seg.position.y = spec.len * 0.45;
         g.add(seg);
+        if (i > 1 && i < spec.n - 2 && i % 2 === 0) {
+          [-1, 1].forEach(q => {
+            const spike = mesh(new THREE.ConeGeometry(r * 0.38, r * 1.3, 10), m, false);
+            spike.position.set(q * r * 0.8, spec.len * 0.2, -r * 0.2);
+            spike.rotation.set(0.5, 0, -q * 1.0);
+            g.add(spike);
+          });
+        }
         parent.add(g);
         segs.push(g);
         parent = g;

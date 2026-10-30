@@ -1,6 +1,6 @@
 Pets.register({
   id: "brasinha",
-  dex: 22,
+  dex: 23,
   name: "Dracasca",
   color: "#e0602a",
   types: ["dragon", "fire"],

@@ -1,6 +1,6 @@
 Pets.register({
   id: "balaozinho",
-  dex: 26,
+  dex: 27,
   name: "Inflapo",
   color: "#7d98b4",
   types: ["flying"],

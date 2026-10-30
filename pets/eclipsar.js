@@ -411,7 +411,7 @@
 
   Pets.register({
     id: "eclipsar",
-    dex: 25,
+    dex: 26,
     name: "Eclipsar",
     color: "#2a2340",
     types: ["dark", "light"],

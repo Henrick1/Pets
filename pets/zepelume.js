@@ -1,6 +1,6 @@
 Pets.register({
   id: "zepelume",
-  dex: 27,
+  dex: 28,
   name: "Zepelume",
   color: "#7fa8c8",
   types: ["flying", "steel"],
