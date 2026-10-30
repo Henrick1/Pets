@@ -2041,7 +2041,7 @@ a.btn.soft {
   border-radius: 14px;
   background: var(--surface-2, #f3f7f5);
 }
-.chest-item.coin {
+.chest-item.gold {
   background: #fff3c4;
   color: #6b4d00;
 }
@@ -2065,7 +2065,7 @@ a.btn.soft {
   line-height: 1.2;
   color: var(--muted, #5b6b63);
 }
-.chest-item.coin .chest-item-name {
+.chest-item.gold .chest-item-name {
   color: #6b4d00;
 }
 .chest-notes {
