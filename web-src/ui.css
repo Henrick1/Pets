@@ -435,8 +435,9 @@ a:focus-visible {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.act:active:not(:disabled) {
-  transform: translateY(1px);
+.act:active:not(:disabled),
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .act-note {
@@ -1687,6 +1688,8 @@ a:focus-visible {
     background: transparent;
     padding: 0;
     overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--ink-2) 45%, transparent) transparent;
   }
 
   .dock {
