@@ -184,7 +184,8 @@
     const v = view();
     const owned = new Set(v.ownedSpecies);
     const found = petIds.filter(id => owned.has(id)).length;
-    $("dex-count").textContent = found + " de " + petIds.length + " descobertas";
+    $("dex-count").innerHTML = "<b>" + found + "</b> de " + petIds.length + " descobertas";
+    setBar($("dex-count-bar"), null, petIds.length ? (found / petIds.length) * 100 : 0);
     const list = $("dex-list");
     list.replaceChildren();
     const thumbQueue = [];
@@ -209,8 +210,18 @@
       const num = document.createElement("span");
       num.className = "dex-card-num";
       num.textContent = dexNum(id);
-      info.append(num, name);
-      card.append(sw, info);
+      info.append(name);
+      if (known) {
+        const dots = document.createElement("span");
+        dots.className = "dex-dots";
+        (m.types || []).forEach(t => {
+          const d = document.createElement("i");
+          d.style.background = (window.PetTypes && PetTypes.INFO[t] && PetTypes.INFO[t].color) || "#999";
+          dots.append(d);
+        });
+        info.append(dots);
+      }
+      card.append(num, sw, info);
       if (known) {
         card.addEventListener("click", () => openDexDetail(id));
         thumbQueue.push([sw, id]);
@@ -260,7 +271,7 @@
     $("dex-meta").textContent = bits.join(" · ");
     renderEvoChain(id, new Set(v.ownedSpecies));
     $("dex-list").hidden = true;
-    $("dex-count").hidden = true;
+    $("dex-count-card").hidden = true;
     $("dex-detail").hidden = false;
     $("dex-back").hidden = false;
     $("dex-title").textContent = m.name;
@@ -360,9 +371,9 @@
     if (preview) preview.stop();
     $("dex-detail").hidden = true;
     $("dex-list").hidden = false;
-    $("dex-count").hidden = false;
+    $("dex-count-card").hidden = false;
     $("dex-back").hidden = true;
-    $("dex-title").textContent = "Criaturas";
+    $("dex-title").textContent = "Dex";
   }
 
   const reduce = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -602,16 +613,25 @@
       b.setAttribute("aria-pressed", String(i === eggSlot));
       if (e) {
         b.append(miniEgg(meta[e.species] ? meta[e.species].color : "#999999"));
+        const sb = document.createElement("span");
+        sb.className = "sbar";
+        const si = document.createElement("i");
+        si.id = "slot-bar-" + i;
+        si.style.width = Math.max(0, Math.min(100, (1 - e.left / Game.C.HATCH_MS) * 100)) + "%";
+        sb.append(si);
         const tm = document.createElement("span");
         tm.className = "slot-time";
         tm.id = "slot-time-" + i;
         tm.textContent = e.left <= 0 ? "Pronto!" : fmtTime(e.left);
-        b.append(tm);
+        b.append(sb, tm);
       } else {
+        const plus = document.createElement("span");
+        plus.className = "slot-plus";
+        plus.textContent = "+";
         const tm = document.createElement("span");
         tm.className = "slot-time";
         tm.textContent = "Vazio";
-        b.append(tm);
+        b.append(plus, tm);
       }
       b.addEventListener("click", () => {
         if (revealing) revealing = false;
@@ -620,6 +640,8 @@
       });
       slots.append(b);
     }
+    const used = [0, 1, 2].filter(i => slotEgg(i)).length;
+    $("egg-slots-count").textContent = used + " de " + Game.C.INCUBATOR_SLOTS + " ocupadas";
     syncEggStage();
     tickEggs();
 
@@ -688,6 +710,8 @@
       const e = slotEgg(i);
       const el = $("slot-time-" + i);
       if (e && el) el.textContent = e.left <= 0 ? "Pronto!" : fmtTime(e.left);
+      const sb = $("slot-bar-" + i);
+      if (e && sb) sb.style.width = Math.max(0, Math.min(100, (1 - e.left / Game.C.HATCH_MS) * 100)) + "%";
     }
     const e = slotEgg(eggSlot);
     const has = !!e && !revealing;
@@ -697,7 +721,7 @@
     setBar($("care-bar"), $("care-val"), e.care);
     $("care-bar").dataset.level = barLevel(e.care);
     if (eggStage) eggStage.setEggCare(e.care);
-    $("egg-timer").textContent = e.left <= 0 ? "Pronto para chocar!" : fmtTime(e.left);
+    $("egg-timer").textContent = e.left <= 0 ? "Pronto para chocar!" : "Choca em " + fmtTime(e.left);
     $("egg-hint").textContent =
       e.left <= 0 ? "" : e.care <= 0 ? "O ovo está sem cuidado e parou de chocar. Limpe e brinque com ele." : "Mantenha o cuidado alto para o tempo continuar correndo.";
     $("egg-clean").disabled = e.left <= 0 || e.care >= 99.5;
@@ -865,7 +889,7 @@
     cancelAnimationFrame(coinAnim);
     if (!animate || shownCoins === null || shownCoins === value) {
       shownCoins = value;
-      txt.nodeValue = value + " moedas";
+      txt.nodeValue = value.toLocaleString("pt-BR");
       return;
     }
     const from = shownCoins;
@@ -874,7 +898,7 @@
       const k = Math.max(0, Math.min(1, (now - t0) / 650));
       const e = 1 - Math.pow(1 - k, 3);
       shownCoins = Math.round(from + (value - from) * e);
-      txt.nodeValue = shownCoins + " moedas";
+      txt.nodeValue = shownCoins.toLocaleString("pt-BR");
       if (k < 1) coinAnim = requestAnimationFrame(step);
       else coinAnim = 0;
     };
@@ -993,7 +1017,8 @@
     const pool = Game.eggPool(state, baseIds());
     const eggDone = bought.egg && bought.egg > Date.now();
     $("buy-egg").disabled = !eggDone && (state.coins < Game.C.EGG_PRICE || !pool.length);
-    $("buy-egg").textContent = eggDone ? "Comprado!" : "Comprar por " + Game.C.EGG_PRICE + " moedas";
+    if (eggDone) $("buy-egg").textContent = "Comprado!";
+    else $("buy-egg").innerHTML = '<span>Comprar por</span><i class="coin" aria-hidden="true"></i><span>' + Game.C.EGG_PRICE + "</span>";
     $("buy-egg").classList.toggle("bought", !!eggDone);
     const waiting = state.eggs.filter(e => e.slot === null).length;
     $("egg-owned").textContent = waiting ? (waiting === 1 ? "1 ovo esperando no inventário" : waiting + " ovos esperando no inventário") : "";
@@ -1012,7 +1037,8 @@
       buy.type = "button";
       buy.className = "btn primary small";
       const done = bought[k] && bought[k] > Date.now();
-      buy.textContent = done ? "Comprado!" : it.price + " moedas";
+      if (done) buy.textContent = "Comprado!";
+      else buy.innerHTML = '<i class="coin" aria-hidden="true"></i><span>' + it.price + "</span>";
       buy.classList.toggle("bought", !!done);
       buy.setAttribute("aria-label", "Comprar " + it.name + " por " + it.price + " moedas");
       buy.disabled = state.coins < it.price;
@@ -1127,49 +1153,42 @@
     return c;
   }
 
-  function renderExpPicker(v) {
-    const list = $("exp-list");
-    const kind = expPick;
-    const draft = expDraft[kind];
-    const title = document.createElement("p");
-    title.className = "picker-title";
-    list.append(title);
-    const rows = [];
-    let done;
-    const sync = () => {
-      title.textContent = EXP_NAME[kind] + " · " + draft.length + "/" + Game.C.EXPEDITION_SIZE;
-      rows.forEach(([el, p]) => {
-        const on = draft.includes(p.id);
-        el.setAttribute("aria-pressed", String(on));
-        el.disabled = !on && (!!p.away || p.dying || draft.length >= Game.C.EXPEDITION_SIZE);
+  let expKind = null;
+  const EXP_SHORT = { curta: "Curta", media: "Média", longa: "Longa" };
+  const svgI = (body, size, w) => '<svg viewBox="0 0 24 24" width="' + (size || 22) + '" height="' + (size || 22) + '" fill="none" stroke="currentColor" stroke-width="' + (w || 2.4) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + "</svg>";
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  function collectExp(kind, rows) {
+    const r = Game.collectExpedition(state, kind, expTypes);
+    if (!r.changed) return;
+    saveState();
+    scheduleSync();
+    const ups = r.levels.map(l => (rows[l.id] ? rows[l.id].name : "") + " subiu para o nível " + l.level + "!");
+    const names = r.pets.map(id => (rows[id] ? rows[id].name : "")).filter(Boolean);
+    if (window.PetChest) {
+      window.PetChest.open({
+        host: $("party-sheet"),
+        title: EXP_NAME[kind] + " voltou!",
+        subtitle: names.join(", "),
+        coins: r.coins,
+        items: Object.keys(r.items || {}).map(k => ({
+          html: '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">' + (ITEM_ICONS[k] || "") + "</svg>",
+          name: Game.ITEMS[k].name,
+          count: r.items[k]
+        })),
+        notes: (r.effects || []).map(fx => (rows[fx.id] ? rows[fx.id].name + ": " : "") + Game.effectText(fx)).concat(ups),
+        onOpen: () => buzz([20, 40, 30])
       });
-      done.textContent = "Pronto" + (draft.length ? " (" + draft.length + "/" + Game.C.EXPEDITION_SIZE + ")" : "");
-    };
-    v.party.concat(v.box).forEach(p => {
-      const el = itemNode(p, "button");
-      el.type = "button";
-      el.classList.add("pick-item");
-      rows.push([el, p]);
-      el.addEventListener("click", () => {
-        const at = draft.indexOf(p.id);
-        if (at >= 0) draft.splice(at, 1);
-        else if (draft.length < Game.C.EXPEDITION_SIZE) draft.push(p.id);
-        sync();
-      });
-      list.append(el);
-    });
-    const foot = document.createElement("div");
-    foot.className = "pick-foot";
-    done = document.createElement("button");
-    done.type = "button";
-    done.className = "btn primary";
-    done.addEventListener("click", () => {
-      expPick = null;
-      render();
-    });
-    foot.append(done);
-    list.append(foot);
-    sync();
+    } else {
+      showToast("Voltaram com " + lootText(r) + (ups.length ? ". " + ups.join(" ") : ""));
+    }
+    render();
   }
 
   function renderExp(v) {
@@ -1180,116 +1199,117 @@
     Object.keys(expDraft).forEach(k => {
       expDraft[k] = expDraft[k].filter(id => rows[id] && !rows[id].away && !rows[id].dying);
     });
-    if (expPick) {
-      renderExpPicker(v);
-      return;
-    }
     const now = Date.now();
-    Object.keys(Game.C.EXPEDITIONS).forEach(kind => {
-      const run = state.expeditions.find(x => x.kind === kind);
-      const card = document.createElement("div");
-      card.className = "exp-card";
-      const head = document.createElement("div");
-      head.className = "exp-head";
-      const name = document.createElement("span");
-      name.className = "exp-name";
-      name.textContent = EXP_NAME[kind];
-      const dur = document.createElement("span");
-      dur.className = "lv";
-      dur.textContent = EXP_LABEL[kind];
-      head.append(name, dur);
-      card.append(head);
-      const slots = document.createElement("div");
-      slots.className = "exp-slots";
-      if (run) {
-        run.pets.forEach(id => rows[id] && slots.append(expChip(rows[id])));
-        card.append(slots);
-        if (run.endsAt > now) {
-          const t = document.createElement("span");
-          t.className = "exp-time";
-          t.dataset.ends = String(run.endsAt);
-          t.textContent = "Volta em " + fmtTime(run.endsAt - now);
-          card.append(t);
-        } else {
-          const c = document.createElement("button");
-          c.type = "button";
-          c.className = "btn primary";
-          c.textContent = "Receber";
-          c.addEventListener("click", () => {
-            const r = Game.collectExpedition(state, kind, expTypes);
-            if (!r.changed) return;
-            saveState();
-            scheduleSync();
-            const ups = r.levels.map(l => (rows[l.id] ? rows[l.id].name : "") + " subiu para o nível " + l.level + "!");
-            const names = r.pets.map(id => (rows[id] ? rows[id].name : "")).filter(Boolean);
-            if (window.PetChest) {
-              window.PetChest.open({
-                host: $("party-sheet"),
-                title: EXP_NAME[kind] + " voltou!",
-                subtitle: names.join(", "),
-                coins: r.coins,
-                items: Object.keys(r.items || {}).map(k => ({
-                  html: '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">' + (ITEM_ICONS[k] || "") + "</svg>",
-                  name: Game.ITEMS[k].name,
-                  count: r.items[k]
-                })),
-                notes: (r.effects || []).map(fx => (rows[fx.id] ? rows[fx.id].name + ": " : "") + Game.effectText(fx)).concat(ups),
-                onOpen: () => buzz([20, 40, 30])
-              });
-            } else {
-              showToast("Voltaram com " + lootText(r) + (ups.length ? ". " + ups.join(" ") : ""));
-            }
-            render();
-          });
-          card.append(c);
-        }
-      } else {
-        const draft = expDraft[kind];
-        for (let i = 0; i < Game.C.EXPEDITION_SIZE; i++) {
-          const p = rows[draft[i]];
-          const b = document.createElement("button");
-          b.type = "button";
-          b.className = "exp-slot" + (p ? "" : " empty");
-          if (p) {
-            b.append(expChip(p));
-            b.setAttribute("aria-label", "Tirar " + p.name);
-            b.addEventListener("click", () => {
-              draft.splice(i, 1);
-              render();
-            });
-          } else {
-            b.textContent = "+";
-            b.setAttribute("aria-label", "Escolher criatura");
-            b.addEventListener("click", () => {
-              expPick = kind;
-              animateList = true;
-              render();
-            });
-          }
-          slots.append(b);
-        }
-        card.append(slots);
-        const go = document.createElement("button");
-        go.type = "button";
-        go.className = "btn primary";
-        go.textContent = "Partir";
-        go.disabled = !draft.length;
-        go.addEventListener("click", () => {
-          const r = Game.startExpedition(state, kind, draft.slice());
-          if (!r.changed) {
-            showToast(r.reason === "home" ? "Deixe pelo menos um do grupo em casa." : "Não deu para partir.");
-            return;
-          }
-          expDraft[kind] = [];
-          saveState();
-          scheduleSync();
-          showToast(EXP_NAME[kind] + " partiu");
-          render();
-        });
-        card.append(go);
+    const kinds = Object.keys(Game.C.EXPEDITIONS);
+    state.expeditions.forEach(run => {
+      const kind = run.kind;
+      const card = el("div", "exp-run");
+      const head = el("div", "exp-run-head");
+      const back = run.endsAt <= now;
+      head.append(el("b", "", EXP_SHORT[kind] + (back ? " · voltou!" : " · em andamento")));
+      if (!back) {
+        const t = el("span", "exp-time", "volta em " + fmtTime(run.endsAt - now));
+        t.dataset.ends = String(run.endsAt);
+        head.append(t);
       }
+      card.append(head);
+      const total = Math.max(1, run.endsAt - run.startAt);
+      const bar = el("span", "bar mini");
+      const fill = el("span", "fill");
+      fill.style.width = Math.max(0, Math.min(100, ((now - run.startAt) / total) * 100)) + "%";
+      bar.append(fill);
+      card.append(bar);
+      const foot = el("div", "exp-run-foot");
+      const pets = el("div", "exp-pets");
+      run.pets.forEach(id => rows[id] && pets.append(petArt(rows[id], "exp-pet")));
+      foot.append(pets);
+      if (back) {
+        const c = el("button", "btn sun", "Receber");
+        c.type = "button";
+        c.addEventListener("click", () => collectExp(kind, rows));
+        foot.append(c);
+      }
+      card.append(foot);
       list.append(card);
     });
+    const free = kinds.filter(k => !state.expeditions.some(x => x.kind === k));
+    if (!free.length) {
+      list.append(el("p", "hint", "Todas as expedições estão em andamento."));
+      return;
+    }
+    if (!free.includes(expKind)) expKind = free[0];
+    const draft = expDraft[expKind];
+    list.append(el("p", "sec-plate", "Nova expedição"));
+    const grid = el("div", "exp-kinds");
+    kinds.forEach(kind => {
+      const ex = Game.C.EXPEDITIONS[kind];
+      const busy = !free.includes(kind);
+      const b = el("button", "exp-kind");
+      b.type = "button";
+      b.disabled = busy;
+      b.setAttribute("aria-pressed", String(kind === expKind));
+      b.append(el("b", "", EXP_SHORT[kind]), el("span", "dur", busy ? "em andamento" : EXP_LABEL[kind]));
+      const rw = el("span", "rw");
+      rw.append(el("i", "coin"), el("span", "", ex.coins[0] + "–" + ex.coins[1]));
+      b.append(rw, el("span", "rw2", ex.items + (ex.items === 1 ? " item" : " itens") + (ex.rare >= 0.5 ? " · raro" : "")));
+      const risk = el("span", "risk");
+      const ri = el("i");
+      ri.style.width = Math.round(ex.hurt * 100) + "%";
+      if (ex.hurt >= 0.5) ri.classList.add("hi");
+      risk.append(ri);
+      b.append(risk, el("small", "", ex.hurt >= 0.5 ? "Risco alto" : ex.hurt >= 0.3 ? "Risco médio" : "Risco baixo"));
+      b.addEventListener("click", () => {
+        expKind = kind;
+        render();
+      });
+      grid.append(b);
+    });
+    list.append(grid);
+    const sec = el("p", "sec-plate");
+    sec.append(el("span", "", "Quem vai"), el("span", "", draft.length + " de " + Game.C.EXPEDITION_SIZE));
+    list.append(sec);
+    const pick = el("div", "exp-pick");
+    v.party.concat(v.box).forEach(p => {
+      const on = draft.includes(p.id);
+      const b = el("button", "pk");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(on));
+      const why = p.away ? "Em expedição" : p.dying ? "Morrendo" : "Nv " + p.level;
+      b.disabled = !on && (!!p.away || p.dying || draft.length >= Game.C.EXPEDITION_SIZE);
+      b.append(petArt(p, "pk-art"), el("b", "", p.name), el("small", "", why));
+      if (on) {
+        const chk = el("span", "chk");
+        chk.innerHTML = svgI('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14, 3);
+        b.append(chk);
+      }
+      b.addEventListener("click", () => {
+        const at = draft.indexOf(p.id);
+        if (at >= 0) draft.splice(at, 1);
+        else if (draft.length < Game.C.EXPEDITION_SIZE) draft.push(p.id);
+        render();
+      });
+      pick.append(b);
+    });
+    list.append(pick);
+    const names = draft.map(id => rows[id].name);
+    const go = el("button", "btn primary exp-go");
+    go.type = "button";
+    go.innerHTML = svgI('<path d="M3 18l6-9 4 5 3-3 5 7z"/>', 22, 2.4);
+    go.append(el("span", "", names.length ? "Enviar " + (names.length > 1 ? names.slice(0, -1).join(", ") + " e " + names[names.length - 1] : names[0]) : "Escolha quem vai"));
+    go.disabled = !draft.length;
+    go.addEventListener("click", () => {
+      const r = Game.startExpedition(state, expKind, draft.slice());
+      if (!r.changed) {
+        showToast(r.reason === "home" ? "Deixe pelo menos um do grupo em casa." : "Não deu para partir.");
+        return;
+      }
+      expDraft[expKind] = [];
+      saveState();
+      scheduleSync();
+      showToast(EXP_NAME[expKind] + " partiu");
+      render();
+    });
+    list.append(go);
   }
 
   function tickExp() {
@@ -1299,7 +1319,7 @@
     document.querySelectorAll("#exp-list [data-ends]").forEach(t => {
       const left = Number(t.dataset.ends) - now;
       if (left <= 0) done = true;
-      else t.textContent = "Volta em " + fmtTime(left);
+      else t.textContent = "volta em " + fmtTime(left);
     });
     if (done) render();
   }
@@ -1377,18 +1397,23 @@
     const total = Game.C.TREAT_HEAL_MIN * 60000;
     $("heal-ring").style.strokeDashoffset = String(100 - Math.max(0, Math.min(100, (left / total) * 100)));
     const m = Math.ceil(left / 60000);
-    box.setAttribute("aria-label", "Em tratamento, faltam " + (m >= 60 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : m + " min"));
+    const span = m >= 60 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : m + " min";
+    box.setAttribute("aria-label", "Em tratamento, faltam " + span);
+    $("heal-left").textContent = "Vida cheia em " + span;
     box.title = box.getAttribute("aria-label");
     if (!healTicker) healTicker = setInterval(tickHeal, 5000);
   }
 
   const artQueue = [];
+  const artUrls = {};
+
   function pumpArt() {
     const job = artQueue.shift();
     if (!job) return;
     const [art, sp] = job;
     const url = art.isConnected && window.PetStage && window.THREE ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
     if (url) {
+      artUrls[sp] = url;
       const img = document.createElement("img");
       img.src = url;
       img.alt = "";
@@ -1397,38 +1422,80 @@
     requestAnimationFrame(pumpArt);
   }
 
+  function petArt(p, cls) {
+    const dot = document.createElement("span");
+    dot.className = cls || "pick-art";
+    dot.style.setProperty("--c", p.color);
+    const sp = Game.speciesOf(state, p.id);
+    if (artUrls[sp]) {
+      const img = document.createElement("img");
+      img.src = artUrls[sp];
+      img.alt = "";
+      dot.append(img);
+    } else if (artQueue.push([dot, sp]) === 1) requestAnimationFrame(pumpArt);
+    return dot;
+  }
+
+  function petStatus(p) {
+    if (p.away) return [p.away.endsAt <= Date.now() ? "Voltou da expedição" : "Em expedição", "away"];
+    if (p.dying) return ["Morrendo", "low"];
+    if (p.hunger <= 25) return ["Com fome", "low"];
+    if (p.joy <= 25) return ["Triste", "warn"];
+    if (p.id === state.pet) return ["Na tela", "ok"];
+    return ["Fome " + Math.round(p.hunger) + "%", ""];
+  }
+
   function itemNode(p, tag) {
     const el = document.createElement(tag || "div");
-    el.className = "item";
-    const dot = document.createElement("span");
-    dot.className = "pick-art";
-    dot.style.setProperty("--c", p.color);
-    if (artQueue.push([dot, Game.speciesOf(state, p.id)]) === 1) requestAnimationFrame(pumpArt);
+    el.className = "item prow";
     const info = document.createElement("span");
     info.className = "info";
     const line = document.createElement("span");
     line.className = "name-line";
     const name = document.createElement("span");
+    name.className = "nm";
     name.textContent = p.name;
     const lv = document.createElement("span");
     lv.className = "lv";
-    lv.textContent = "Nv " + p.level;
+    lv.innerHTML = "Nv <em>" + p.level + "</em>";
     line.append(name, lv);
-    [
-      [p.hunger <= 25, "Fome"],
-      [p.joy <= 25, "Triste"],
-      [p.dying, "Morrendo"],
-      [!!p.away, p.away && p.away.endsAt <= Date.now() ? "Voltou" : "Explorando", "away-tag"]
-    ].forEach(([on, text, cls]) => {
-      if (!on) return;
-      const warn = document.createElement("span");
-      warn.className = cls || "warn-tag";
-      warn.textContent = text;
-      line.append(warn);
-    });
-    info.append(line);
-    el.append(dot, info);
+    const bar = document.createElement("span");
+    bar.className = "bar mini";
+    bar.dataset.level = barLevel(p.life);
+    const fill = document.createElement("span");
+    fill.className = "fill";
+    fill.style.width = Math.max(0, Math.min(100, p.life)) + "%";
+    bar.append(fill);
+    const sub = document.createElement("span");
+    sub.className = "row-sub";
+    const life = document.createElement("span");
+    life.textContent = "Vida " + Math.round(p.life) + "%";
+    const [txt, kind] = petStatus(p);
+    const st = document.createElement("span");
+    st.className = "st" + (kind ? " st-" + kind : "");
+    st.textContent = txt;
+    sub.append(life, st);
+    info.append(line, bar, sub);
+    el.append(petArt(p), info);
     return el;
+  }
+
+  let boxSel = null;
+  function setHero(p) {
+    const art = $("party-hero-art");
+    $("party-hero-name").textContent = p.name;
+    $("party-hero-types").replaceChildren(...typeTags(p.types).childNodes);
+    const sp = Game.speciesOf(state, p.id);
+    if (art.dataset.sp === sp) return;
+    art.dataset.sp = sp;
+    art.replaceChildren();
+    const url = window.PetStage && window.THREE && hasPet(sp) ? PetStage.thumbnail(window.THREE, window.PetKit, window.Pets, sp, 256, true) : null;
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      art.append(img);
+    } else art.dataset.sp = "";
   }
 
   let releaseId = null;
@@ -1464,15 +1531,17 @@
     boxList.hidden = tab !== "box";
     $("exp-list").hidden = tab !== "exp";
     $("exp-alert").hidden = !state.expeditions.some(x => x.endsAt <= Date.now());
-    $("tab-box").textContent = "Caixa (" + v.box.length + ")";
-    $("tab-party").textContent = "Grupo (" + v.party.length + "/" + Game.C.PARTY_SIZE + ")";
+    $("tab-box").innerHTML = "Caixa <span class=\"tab-n\">" + v.box.length + "</span>";
+    $("tab-party").innerHTML = "Grupo <span class=\"tab-n\">" + v.party.length + "/" + Game.C.PARTY_SIZE + "</span>";
+    if (tab === "box" && v.box.length && !v.box.some(p => p.id === boxSel)) boxSel = v.box[0].id;
+    const heroP = tab === "party" ? v.party.find(p => p.id === v.pet) || v.party[0] : tab === "box" && !swapIn ? v.box.find(p => p.id === boxSel) : null;
+    $("party-hero").hidden = !heroP;
+    if (heroP) setHero(heroP);
 
     if (tab === "party") {
-      $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todos do grupo gastam fome, vida e felicidade, mesmo fora da tela, e rendem moedas enquanto estão alimentados e felizes.";
-    } else if (tab === "exp" && expPick) {
-      $("sheet-hint").textContent = "Escolha até " + Game.C.EXPEDITION_SIZE + " criaturas.";
+      $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todo o grupo gasta fome, vida e felicidade, mesmo fora da tela.";
     } else if (tab === "exp") {
-      $("sheet-hint").textContent = "Até " + Game.C.EXPEDITION_SIZE + " criaturas por expedição, do grupo ou da caixa. Quem sai some da tela, não gasta nada e volta com moedas e itens do seu tipo.";
+      $("sheet-hint").textContent = "Quem sai em expedição não gasta nada e volta com moedas e itens do seu tipo.";
     } else if (swapIn) {
       $("sheet-hint").textContent = "Escolha quem sai do grupo para dar lugar ao novo bichinho.";
     } else {
@@ -1549,26 +1618,49 @@
       empty.className = "hint";
       empty.textContent = "A caixa está vazia.";
       boxList.append(empty);
-    }
-    v.box.forEach(p => {
-      const el = itemNode(p, "div");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "btn primary";
-      btn.textContent = "Trocar";
-      btn.setAttribute("aria-label", "Trocar por " + p.name);
-      btn.addEventListener("click", () => {
-        swapIn = p.id;
-        render();
+    } else {
+      const grid = document.createElement("div");
+      grid.className = "box-grid";
+      v.box.forEach(p => {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "box-cell";
+        cell.setAttribute("aria-pressed", String(p.id === boxSel));
+        cell.setAttribute("aria-label", p.name + ", nível " + p.level);
+        const lv = document.createElement("span");
+        lv.className = "cell-lv";
+        lv.textContent = "Nv " + p.level;
+        cell.append(petArt(p, "cell-art"), lv);
+        if (p.dying || p.hunger <= 25) cell.classList.add("warn");
+        cell.addEventListener("click", () => {
+          boxSel = p.id;
+          render();
+        });
+        grid.append(cell);
       });
-      const more = moreBtn(p);
-      if (more) {
-        more.classList.add("inline");
-        el.append(more);
+      boxList.append(grid);
+      const sel = v.box.find(p => p.id === boxSel);
+      if (sel) {
+        const bar = document.createElement("div");
+        bar.className = "box-actions";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn primary";
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3.5-3.5M17 17H6l3.5 3.5"/></svg><span>Trocar com o grupo</span>';
+        btn.setAttribute("aria-label", "Trocar " + sel.name + " com alguém do grupo");
+        btn.addEventListener("click", () => {
+          swapIn = sel.id;
+          render();
+        });
+        bar.append(btn);
+        const more = moreBtn(sel);
+        if (more) {
+          more.classList.add("inline");
+          bar.append(more);
+        }
+        boxList.append(bar);
       }
-      el.append(btn);
-      boxList.append(el);
-    });
+    }
     if (stagger) {
       Array.from((tab === "party" ? partyList : tab === "exp" ? $("exp-list") : boxList).children).forEach((el, k) => {
         el.classList.add("enter");
@@ -1596,14 +1688,13 @@
   function render() {
     if (!state || !stage || Game.needsStarter(state) || !state.pet) return;
     $("egg-alert").hidden = !state.eggs.some(e => e.slot !== null && (e.left <= 0 || e.care <= 0));
-    $("menu-alert").hidden = $("egg-alert").hidden;
     const v = view();
     const info = meta[v.species] || { name: v.species, color: "#999999" };
     $("pet-name").textContent = info.name;
     const lvText = "Nv " + v.level;
     if ($("level").textContent !== lvText) {
       const had = $("level").textContent !== "";
-      $("level").textContent = lvText;
+      $("level").innerHTML = "Nv <b>" + v.level + "</b>";
       if (had) {
         $("level").classList.remove("bump");
         void $("level").offsetWidth;
@@ -1636,7 +1727,22 @@
     tickHeal();
     $("treat").title = v.treat.healing ? "Recuperando a vida" : v.treat.used ? "Já tratada hoje" : v.dying ? "" : "Só quando estiver morrendo";
     $("party-alert").hidden = !(state.expeditions.some(x => x.endsAt <= Date.now()) || v.party.some(p => !p.away && (p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25)));
-    $("shop-btn").setAttribute("aria-label", "Loja · " + v.coins + " moedas");
+    $("coins-val").textContent = v.coins.toLocaleString("pt-BR");
+    $("coins-btn").setAttribute("aria-label", v.coins + " moedas. Abrir a loja");
+    const hint = v.dying
+      ? v.treat.can
+        ? "Está morrendo. Toque em Tratar ou use uma poção."
+        : "Está morrendo. Use uma poção da mochila."
+      : v.hunger <= 25
+        ? "Com fome. Alimentar também recupera a vida."
+        : v.joy <= 25
+          ? "Triste. Toque nele para brincar."
+          : "";
+    $("care-hint").textContent = hint;
+    $("care-hint").hidden = !hint;
+    const note = v.treat.healing ? "" : v.treat.used ? "Amanhã" : "";
+    $("treat-note").textContent = note;
+    $("treat-note").hidden = !note;
     if ($("shop-sheet").open) renderShop();
     if ($("bag-sheet").open) renderBag();
     if (lastPetId !== v.pet + ":" + v.species) {
@@ -2014,22 +2120,9 @@
         render();
       });
     });
-    const setMenu = open => {
-      $("menu-pop").hidden = !open;
-      $("menu-btn").setAttribute("aria-expanded", String(open));
-      $("menu-btn").classList.toggle("open", open);
-      $("menu-scrim").hidden = !open;
-      document.querySelector(".top").classList.toggle("menu-open", open);
-    };
-    $("menu-btn").addEventListener("click", () => setMenu($("menu-pop").hidden));
-    document.addEventListener("pointerdown", e => {
-      if (!$("menu-pop").hidden && !e.target.closest(".top-actions")) setMenu(false);
-    });
-    ["shop-btn", "bag-btn", "egg-btn", "dex-btn", "account-btn"].forEach(id => $(id).addEventListener("click", () => setMenu(false)));
-    $("battle-btn").addEventListener("click", () => {
-      setMenu(false);
-      openBattle();
-    });
+    $("battle-btn").addEventListener("click", () => openBattle());
+    $("coins-btn").addEventListener("click", () => openShop());
+    $("bag-shop").addEventListener("click", () => openShop());
     $("dex-btn").addEventListener("click", () => {
       closeDexDetail();
       renderDex();
@@ -2230,6 +2323,7 @@
       await loadScript("lib/egg.js");
       await loadScriptSafe("lib/chest.js");
       await loadScript("lib/stage.js");
+      await loadScript("lib/ui-icons.js");
       await loadScript("lib/battle.js");
       await loadScriptSafe("lib/battle-stage.js");
       await loadScriptSafe("lib/battle-ui.js");

@@ -14,6 +14,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="lib/battle.css">
+<link rel="stylesheet" href="ui.css">
 <title>Pets</title>
 </head>
 <body>
@@ -64,40 +65,15 @@
 </main>
 
 <main id="game-view" class="game" hidden>
-  <div id="menu-scrim" class="menu-scrim" hidden></div>
   <header class="top">
     <div class="who">
-      <h1 id="pet-name"></h1>
+      <h1 class="plate"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19l8-8"/></svg><span id="pet-name"></span></h1>
       <span id="level" class="badge"></span>
-      <span id="tags" class="tags"></span>
+      <span id="tags" class="tags" hidden></span>
     </div>
     <div class="top-actions">
-      <button id="menu-btn" class="icon-btn menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-pop">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-        <span id="menu-alert" class="alert-dot" hidden></span>
-      </button>
-      <div id="menu-pop" class="menu-pop" hidden>
-      <button id="battle-btn" class="icon-btn" type="button" aria-label="Batalha">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 4l9.5 9.5M4 4h4l9 9M4 4v4l9 9M14.5 17.5l3-3M16 16l4 4M20 4l-6.5 6.5M20 4h-4l-2.5 2.5M20 4v4l-2.5 2.5M9.5 17.5l-3-3M8 16l-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button id="shop-btn" class="icon-btn" type="button" aria-label="Loja">
-        <span class="coin-ico" aria-hidden="true"></span>
-      </button>
-      <button id="bag-btn" class="icon-btn" type="button" aria-label="Mochila">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span id="menu-bag-new" class="icon-count" hidden></span>
-      </button>
-      <button id="egg-btn" class="icon-btn" type="button" aria-label="Ovos">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3c3.6 0 6.5 5.4 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.4 8.4 3 12 3z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-        <span id="egg-alert" class="alert-dot" hidden></span>
-      </button>
-      <button id="dex-btn" class="icon-btn" type="button" aria-label="Criaturas">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-      </button>
-      <button id="account-btn" class="icon-btn" type="button" aria-label="Conta">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-      </div>
+      <button id="coins-btn" class="coin-chip" type="button" aria-label="Loja"><i class="coin" aria-hidden="true"></i><span id="coins-val" class="num"></span></button>
+      <button id="account-btn" class="icon-btn" type="button" aria-label="Conta"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>
     </div>
   </header>
 
@@ -105,6 +81,7 @@
     <canvas id="stage"></canvas>
     <p id="toast" class="toast" role="status" hidden></p>
     <div id="heal-timer" class="heal-timer" role="img" aria-label="Em tratamento" hidden>
+      <span class="heal-txt"><b>Em tratamento</b><small id="heal-left"></small></span>
       <svg viewBox="0 0 44 44" aria-hidden="true">
         <circle class="heal-track" cx="22" cy="22" r="19"/>
         <circle id="heal-ring" class="heal-ring" cx="22" cy="22" r="19" pathLength="100"/>
@@ -119,41 +96,58 @@
   <section class="panel">
     <div class="stats">
       <div class="stat">
+        <span class="stat-ico si-hunger"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-3-2-7 0-7 5 0 4 3 8 5 8 1 0 1.5-.5 2-.5s1 .5 2 .5c2 0 5-4 5-8 0-5-4-7-7-5z"/><path d="M12 7c0-2 1-3.5 3-4"/></svg></span>
         <span class="stat-label">Fome</span>
         <div id="hunger-bar" class="bar" role="progressbar" aria-label="Fome" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
         <span id="hunger-val" class="stat-val"></span>
       </div>
       <div class="stat">
+        <span class="stat-ico si-life"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="16" height="6" rx="3"/><path d="M12 9v6"/></svg></span>
         <span class="stat-label">Vida</span>
         <div id="life-bar" class="bar" role="progressbar" aria-label="Vida" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
         <span id="life-val" class="stat-val"></span>
       </div>
       <div class="stat">
+        <span class="stat-ico si-joy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></span>
         <span class="stat-label">Felicidade</span>
         <div id="joy-bar" class="bar" role="progressbar" aria-label="Felicidade" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
         <span id="joy-val" class="stat-val"></span>
       </div>
       <div class="stat">
+        <span class="stat-ico si-xp"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
         <span class="stat-label">XP</span>
         <div id="xp-bar" class="bar xp" role="progressbar" aria-label="XP" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
         <span id="xp-val" class="stat-val"></span>
       </div>
     </div>
+    <p id="care-hint" class="care-hint" hidden></p>
     <button id="evolve-btn" class="btn evolve" type="button" hidden>Evoluir</button>
     <nav class="actions" aria-label="Ações">
-      <button id="feed" class="btn primary" type="button">Alimentar</button>
-      <button id="treat" class="btn primary" type="button">Tratar</button>
-      <button id="party-btn" class="btn soft" type="button">Grupo<span id="party-alert" class="alert-dot" hidden></span></button>
+      <button id="feed" class="act main" type="button"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-3-2-7 0-7 5 0 4 3 8 5 8 1 0 1.5-.5 2-.5s1 .5 2 .5c2 0 5-4 5-8 0-5-4-7-7-5z"/><path d="M12 7c0-2 1-3.5 3-4"/></svg><b>Alimentar</b></button>
+      <button id="treat" class="act" type="button"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="16" height="6" rx="3"/><path d="M12 9v6"/></svg><b>Tratar</b><span id="treat-note" class="act-note" hidden></span></button>
+      <button id="party-btn" class="act" type="button"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="10" r="1.8"/><circle cx="11" cy="6.5" r="1.8"/><circle cx="16" cy="7.5" r="1.8"/><circle cx="18.5" cy="12" r="1.6"/><path d="M8.5 18c0-3 2-5.5 4.5-5.5s3.5 2 3.5 4-1.5 3-4 3-4 0-4-1.5z"/></svg><b>Grupo</b><span id="party-alert" class="alert-dot" hidden></span></button>
     </nav>
   </section>
+  <nav class="dock" aria-label="Menu">
+    <button id="bag-btn" class="dk" type="button"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><path d="M10 13h4"/></svg><span>Mochila</span><span id="menu-bag-new" class="icon-count" hidden></span></button>
+    <button id="shop-btn" class="dk" type="button"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1.2 1.1-2 2.5-2s2.5.8 2.5 2-1.1 1.5-2.5 1.5-2.5.6-2.5 1.8 1.1 2 2.5 2 2.5-.8 2.5-2"/></svg><span>Loja</span></button>
+    <button id="battle-btn" class="dk fight" type="button"><span class="fb"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16c3-3 6-8 8-12"/><path d="M10 19c3-3 6-8 8-13"/><path d="M15 20c2-2 4-5 5-8"/></svg></span><span>Batalha</span></button>
+    <button id="egg-btn" class="dk" type="button"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-3.5 0-6.5 6-6.5 10a6.5 6.5 0 0 0 13 0C18.5 9 15.5 3 12 3z"/></svg><span>Ovos</span><span id="egg-alert" class="alert-dot" hidden></span></button>
+    <button id="dex-btn" class="dk" type="button"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg><span>Dex</span></button>
+  </nav>
 </main>
 
 <section id="battle-view" class="battle-view" aria-label="Batalha" hidden></section>
 
 <dialog id="party-sheet" class="sheet" aria-labelledby="party-title">
   <div class="sheet-head">
-    <h2 id="party-title">Seus bichinhos</h2>
-    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+    <button class="icon-btn close" type="button" data-close aria-label="Voltar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="party-title" class="plate"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19l8-8"/></svg><span>Seus bichinhos</span></h2>
+  </div>
+  <div id="party-hero" class="hero">
+    <span class="halo" aria-hidden="true"></span>
+    <span id="party-hero-art" class="hero-art"></span>
+    <div class="hero-plate"><b id="party-hero-name"></b><span id="party-hero-types" class="type-tags"></span></div>
   </div>
   <div class="tabs tabs-3" role="tablist">
     <button id="tab-party" class="tab" role="tab" type="button" aria-selected="true" aria-controls="party-list">Grupo</button>
@@ -168,15 +162,11 @@
 
 <dialog id="dex-sheet" class="sheet" aria-labelledby="dex-title">
   <div class="sheet-head">
-    <div class="dex-head">
-      <button id="dex-back" class="icon-btn" type="button" aria-label="Voltar para a lista" hidden>
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <h2 id="dex-title">Criaturas</h2>
-    </div>
-    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+    <button id="dex-back" class="icon-btn" type="button" aria-label="Voltar para a lista" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="icon-btn close" type="button" data-close aria-label="Voltar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 class="plate"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg><span id="dex-title">Dex</span></h2>
   </div>
-  <p id="dex-count" class="hint"></p>
+  <div id="dex-count-card" class="count-card"><p id="dex-count"></p><div id="dex-count-bar" class="bar"><span class="fill"></span></div></div>
   <div id="dex-list" class="dex-grid"></div>
   <article id="dex-detail" class="dex-detail" hidden>
     <div id="dex-preview" class="dex-preview" aria-label="Prévia da criatura. Arraste para girar.">
@@ -197,10 +187,8 @@
 
 <dialog id="egg-sheet" class="sheet" aria-labelledby="egg-title">
   <div class="sheet-head">
-    <div class="dex-head">
-      <h2 id="egg-title">Ovos</h2>
-    </div>
-    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+    <button class="icon-btn close" type="button" data-close aria-label="Voltar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="egg-title" class="plate"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-3.5 0-6.5 6-6.5 10a6.5 6.5 0 0 0 13 0C18.5 9 15.5 3 12 3z"/></svg><span>Ovos</span></h2>
   </div>
   <div class="tabs" role="tablist">
     <button id="tab-inc" class="tab" role="tab" type="button" aria-selected="true">Chocadeira</button>
@@ -209,11 +197,10 @@
   <section id="egg-incubator" class="egg-pane">
     <div id="egg-wrap" class="egg-stage">
       <canvas id="egg-canvas"></canvas>
+      <p id="egg-timer" class="egg-timer"></p>
       <p id="egg-empty" class="egg-empty" hidden>Espaço vazio. Toque num ovo do inventário para trazê-lo para cá.</p>
     </div>
-    <div id="egg-slots" class="egg-slots"></div>
     <div id="egg-controls" class="egg-controls">
-      <p id="egg-timer" class="egg-timer"></p>
       <div class="stat">
         <span class="stat-label">Cuidado</span>
         <div id="care-bar" class="bar" role="progressbar" aria-label="Cuidado" aria-valuemin="0" aria-valuemax="100"><span class="fill"></span></div>
@@ -221,10 +208,12 @@
       </div>
       <p id="egg-hint" class="hint"></p>
       <div class="btn-row">
-        <button id="egg-clean" class="btn soft" type="button">Limpar</button>
-        <button id="egg-play" class="btn soft" type="button">Brincar</button>
+        <button id="egg-clean" class="btn primary" type="button"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c3 4.5 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-6.5 6-11z"/></svg><span>Limpar</span></button>
+        <button id="egg-play" class="btn primary" type="button"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg><span>Brincar</span></button>
       </div>
     </div>
+    <p class="sec-plate"><span>Chocadeiras</span><span id="egg-slots-count"></span></p>
+    <div id="egg-slots" class="egg-slots"></div>
   </section>
   <section id="egg-inventory" class="egg-pane" hidden>
     <p id="inv-hint" class="hint"></p>
@@ -234,16 +223,11 @@
 
 <dialog id="shop-sheet" class="sheet" aria-labelledby="shop-title">
   <div class="sheet-head">
-    <div class="dex-head">
-      <h2 id="shop-title">Loja</h2>
-      <span id="bag-coins" class="badge"></span>
-    </div>
+    <button class="icon-btn close" type="button" data-close aria-label="Voltar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="shop-title" class="plate"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1.2 1.1-2 2.5-2s2.5.8 2.5 2-1.1 1.5-2.5 1.5-2.5.6-2.5 1.8 1.1 2 2.5 2 2.5-.8 2.5-2"/></svg><span>Loja</span></h2>
     <div class="head-actions">
-      <button id="shop-bag" class="icon-btn" type="button" aria-label="Abrir a mochila">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span id="bag-new" class="icon-count" hidden></span>
-      </button>
-      <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+      <span id="bag-coins" class="coin-chip"></span>
+      <button id="shop-bag" class="icon-btn" type="button" aria-label="Abrir a mochila"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><path d="M10 13h4"/></svg><span id="bag-new" class="icon-count" hidden></span></button>
     </div>
   </div>
   <div class="tabs" role="tablist">
@@ -268,8 +252,11 @@
 
 <dialog id="bag-sheet" class="sheet" aria-labelledby="bag-title">
   <div class="sheet-head">
-    <h2 id="bag-title">Mochila</h2>
-    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+    <button class="icon-btn close" type="button" data-close aria-label="Voltar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="bag-title" class="plate"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><path d="M10 13h4"/></svg><span>Mochila</span></h2>
+    <div class="head-actions">
+      <button id="bag-shop" class="link-chip" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1.2 1.1-2 2.5-2s2.5.8 2.5 2-1.1 1.5-2.5 1.5-2.5.6-2.5 1.8 1.1 2 2.5 2 2.5-.8 2.5-2"/></svg><span>Loja</span></button>
+    </div>
   </div>
   <p id="bag-hint" class="hint"></p>
   <div id="bag-list" class="list"></div>
@@ -294,8 +281,8 @@
 
 <dialog id="account-sheet" class="sheet" aria-labelledby="account-title">
   <div class="sheet-head">
-    <h2 id="account-title">Conta</h2>
-    <button class="icon-btn close" type="button" data-close aria-label="Fechar">&times;</button>
+    <button class="icon-btn close" type="button" data-close aria-label="Voltar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="account-title" class="plate"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span>Conta</span></h2>
   </div>
   <div class="account-body">
     <p id="account-email" class="account-email"></p>

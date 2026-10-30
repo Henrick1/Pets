@@ -46,6 +46,7 @@ reset(out);
 
 copyDir(path.join(root, "web-src"), out, n => n !== "sw.js");
 copyDir(path.join(root, "lib"), path.join(out, "lib"));
+copyDir(path.join(root, "lib", "fonts"), path.join(out, "lib", "fonts"), n => n.endsWith(".woff") || n.endsWith(".txt"));
 copyDir(path.join(root, "pets"), path.join(out, "pets"), n => n.endsWith(".js"));
 copyDir(path.join(root, "assets"), path.join(out, "assets"), n => n.endsWith(".png"));
 copy(path.join(root, "config.js"), path.join(out, "config.js"));
