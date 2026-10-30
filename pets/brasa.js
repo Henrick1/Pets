@@ -1,7 +1,7 @@
 Pets.register({
   id: "brasa",
   dex: 15,
-  name: "Brasa",
+  name: "Trichama",
   color: "#ff7a2e",
   types: ["fire"],
   description: "Raposa de fogo com três caudas em chamas. Quanto mais bem alimentada, mais forte queimam as chamas do seu corpo.",

@@ -1,7 +1,7 @@
 Pets.register({
   id: "breuzinho",
   dex: 24,
-  name: "Breuzinho",
+  name: "Poçombra",
   color: "#4a3a7a",
   types: ["dark"],
   evolvesTo: "eclipsar",

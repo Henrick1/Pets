@@ -1,7 +1,7 @@
 Pets.register({
   id: "escaravelho",
   dex: 17,
-  name: "Escaravelho",
+  name: "Vitrassol",
   color: "#2f5fc0",
   types: ["bug", "light"],
   description: "Carrega nas patas um pequeno sol que ele mesmo moldou com luz. Durante o dia empurra a esfera pelo céu, e quando abre as asas de vitral o chão inteiro se pinta de cores.",

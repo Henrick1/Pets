@@ -1,7 +1,7 @@
 Pets.register({
   id: "marola",
   dex: 11,
-  name: "Marola",
+  name: "Gotíbora",
   color: "#4fb8f0",
   types: ["water"],
   description: "Filhote de serpente que vive nas poças e riachos rasos. Adora cuspir jatinhos d'água e nadar em espiral. Dizem que a pintinha amarela na testa um dia vira uma grande carga elétrica.",

@@ -1,7 +1,7 @@
 Pets.register({
   id: "sineta",
   dex: 14,
-  name: "Sineta",
+  name: "Badalma",
   color: "#d9a441",
   types: ["ghost"],
   description: "Um sino antigo assombrado por um espírito mascarado. Seu toque ecoa pela casa mesmo quando ninguém o balança.",

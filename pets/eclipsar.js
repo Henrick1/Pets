@@ -415,7 +415,7 @@
     name: "Eclipsar",
     color: "#2a2340",
     types: ["dark", "light"],
-    description: "Quando um Breuzinho cresce, a sombra ganha forma de felino e prende um pedaço do sol nas costas. O anel de luz que carrega nunca se apaga por completo: dizem que é o último eclipse que ele viu.",
+    description: "Quando um Poçombra cresce, a sombra ganha forma de felino e prende um pedaço do sol nas costas. O anel de luz que carrega nunca se apaga por completo: dizem que é o último eclipse que ele viu.",
     actions: {
       jump: { duration: 1.1 },
       eat: { duration: 2.4 },

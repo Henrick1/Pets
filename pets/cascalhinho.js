@@ -1,7 +1,7 @@
 Pets.register({
   id: "cascalhinho",
   dex: 18,
-  name: "Cascalhinho",
+  name: "Musgalho",
   color: "#9a958c",
   types: ["rock"],
   description: "Uma pedrinha cinza, emburrada e cheia de musgo, que passa o dia cochilando parada como uma pedra qualquer. Pela rachadinha do lado dá para ver um brilho roxo escondido lá dentro.",

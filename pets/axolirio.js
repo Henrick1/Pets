@@ -4,7 +4,7 @@ Pets.register({
   name: "Axolírio",
   color: "#d46ad8",
   types: ["poison"],
-  description: "Quando um Axolote cresce feliz, o lodo das costas floresce em lírios venenosos e as brânquias viram leques de plumas que brilham. Ele espalha esporos tóxicos coloridos quando está contente, e dizem que onde ele brinca nascem flores que nenhum outro bicho ousa tocar.",
+  description: "Quando um Toxolote cresce feliz, o lodo das costas floresce em lírios venenosos e as brânquias viram leques de plumas que brilham. Ele espalha esporos tóxicos coloridos quando está contente, e dizem que onde ele brinca nascem flores que nenhum outro bicho ousa tocar.",
   actions: {
     jump: { duration: 0.95 },
     eat: { duration: 2.4 },

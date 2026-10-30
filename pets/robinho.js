@@ -1,7 +1,7 @@
 Pets.register({
   id: "robinho",
   dex: 8,
-  name: "Robinho",
+  name: "Engrenim",
   color: "#7fb8de",
   types: ["steel"],
   description: "Robozinho de aço que anda sobre uma única roda. Adora passear de um lado para o outro com a engrenagem do peito sempre girando.",

@@ -4,7 +4,7 @@ Pets.register({
   name: "Magmarra",
   color: "#b8401a",
   types: ["dragon", "fire"],
-  description: "A casca do Brasinha endurece e vira uma armadura de basalto. As asinhas caem e no lugar delas cresce um vulcão de verdade nas costas, que fumega quando ele respira e entra em erupção quando ele ruge. Os chifres são blocos de pedra empilhados, e o rabo pesado faz a terra tremer.",
+  description: "A casca do Dracasca endurece e vira uma armadura de basalto. As asinhas caem e no lugar delas cresce um vulcão de verdade nas costas, que fumega quando ele respira e entra em erupção quando ele ruge. Os chifres são blocos de pedra empilhados, e o rabo pesado faz a terra tremer.",
   actions: {
     eat: { duration: 2.6 },
     slam: { duration: 2.2 },

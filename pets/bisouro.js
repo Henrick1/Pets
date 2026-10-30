@@ -1,7 +1,7 @@
 Pets.register({
   id: "bisouro",
   dex: 16,
-  name: "Bisouro",
+  name: "Brilhouro",
   color: "#f2b632",
   types: ["bug", "light"],
   description: "Um besourinho dourado redondo como uma joia. Debaixo da carapaça esconde asas de vitral que brilham coloridas quando ele voa, e as pontinhas das antenas acendem como lanternas.",

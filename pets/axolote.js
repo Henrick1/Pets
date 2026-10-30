@@ -1,7 +1,7 @@
 Pets.register({
   id: "axolote",
   dex: 5,
-  name: "Axolote",
+  name: "Toxolote",
   color: "#b36ad6",
   types: ["poison"],
   evolveBranches: { happy: "axolirio", sad: "lugubrio" },

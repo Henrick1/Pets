@@ -1,10 +1,10 @@
 Pets.register({
   id: "robozao",
   dex: 10,
-  name: "Robozão",
+  name: "Gladiaço",
   color: "#3f7fb5",
   types: ["steel", "fighting"],
-  description: "A forma final do Robô. Ombros largos, cintura fina e três engrenagens no peito: um lutador de aço que vive em guarda com as luvas erguidas, pronto para o próximo round.",
+  description: "A forma final do Punhaço. Ombros largos, cintura fina e três engrenagens no peito: um lutador de aço que vive em guarda com as luvas erguidas, pronto para o próximo round.",
   actions: {
     jump: { duration: 1.1 },
     eat: { duration: 2.4 },

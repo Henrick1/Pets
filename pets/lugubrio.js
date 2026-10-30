@@ -4,7 +4,7 @@ Pets.register({
   name: "Lugúbrio",
   color: "#5a3a7a",
   types: ["poison", "dark"],
-  description: "Quando um Axolote cresce triste, ele fica de pé, se fecha e puxa o lodo das costas até a cabeça como um capuz venenoso. As brânquias ficam caídas, espremidas pelo capuz, e uma mecha de lodo cobre um dos olhos. Quase não fala, mas onde passa deixa uma névoa escura e tóxica.",
+  description: "Quando um Toxolote cresce triste, ele fica de pé, se fecha e puxa o lodo das costas até a cabeça como um capuz venenoso. As brânquias ficam caídas, espremidas pelo capuz, e uma mecha de lodo cobre um dos olhos. Quase não fala, mas onde passa deixa uma névoa escura e tóxica.",
   actions: {
     eat: { duration: 2.6 },
     fume: { duration: 3.0 },

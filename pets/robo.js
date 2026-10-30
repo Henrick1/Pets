@@ -1,7 +1,7 @@
 Pets.register({
   id: "robo",
   dex: 9,
-  name: "Robô",
+  name: "Punhaço",
   color: "#5fa8d3",
   types: ["steel", "fighting"],
   description: "Ganhou pernas, uma segunda engrenagem e luvas de boxe. Junta a resistência do aço com o espírito de um lutador.",

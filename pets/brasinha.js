@@ -1,7 +1,7 @@
 Pets.register({
   id: "brasinha",
   dex: 22,
-  name: "Brasinha",
+  name: "Dracasca",
   color: "#e0602a",
   types: ["dragon", "fire"],
   evolvesTo: "magmarra",

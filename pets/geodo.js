@@ -1,7 +1,7 @@
 Pets.register({
   id: "geodo",
   dex: 19,
-  name: "Geodo",
+  name: "Cristalma",
   color: "#8e5cd8",
   types: ["rock", "psychic"],
   description: "Por fora parece só uma rocha velha, mas a casca se abre como uma concha e revela um interior forrado de cristais de ametista. No centro flutua um coração de cristal que lê pensamentos e amplifica tudo o que sente.",
