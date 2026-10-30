@@ -573,10 +573,24 @@
     return state.eggs.find(e => e.slot === i) || null;
   }
 
+  function eggArt(node, color) {
+    if (node.dataset.c === color && node.querySelector("img")) return;
+    const url = window.PetStage && window.THREE && PetStage.eggThumbnail ? PetStage.eggThumbnail(window.THREE, color, 160) : null;
+    if (!url) return;
+    node.dataset.c = color;
+    node.replaceChildren();
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "";
+    node.append(img);
+    node.classList.add("egg3d");
+  }
+
   function miniEgg(color) {
     const egg = document.createElement("span");
     egg.className = "mini-egg";
     egg.style.setProperty("--c", color);
+    eggArt(egg, color);
     return egg;
   }
 
@@ -650,7 +664,7 @@
     $("inv-hint").textContent = inv.length
       ? full
         ? "A chocadeira está cheia. Espere um ovo chocar para colocar outro."
-        : "Toque num ovo para levá-lo à chocadeira."
+        : ""
       : "Nenhum ovo guardado. Compre ovos na loja da mochila.";
     const list = $("egg-list");
     list.replaceChildren();
@@ -723,7 +737,7 @@
     if (eggStage) eggStage.setEggCare(e.care);
     $("egg-timer").textContent = e.left <= 0 ? "Pronto para chocar!" : "Choca em " + fmtTime(e.left);
     $("egg-hint").textContent =
-      e.left <= 0 ? "" : e.care <= 0 ? "O ovo está sem cuidado e parou de chocar. Limpe e brinque com ele." : "Mantenha o cuidado alto para o tempo continuar correndo.";
+      e.left <= 0 ? "" : e.care <= 0 ? "O ovo está sem cuidado e parou de chocar. Limpe e brinque com ele." : "";
     $("egg-clean").disabled = e.left <= 0 || e.care >= 99.5;
     $("egg-play").disabled = e.left <= 0 || e.care >= 99.5;
     if (e.left <= 0 && eggStage && eggStage.hasEgg() && shownEggId === e.id && eggStage.eggCracks() === 0) {
@@ -1008,6 +1022,7 @@
 
   function renderShop() {
     Game.catchUp(state);
+    eggArt($("shop-egg"), "#b9a7d6");
     if (!coinAnim || shownCoins === state.coins) setBagCoins(state.coins, false);
     $("tab-store").setAttribute("aria-selected", String(shopTab === "items"));
     $("tab-eggstore").setAttribute("aria-selected", String(shopTab === "eggs"));
@@ -1025,9 +1040,9 @@
     $("shop-hint").textContent = !pool.length
       ? "Nenhuma criatura disponível nos ovos."
       : state.coins < Game.C.EGG_PRICE
-        ? "Moedas insuficientes. Cuide do grupo, pegue o presente do dia e faça expedições para ganhar mais."
-        : "O ovo vai para o inventário de ovos.";
-    $("store-hint").textContent = "O que você compra vai para a mochila. Seu grupo rende moedas toda hora enquanto está alimentado e feliz.";
+        ? "Moedas insuficientes."
+        : "";
+    $("store-hint").textContent = "";
     const store = $("store-list");
     store.replaceChildren();
     Object.keys(Game.ITEMS).filter(k => Game.ITEMS[k].price).forEach(k => {
@@ -1073,7 +1088,7 @@
     const have = Object.keys(Game.ITEMS).filter(k => state.inventory[k] > 0);
     $("bag-to-shop").hidden = have.length > 0;
     $("bag-hint").textContent = have.length
-      ? "Os itens são usados em " + petName + ". Para usar em outro, troque de bichinho no Grupo."
+      ? ""
       : "A mochila está vazia. Compre itens na loja ou mande bichinhos em expedições.";
     have.forEach(k => {
       const it = Game.ITEMS[k];
@@ -1540,15 +1555,7 @@
     $("party-hero").hidden = !heroP;
     if (heroP) setHero(heroP);
 
-    if (tab === "party") {
-      $("sheet-hint").textContent = "Toque em um bichinho para cuidar dele. Todo o grupo gasta fome, vida e felicidade, mesmo fora da tela.";
-    } else if (tab === "exp") {
-      $("sheet-hint").textContent = "Quem sai em expedição não gasta nada e volta com moedas e itens do seu tipo.";
-    } else if (swapIn) {
-      $("sheet-hint").textContent = "Escolha quem sai do grupo para dar lugar ao novo bichinho.";
-    } else {
-      $("sheet-hint").textContent = "Quem está na caixa fica parado: não gasta fome, vida nem felicidade.";
-    }
+    $("sheet-hint").textContent = tab === "box" && swapIn ? "Escolha quem sai do grupo para dar lugar ao novo bichinho." : "";
 
     const stagger = animateList;
     animateList = false;
@@ -1731,17 +1738,6 @@
     $("party-alert").hidden = !(state.expeditions.some(x => x.endsAt <= Date.now()) || v.party.some(p => !p.away && (p.dying || p.hunger <= 25 || p.life <= 25 || p.joy <= 25)));
     $("coins-val").textContent = v.coins.toLocaleString("pt-BR");
     $("coins-btn").setAttribute("aria-label", v.coins + " moedas. Abrir a loja");
-    const hint = v.dying
-      ? v.treat.can
-        ? "Está morrendo. Toque em Tratar ou use uma poção."
-        : "Está morrendo. Use uma poção da mochila."
-      : v.hunger <= 25
-        ? "Com fome. Alimentar também recupera a vida."
-        : v.joy <= 25
-          ? "Triste. Toque nele para brincar."
-          : "";
-    $("care-hint").textContent = hint;
-    $("care-hint").hidden = !hint;
     const note = v.treat.healing ? "" : v.treat.used ? "Amanhã" : "";
     $("treat-note").textContent = note;
     $("treat-note").hidden = !note;

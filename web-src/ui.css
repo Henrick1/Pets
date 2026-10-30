@@ -1385,8 +1385,16 @@ a:focus-visible {
 
 .egg-stage {
   position: relative;
+  flex: 1 1 260px;
+  height: auto;
+  min-height: 110px;
+  max-height: 300px;
   border-radius: 0;
   background: transparent;
+}
+
+#egg-incubator > :not(.egg-stage) {
+  flex-shrink: 0;
 }
 
 .egg-timer {
@@ -1809,4 +1817,33 @@ a:focus-visible {
 
 .si-xp {
   --sc: #59b7ff;
+}
+
+#egg-hint:empty {
+  display: none;
+}
+
+.mini-egg.egg3d {
+  background: none;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.mini-egg.egg3d::before,
+.mini-egg.egg3d::after {
+  display: none;
+}
+
+.mini-egg.egg3d img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 172%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+#shop-egg.egg3d img {
+  height: 150%;
 }
