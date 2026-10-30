@@ -52,24 +52,31 @@ Pets.register({
       return geo;
     };
 
-    const flameGeo = (h, w, bend) => {
+    const flameGeo = (h, w, bend, c0, c1, c2) => {
       const pts = [];
-      for (let i = 0; i <= 16; i++) {
-        const u = i / 16;
-        const r = w * Math.sin(Math.PI * Math.pow(u, 0.62)) * (1 - 0.3 * u);
+      for (let i = 0; i <= 14; i++) {
+        const u = i / 14;
+        const r = w * Math.sin(Math.PI * Math.pow(u, 0.55)) * (1 - 0.35 * u);
         pts.push(new THREE.Vector2(Math.max(r, 0.0001), u * h));
       }
-      const g = new THREE.LatheGeometry(pts, 18);
+      const g = new THREE.LatheGeometry(pts, 14);
       const pos = g.attributes.position;
+      const col = new Float32Array(pos.count * 3);
+      const ca = hexParts(c0);
+      const cb = hexParts(c1);
+      const cc = hexParts(c2);
       for (let i = 0; i < pos.count; i++) {
         const u = pos.getY(i) / h;
         pos.setX(i, pos.getX(i) + bend * h * u * u);
+        for (let q = 0; q < 3; q++) col[i * 3 + q] = u < 0.45 ? lerp(ca[q], cb[q], u / 0.45) : lerp(cb[q], cc[q], (u - 0.45) / 0.55);
       }
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
       g.computeVertexNormals();
       return g;
     };
 
     const tailProfile = f => (f >= 1 ? 0 : Math.pow(Math.sin(Math.PI * (0.1 + 0.9 * f)), 0.55));
+    const tailJag = (f, a) => 0.14 * Math.sin(Math.PI * Math.min(1, f * 1.15)) * Math.pow(Math.abs(Math.sin(a * 3 + f * 7)), 3);
     const tailTube = (rings, rad, r0, colorAt) => {
       const geo = new THREE.BufferGeometry();
       const pos = new Float32Array(rings * (rad + 1) * 3);
@@ -108,8 +115,9 @@ Pets.register({
           for (let j = 0; j <= rad; j++) {
             const a = (j / rad) * Math.PI * 2;
             const o = (i * (rad + 1) + j) * 3;
-            const ca = Math.cos(a) * r;
-            const sa = Math.sin(a) * r;
+            const rr = r * (1 + tailJag(f, a));
+            const ca = Math.cos(a) * rr;
+            const sa = Math.sin(a) * rr;
             pos[o] = p.x + side.x * ca + up.x * sa;
             pos[o + 1] = p.y + side.y * ca + up.y * sa;
             pos[o + 2] = p.z + side.z * ca + up.z * sa;
@@ -135,19 +143,37 @@ Pets.register({
     };
 
     const flames = [];
+    const TONGUES = [
+      { x: 0, z: 0, h: 1, w: 1, rz: 0, b: 1 },
+      { x: -0.5, z: 0.1, h: 0.62, w: 0.6, rz: 0.42, b: -1 },
+      { x: 0.5, z: 0.05, h: 0.56, w: 0.56, rz: -0.45, b: 1 },
+      { x: 0.1, z: -0.4, h: 0.74, w: 0.62, rz: -0.12, b: 0.6 }
+    ];
     const flame = (h, w, bend, outer, inner, phase) => {
       const g = new THREE.Group();
-      const o = new THREE.Mesh(
-        flameGeo(h, w, bend),
-        new THREE.MeshBasicMaterial({ color: outer, transparent: true, opacity: 0.94 })
-      );
-      const i = new THREE.Mesh(
-        flameGeo(h * 0.68, w * 0.58, bend * 0.7),
-        new THREE.MeshBasicMaterial({ color: inner })
-      );
-      i.position.z = 0.002;
-      g.add(o, i);
-      const f = { g, phase, base: 1, kx: 1 };
+      const base = hexMix(inner, outer, 0.3);
+      const deep = hexMix(outer, 0x000000, 0.3);
+      const hot = hexMix(inner, 0xffffff, 0.55);
+      const oMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false });
+      const iMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+      const tongues = TONGUES.map((T, j) => {
+        const q = new THREE.Group();
+        q.position.set(T.x * w, 0, T.z * w);
+        q.rotation.z = T.rz;
+        q.rz = T.rz;
+        q.add(new THREE.Mesh(flameGeo(h * T.h, w * T.w, bend * T.b + (j ? 0.25 * T.b : 0), base, outer, deep), oMat));
+        const inn = new THREE.Mesh(flameGeo(h * T.h * 0.62, w * T.w * 0.55, bend * T.b * 0.7, hot, inner, outer), iMat);
+        inn.position.z = 0.002;
+        q.add(inn);
+        g.add(q);
+        return q;
+      });
+      const tick = t =>
+        tongues.forEach((q, j) => {
+          q.scale.y = 1 + 0.18 * Math.sin(t * (9 + j * 2.3) + phase * 3 + j * 1.9);
+          q.rotation.z = q.rz + Math.sin(t * (5 + j) + phase + j) * 0.1;
+        });
+      const f = { g, phase, base: 1, kx: 1, tick };
       flames.push(f);
       return f;
     };
@@ -583,6 +609,7 @@ Pets.register({
           const flick = 1 + 0.13 * Math.sin(t * 9 + ph2 * 3) + 0.07 * Math.sin(t * 17 + ph2 * 5);
           const wide = 1 + 0.08 * Math.sin(t * 7 + ph2 * 2);
           f.g.scale.set(wide * k, Math.max(0.05, flick * k * f.base), wide * k);
+          f.tick(t);
         });
         crest.forEach(f => {
           f.g.rotation.z = f.rz + Math.sin(t * 3 + f.phase) * 0.1 * motion;
