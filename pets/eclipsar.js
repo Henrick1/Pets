@@ -374,7 +374,17 @@
     const si = new Uint16Array(p.count * 4);
     const sw = new Float32Array(p.count * 4);
     for (let i = 0; i < p.count; i++) {
-      const w = sstep(1.46, 1.68, p.getY(i) - Math.max(0, p.getZ(i) - 0.3) * 0.4);
+      const x = p.getX(i);
+      const y = p.getY(i);
+      const z = p.getZ(i);
+      const hx = (x - HO[0]) / HS;
+      const hy = (y - HO[1]) / HS;
+      const hz = (z - HO[2]) / HS;
+      const hb = headBound(hx, hy, hz);
+      const hd = (hb === null ? headShape(hx, hy, hz) : hb) * HS;
+      const bb = bodyBound(x, y, z);
+      const bd = bb === null ? bodyShape(x, y, z) : bb;
+      const w = Math.max(sstep(-0.05, 0.07, bd - hd), sstep(1.5, 1.72, y));
       si[i * 4] = 0;
       si[i * 4 + 1] = 2;
       sw[i * 4] = 1 - w;
@@ -391,8 +401,8 @@
 
   function surfZ(x, y) {
     let z = 0.6;
-    for (let i = 0; i < 60; i++) {
-      const d = headShape(x, y, z);
+    for (let i = 0; i < 80; i++) {
+      const d = smin(bodyShape(HO[0] + x * HS, HO[1] + y * HS, HO[2] + z * HS) / HS, headShape(x, y, z), 0.09 / HS);
       if (d < 0.0005) break;
       z -= Math.max(d * 0.8, 0.0008);
     }
@@ -535,16 +545,19 @@
       );
       const irisTex = tex(
         canvas("iris", 256, 256, (g, rnd, w, h) => {
-          const edge = h * 0.29;
+          const edge = h * 0.36;
           const gr = g.createLinearGradient(0, 0, 0, edge);
           gr.addColorStop(0, "#fff3a8");
           gr.addColorStop(0.35, "#ffd24a");
           gr.addColorStop(0.75, "#f09a1c");
           gr.addColorStop(0.92, "#7a3f08");
-          gr.addColorStop(1, "#1a0e05");
+          gr.addColorStop(1, "#4a2606");
           g.fillStyle = gr;
           g.fillRect(0, 0, w, edge);
-          g.fillStyle = "#0d0805";
+          const out = g.createLinearGradient(0, edge, 0, h * 0.6);
+          out.addColorStop(0, "#4a2606");
+          out.addColorStop(1, "#2a1606");
+          g.fillStyle = out;
           g.fillRect(0, edge, w, h - edge);
           for (let i = 0; i < 420; i++) {
             const x = rnd() * w;
@@ -1015,8 +1028,8 @@
           const openK = clamp(blink, 0, 1);
           eyes.forEach(({ look, pupil, upper, lower, gl, shine, shine2 }) => {
             shine.visible = shine2.visible = openK > 0.45 && squint < 0.9;
-            const up = lerp(0.24, -0.66 - flare * 0.3 + squint * 0.42, openK);
-            const lo = lerp(0.16, 0.8 + flare * 0.2 - squint * 0.3, openK);
+            const up = lerp(0.24, -0.66 - flare * 0.12 + squint * 0.42, openK);
+            const lo = lerp(0.16, 0.8 + flare * 0.06 - squint * 0.3, openK);
             upper.rotation.x = up;
             lower.rotation.x = lo;
             look.rotation.y = lerp(look.rotation.y, pointer.x * 0.32, 0.15);
