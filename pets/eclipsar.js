@@ -237,7 +237,7 @@
     d = smin(d, sdEll(ax, y, z, 0.27, 0.4, -0.26, 0.26, 0.34, 0.4), 0.1);
     d = smin(d, sdCone(x, y, z, 0, 0.62, -0.36, 0, 1.3, -0.06, 0.3, 0.23), 0.15);
     d = smin(d, sdEll(x, y, z, 0, 1.08, 0.02, 0.32, 0.46, 0.31), 0.12);
-    d = smin(d, sdCone(x, y, z, 0, 1.3, 0.06, 0, 1.7, 0.2, 0.23, 0.2), 0.12);
+    d = smin(d, sdCone(x, y, z, 0, 1.3, 0.06, 0, 1.68, 0.2, 0.29, 0.24), 0.14);
     d = smin(d, sdEll(ax, y, z, 0.17, 1.16, 0.08, 0.13, 0.18, 0.15), 0.08);
     d = smin(d, sdCone(ax, y, z, 0.18, 1.14, 0.16, 0.185, 0.78, 0.22, 0.1, 0.08), 0.06);
     d = smin(d, sdCone(ax, y, z, 0.185, 0.78, 0.22, 0.18, 0.16, 0.33, 0.078, 0.062), 0.025);
@@ -245,10 +245,10 @@
     if (y < 0.14 && z > 0.36) for (let t = 0; t < 4; t++) d = smin(d, sdSph(ax, y, z, 0.18 + (t - 1.5) * 0.047, 0.04, 0.5 - Math.abs(t - 1.5) * 0.022, 0.035), 0.016);
     d = smin(d, sdEll(ax, y, z, 0.39, 0.064, 0.04, 0.092, 0.064, 0.23), 0.07);
     if (y < 0.14 && z > 0.1) for (let t = 0; t < 4; t++) d = smin(d, sdSph(ax, y, z, 0.39 + (t - 1.5) * 0.046, 0.038, 0.24 - Math.abs(t - 1.5) * 0.02, 0.034), 0.016);
-    d = smin(d, sdEll(x, y, z, 0, 1.18, 0.2, 0.23, 0.34, 0.14), 0.09);
+    d = smin(d, sdEll(x, y, z, 0, 1.24, 0.2, 0.25, 0.38, 0.15), 0.1);
     return d;
   }
-  const bibMask = (x, y, z) => clamp(1 - sdEll(x, y, z, 0, 1.16, 0.26, 0.25, 0.42, 0.22) * 5, 0, 1);
+  const bibMask = (x, y, z) => clamp(1 - sdEll(x, y, z, 0, 1.24, 0.26, 0.26, 0.46, 0.22) * 5, 0, 1);
   function bodyF(x, y, z) {
     const d = bodyShape(x, y, z);
     if (d > 0.08) return d;
@@ -277,13 +277,13 @@
   const EYE = [0.155, 0.04, 0.255];
   function headShape(x, y, z) {
     const ax = Math.abs(x);
-    let d = sdEll(x, y, z, 0, 0.05, -0.03, 0.37, 0.33, 0.34);
-    d = smin(d, sdEll(ax, y, z, 0.17, -0.1, 0.05, 0.22, 0.19, 0.23), 0.1);
-    d = smin(d, sdCone(x, y, z, 0, 0.06, 0.24, 0, -0.06, 0.32, 0.1, 0.075), 0.08);
-    d = smin(d, sdEll(ax, y, z, 0.062, -0.125, 0.3, 0.085, 0.068, 0.08), 0.04);
-    d = smin(d, sdEll(x, y, z, 0, -0.2, 0.25, 0.075, 0.05, 0.07), 0.05);
+    let d = sdEll(x, y, z, 0, 0.06, -0.04, 0.36, 0.31, 0.33);
+    d = smin(d, sdEll(ax, y, z, 0.16, -0.06, 0.06, 0.2, 0.17, 0.21), 0.1);
+    d = smin(d, sdEll(x, y, z, 0, -0.12, 0.06, 0.2, 0.13, 0.2), 0.1);
+    d = smin(d, sdCone(x, y, z, 0, 0.06, 0.22, 0, -0.05, 0.31, 0.095, 0.07), 0.08);
+    d = smin(d, sdEll(ax, y, z, 0.06, -0.115, 0.29, 0.08, 0.064, 0.075), 0.04);
+    d = smin(d, sdEll(x, y, z, 0, -0.19, 0.24, 0.065, 0.045, 0.06), 0.05);
     d = smin(d, sdEll(ax, y, z, 0.15, 0.115, 0.23, 0.11, 0.06, 0.08), 0.06);
-    d = smin(d, sdCone(x, y, z, 0, -0.1, -0.1, 0, -0.38, -0.2, 0.22, 0.235), 0.1);
     d = smax(d, -sdSph(ax, y, z, EYE[0], EYE[1], EYE[2], 0.092), 0.03);
     return d;
   }
@@ -293,10 +293,10 @@
     const ax = Math.abs(x);
     const face = sstep(0.12, 0.26, z) * sstep(0.32, 0.12, ax);
     let f = (noise(ax * 22, y * 9, z * 22) - 0.5) * 0.014 * (1 - face * 0.7);
-    const ruff = Math.max(sstep(0.15, 0.3, ax) * sstep(0.04, -0.14, y) * sstep(0.32, 0.0, z), sstep(-0.2, -0.3, y) * 0.8);
+    const ruff = sstep(0.14, 0.28, ax) * sstep(0.02, -0.1, y) * sstep(0.3, 0.0, z);
     if (ruff > 0) {
       const tuft = noise(ax * 18, y * 8 + ax * 9, z * 18);
-      f += ruff * tuft * tuft * 0.045;
+      f += ruff * tuft * tuft * 0.035;
     }
     return d - f * sstep(0.06, 0.0, d);
   }
@@ -334,11 +334,56 @@
     o[6] = 0.36 * inner;
   }
 
+  const HO = [0, 1.85, 0.33];
+  const HS = 1.12;
+  const bodyBound = (x, y, z) => (y > 2.0 ? y - 1.94 : null);
+  const headBound = (hx, hy, hz) => {
+    const r = Math.sqrt(hx * hx + hy * hy + hz * hz);
+    return r > 0.72 ? r - 0.58 : null;
+  };
+  function catF(x, y, z) {
+    const hx = (x - HO[0]) / HS;
+    const hy = (y - HO[1]) / HS;
+    const hz = (z - HO[2]) / HS;
+    const hb = headBound(hx, hy, hz);
+    const hd = (hb === null ? headF(hx, hy, hz) : hb) * HS;
+    const bb = bodyBound(x, y, z);
+    const bd = bb === null ? bodyF(x, y, z) : bb;
+    return smin(bd, hd, 0.09);
+  }
+  const tmpA = [0, 0, 0, 0, 0, 0, 0];
+  const tmpB = [0, 0, 0, 0, 0, 0, 0];
+  function catPaint(x, y, z, o) {
+    const hx = (x - HO[0]) / HS;
+    const hy = (y - HO[1]) / HS;
+    const hz = (z - HO[2]) / HS;
+    const hb = headBound(hx, hy, hz);
+    const hd = (hb === null ? headShape(hx, hy, hz) : hb) * HS;
+    const bb = bodyBound(x, y, z);
+    const bd = bb === null ? bodyShape(x, y, z) : bb;
+    const k = sstep(-0.04, 0.04, bd - hd);
+    bodyPaint(x, y, z, tmpA);
+    headPaint(hx, hy, hz, tmpB);
+    for (let i = 0; i < 7; i++) o[i] = tmpA[i] + (tmpB[i] - tmpA[i]) * k;
+  }
+
   function geometry(THREE) {
     if (cache.geo) return cache.geo;
+    const body = sculpt(THREE, catF, [-0.66, -0.04, -0.78, 0.66, 2.38, 0.84], 0.02, catPaint);
+    const p = body.attributes.position;
+    const si = new Uint16Array(p.count * 4);
+    const sw = new Float32Array(p.count * 4);
+    for (let i = 0; i < p.count; i++) {
+      const w = sstep(1.46, 1.68, p.getY(i) - Math.max(0, p.getZ(i) - 0.3) * 0.4);
+      si[i * 4] = 0;
+      si[i * 4 + 1] = 2;
+      sw[i * 4] = 1 - w;
+      sw[i * 4 + 1] = w;
+    }
+    body.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(si, 4));
+    body.setAttribute("skinWeight", new THREE.Float32BufferAttribute(sw, 4));
     cache.geo = {
-      body: sculpt(THREE, bodyF, [-0.66, -0.04, -0.78, 0.66, 1.8, 0.64], 0.024, bodyPaint),
-      head: sculpt(THREE, headF, [-0.5, -0.5, -0.46, 0.5, 0.42, 0.46], 0.016, headPaint),
+      body,
       ear: sculpt(THREE, earF, [-0.19, -0.08, -0.09, 0.19, 0.4, 0.13], 0.011, earPaint)
     };
     return cache.geo;
@@ -530,11 +575,11 @@
         uStarCol: { value: new THREE.Color(0xffc860) }
       };
       const furMaterial = (o = {}) => {
-        const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.82, metalness: 0.0, vertexColors: true, side: o.side || THREE.FrontSide });
+        const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.82, metalness: 0.0, vertexColors: true, side: o.side || THREE.FrontSide, skinning: !!o.skin });
         m.extensions = { derivatives: true };
         const scale = o.scale || 2.8;
         const bump = o.bump || 0.011;
-        m.customProgramCacheKey = () => "eclipsar-fur-" + scale + "-" + bump;
+        m.customProgramCacheKey = () => "eclipsar-fur-" + scale + "-" + bump + (o.skin ? "-s" : "");
         m.onBeforeCompile = sh => {
           Object.assign(sh.uniforms, furUniforms);
           sh.vertexShader = sh.vertexShader
@@ -591,8 +636,9 @@
         return geo;
       };
 
-      const furMat = furMaterial();
-      const headMat = furMaterial({ scale: 3.0, bump: 0.01 });
+      const furMat = furMaterial({ skin: true });
+      const tailMat = furMaterial();
+      const headMat = furMaterial();
       const lidMat = furMaterial({ scale: 4, bump: 0.008, side: THREE.DoubleSide });
       const noseMat = new THREE.MeshStandardMaterial({ color: 0x3a2f48, roughness: 0.32, metalness: 0.05 });
       const mouthMat = new THREE.MeshStandardMaterial({ color: 0x07050b, roughness: 0.7 });
@@ -667,13 +713,12 @@
       const root = new THREE.Group();
       const body = new THREE.Group();
       root.add(body);
-      body.add(mesh(G.body, furMat));
 
       const tailBase = [N(0, 0.3, -0.6, 0.125), N(0.26, 0.15, -0.8, 0.118), N(0.66, 0.12, -0.5, 0.11), N(0.78, 0.12, 0.0, 0.104), N(0.62, 0.13, 0.44, 0.095), N(0.38, 0.19, 0.7, 0.084), N(0.2, 0.32, 0.8, 0.062)];
       const tailNodes = tailBase.map(q => ({ p: q.p.clone(), r: q.r }));
       const tail = loft(tailNodes, 20, 12, V3(0, 1, 0));
       paint(tail.geo, BASE, 0.9);
-      body.add(mesh(tail.geo, furMat));
+      body.add(mesh(tail.geo, tailMat));
       const tailTip = new THREE.Group();
       body.add(tailTip);
       tailTip.add(mesh(new THREE.SphereGeometry(0.07, 20, 14), goldMat, false));
@@ -722,14 +767,20 @@
         beads.push(b);
       }
 
-      const neck = new THREE.Group();
+      const rootBone = new THREE.Bone();
+      const neck = new THREE.Bone();
       neck.position.set(0, 1.64, 0.22);
-      body.add(neck);
-      const head = new THREE.Group();
-      head.position.set(0, 0.27, 0.1);
-      head.scale.setScalar(1.12);
+      rootBone.add(neck);
+      const head = new THREE.Bone();
+      head.position.set(HO[0], HO[1] - 1.64, HO[2] - 0.22);
+      head.scale.setScalar(HS);
       neck.add(head);
-      head.add(mesh(G.head, headMat));
+      const skin = new THREE.SkinnedMesh(G.body, furMat);
+      skin.castShadow = true;
+      skin.add(rootBone);
+      skin.updateMatrixWorld(true);
+      skin.bind(new THREE.Skeleton([rootBone, neck, head]));
+      body.add(skin);
 
       const nz = surfZ(0, -0.055);
       const noseShape = new THREE.Shape();
@@ -931,7 +982,7 @@
           if (eat) {
             headDown = Math.sin(Math.min(1, ph.fall) * Math.PI * 0.5) * 0.55 * (1 - ph.bite * 0.3);
             food.visible = ph.visible;
-            food.position.set(0, lerp(3.2, 1.56, ph.fall * ph.fall), lerp(1.0, 0.8, ph.fall));
+            food.position.set(0, lerp(3.2, 1.5, ph.fall * ph.fall), lerp(1.0, 0.8, ph.fall));
             food.scale.setScalar(1 - 0.85 * ph.bite);
             open = eat.p > 0.15 && eat.p < 0.85 && (eat.p < 0.32 || ph.chew > 0.35);
             squint = eat.p > 0.32 ? 0.7 : 0;
@@ -950,8 +1001,8 @@
           head.rotation.y = lerp(head.rotation.y, pointer.x * 0.45, 0.1);
           head.rotation.z = Math.sin(t * 0.7) * 0.03 * motion;
           if (atk) {
-            neck.rotation.x = atk.wind * 0.45 - atk.lunge * 0.25;
-            head.rotation.x = atk.wind * 0.25 - atk.lunge * 0.2;
+            neck.rotation.x = -atk.wind * 0.12 + atk.lunge * 0.22;
+            head.rotation.x = atk.wind * 0.12 - atk.lunge * 0.12;
           }
 
           const tw = Math.max(0, Math.sin(t * 0.9 + 1.2)) > 0.985 ? 1 : 0;

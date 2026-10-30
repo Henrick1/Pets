@@ -735,7 +735,7 @@
     setBar($("care-bar"), $("care-val"), e.care);
     $("care-bar").dataset.level = barLevel(e.care);
     if (eggStage) eggStage.setEggCare(e.care);
-    $("egg-timer").textContent = e.left <= 0 ? "Pronto para chocar!" : "Choca em " + fmtTime(e.left);
+    $("egg-timer").textContent = e.left <= 0 ? "" : "Choca em " + fmtTime(e.left);
     $("egg-hint").textContent =
       e.left <= 0 ? "" : e.care <= 0 ? "O ovo está sem cuidado e parou de chocar. Limpe e brinque com ele." : "";
     $("egg-clean").disabled = e.left <= 0 || e.care >= 99.5;
@@ -767,7 +767,7 @@
     }
     shownEggId = null;
     const name = meta[species] ? meta[species].name : species;
-    $("egg-timer").textContent = "Nasceu um " + name + "!";
+    $("egg-timer").textContent = "";
     showToast(name + " nasceu e foi para " + (r.uid && state.party.includes(r.uid) ? "o seu grupo" : "a caixa") + "!");
     const slots = $("egg-slots");
     const btn = slots.children[eggSlot];
@@ -2025,6 +2025,16 @@
       openShop("items");
     });
     $("bag-btn").addEventListener("click", openBag);
+    document.querySelectorAll(".dock .dk").forEach(b => {
+      b.addEventListener("click", () => {
+        b.classList.remove("tap");
+        void b.offsetWidth;
+        b.classList.add("tap");
+      });
+      b.addEventListener("animationend", ev => {
+        if (ev.animationName === "dk-tap") b.classList.remove("tap");
+      });
+    });
     $("shop-bag").addEventListener("click", openBag);
     $("bag-to-shop").addEventListener("click", () => openShop("items"));
     $("tab-eggstore").addEventListener("click", () => {
